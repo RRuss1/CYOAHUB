@@ -900,23 +900,26 @@ function getStat(a){a=a.toLowerCase();if(/attack|fight|strike|slash|charge/.test
 
 async function callGM(prompt){
   isLoading=true;
-  await addLog({type:'loading',who:'',text:'',choices:[]});
-  const log=await loadLog();renderLog(log);
+  const logEl=document.getElementById('log-scroll');
+  if(logEl){const d=document.createElement('div');d.className='entry-loading';d.id='gm-loading-div';d.innerHTML='<span class="dots">The Stormfather deliberates</span>';logEl.appendChild(d);}
   try{
+    console.log('callGM: calling proxy...');
     const res=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
+    console.log('callGM: response status',res.status,'error:',data.error||'none');
+    if(data.error)throw new Error(JSON.stringify(data.error));
     const raw=data.content&&data.content[0]?data.content[0].text:'The winds carry no answer tonight.';
+    console.log('callGM: raw length',raw.length);
     const choices=(raw.match(/^\d+\.\s+.+$/gm)||[]).map(c=>c.replace(/^\d+\.\s*/,''));
     const scene=raw.replace(/\[CHOICES\][\s\S]*/,'').trim();
-    const allLog=await loadLog();
-    const li=allLog.map((e,i)=>e.type==='loading'?i:-1).filter(i=>i>=0).pop();
-    if(li!==undefined){const t=await tok();const lr=logSheet()+'!A'+(li+2)+':E'+(li+2);await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+SHEET_ID+'/values/'+encodeURIComponent(lr)+'?valueInputOption=RAW',{method:'PUT',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify({range:lr,majorDimension:'ROWS',values:[['gm','',scene,JSON.stringify(choices),new Date().toISOString()]]})});}
-    else{await addLog({type:'gm',who:'',text:scene,choices});}
+    console.log('callGM: scene length',scene.length,'choices',choices.length);
+    await addLog({type:'gm',who:'',text:scene,choices});
+    console.log('callGM: written to sheet');
   }catch(e){
-    const allLog=await loadLog();
-    const li=allLog.map((e,i)=>e.type==='loading'?i:-1).filter(i=>i>=0).pop();
-    if(li!==undefined){const t=await tok();const lr2=logSheet()+'!A'+(li+2)+':E'+(li+2);await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+SHEET_ID+'/values/'+encodeURIComponent(lr2)+'?valueInputOption=RAW',{method:'PUT',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify({range:lr2,majorDimension:'ROWS',values:[['gm','','The Stormlight flickers... refresh to try again.',JSON.stringify([]),new Date().toISOString()]]})});}
+    console.error('callGM error:',e.message);
+    await addLog({type:'gm',who:'',text:'The Stormlight flickers ['+e.message+']. Refresh to try again.',choices:[]});
   }
+  const ld=document.getElementById('gm-loading-div');if(ld)ld.remove();
   isLoading=false;
 }
 
