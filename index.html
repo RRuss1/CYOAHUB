@@ -712,7 +712,9 @@ function genNPC(slot){
   const avail=NPC_ALL.filter(n=>!used.includes(n));
   const isFemale=Math.random()<0.5;
   const pool=isFemale?NPC_F.filter(n=>!used.includes(n)):NPC_M.filter(n=>!used.includes(n));
-  const name=(pool.length?pool:avail)[Math.floor(Math.random()*Math.max(pool.length,avail.length,1))]||'Radiant-'+(slot+1);
+  // Never use Radiant-N fallback — always pick from the full pool if preferred pool is exhausted
+  const finalPool=pool.length?pool:(avail.length?avail:NPC_ALL);
+  const name=finalPool[Math.floor(Math.random()*finalPool.length)];
   const color=NPC_COLORS[Math.floor(Math.random()*NPC_COLORS.length)];
   const stats={};STAT_KEYS.forEach(k=>stats[k]=Math.min(20,r4d6()+(cls.bonus[k]||0)));
   const hp=12+stats.end;
@@ -893,9 +895,11 @@ async function refreshGame(){
   if(lastGMTs!==prevLastGMTs||bottomState===''){
     setBottomFromState(log);
   }
-  if(gState.phase==='playing'&&!isLoading){
-    const cur=gState.players[gState.turn];
-    if(cur&&cur.isNPC)handleNPC(log);
+  // Do NOT auto-trigger NPC from polling — only from explicit Continue press
+  // This prevents advancing through NPC turns without user input
+  if(gState.phase==='playing'&&!isLoading&&bottomState===''){
+    // Only set initial state on first load when bottom zone is blank
+    setBottomFromState(log);
   }
 }
 
@@ -1094,9 +1098,8 @@ async function handleNPC(log){
   const freshLog=await loadLog(true);
   renderAll(freshLog);
   setBottomFromState(freshLog);
-  // Chain NPC if next is also NPC
-  const next=gState.players[gState.turn];
-  if(next&&next.isNPC)handleNPC(freshLog);
+  // NPC chain stops here — user must press Continue to advance
+  // setBottomFromState will show Continue button for next NPC turn
 }
 
 function npcPrompt(action,npc,from){
