@@ -164,7 +164,9 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 .enemy-name{font-family:var(--font-d);font-size:11px;color:var(--coral2);}
 .enemy-hp{font-size:12px;color:var(--text3);}
 .init-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
-.init-pill{padding:4px 10px;border-radius:20px;font-family:var(--font-d);font-size:10px;letter-spacing:1px;}
+.init-pill{padding:4px 10px;border-radius:20px;font-family:var(--font-d);font-size:10px;letter-spacing:1px;transition:all 0.3s;}
+.init-pill.init-active{animation:initpulse 2s ease-in-out infinite;}
+@keyframes initpulse{0%,100%{box-shadow:0 0 0 2px rgba(191,161,90,0.9),0 0 12px rgba(191,161,90,0.4);}50%{box-shadow:0 0 0 3px rgba(191,161,90,0.7),0 0 20px rgba(191,161,90,0.6);}}
 
 /* ── CHRONICLE CARD ── */
 .chronicle-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r3);overflow:hidden;}
@@ -215,6 +217,10 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 
 /* Continue state */
 #bottom-continue{display:none;padding:14px 20px;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+@media(max-width:640px){
+  #bottom-continue{position:sticky;bottom:0;background:var(--bg2);border-top:1px solid var(--amber-dim);z-index:20;padding:12px 16px;}
+  #bottom-human .act-row{position:sticky;bottom:0;background:var(--bg2);padding:10px 0 4px;margin:0 -20px;padding-left:20px;padding-right:20px;border-top:1px solid var(--border);}
+}
 .continue-hint{font-family:var(--font-d);font-size:12px;letter-spacing:1px;color:var(--text5);font-style:italic;}
 .btn-continue{display:inline-flex;align-items:center;padding:12px 28px;border:1px solid var(--amber);border-radius:var(--r);background:rgba(191,161,90,0.08);color:var(--amber2);font-family:var(--font-d);font-size:15px;cursor:pointer;letter-spacing:1px;transition:all 0.15s;}
 .btn-continue:hover{background:rgba(191,161,90,0.18);}
@@ -385,6 +391,15 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
   <div class="game-top">
     <span class="game-logo">⟁ Stormlight Chronicles</span>
     <span class="turn-pill" id="turn-pill">Loading...</span>
+  </div>
+  <!-- Thinking bar — shows at top when GM is generating -->
+  <div id="thinking-bar" style="display:none;padding:10px 24px;background:var(--bg3);border-bottom:1px solid var(--border);text-align:center;">
+    <span style="font-family:var(--font-d);font-size:12px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;">⟁ The Stormfather deliberates</span>
+    <span style="display:inline-flex;gap:5px;margin-left:12px;vertical-align:middle;">
+      <span class="pulse-dot" style="width:7px;height:7px;animation-delay:0s;"></span>
+      <span class="pulse-dot" style="width:7px;height:7px;animation-delay:0.2s;"></span>
+      <span class="pulse-dot" style="width:7px;height:7px;animation-delay:0.4s;"></span>
+    </span>
   </div>
   <div class="party-strip" id="party-strip"></div>
 
@@ -869,7 +884,13 @@ STORYTELLING RULES — follow every turn without exception:
 6. USE assigned pronouns consistently — never switch mid-scene.
 
 Open Act I in ${a1.location}. Immediate crisis — specific, sensory, urgent. Not a generic camp scene.
-[CHOICES] 4 numbered options for ${gState.players[0].name} (${gState.players[0].className}). Mark: [COMBAT], [DISCOVERY], or [DECISION]. Under 250 words.`;
+[CHOICES]
+1. (option specific to ${gState.players[0].className} and ${a1.location})
+2. (different approach)
+3. (different approach)
+4. (different approach)
+
+One sentence each. Mark: [COMBAT], [DISCOVERY], or [DECISION]. Under 250 words.`;
 }
 
 // ══ GAME SCREEN ══
@@ -987,7 +1008,9 @@ function setBottomLoading(){
   document.getElementById('bottom-human').style.display='none';
   document.getElementById('bottom-continue').style.display='none';
   document.getElementById('bottom-waiting').style.display='none';
-  // Keep previous story text visible while loading — no jarring clear
+  // Show thinking bar at top of screen
+  const tb=document.getElementById('thinking-bar');
+  if(tb)tb.style.display='block';
 }
 
 function setBottomFromState(log){
@@ -1005,8 +1028,8 @@ function setBottomFromState(log){
 }
 
 function setBottomReadGate(choices){
-  // Show Continue first — after user reads, Continue reveals the choices
   bottomState='human-gated';
+  const tb=document.getElementById('thinking-bar');if(tb)tb.style.display='none';
   document.getElementById('bottom-loading').style.display='none';
   document.getElementById('bottom-human').style.display='none';
   document.getElementById('bottom-waiting').style.display='none';
@@ -1025,6 +1048,7 @@ function setBottomReadGate(choices){
 
 function setBottomContinue(hintText){
   bottomState='continue';
+  const tb=document.getElementById('thinking-bar');if(tb)tb.style.display='none';
   document.getElementById('bottom-loading').style.display='none';
   document.getElementById('bottom-human').style.display='none';
   document.getElementById('bottom-waiting').style.display='none';
@@ -1041,6 +1065,7 @@ function setBottomContinue(hintText){
 
 function setBottomWaiting(name){
   bottomState='waiting';
+  const tb=document.getElementById('thinking-bar');if(tb)tb.style.display='none';
   document.getElementById('bottom-loading').style.display='none';
   document.getElementById('bottom-human').style.display='none';
   document.getElementById('bottom-continue').style.display='none';
@@ -1134,8 +1159,13 @@ First: What ${npc.name} did and its immediate consequence. 2-3 vivid sentences.
 Second: Where things stand now and what demands attention next.
 
 It is now ${next?next.name+"'s turn ("+next.className+(next.isNPC?' NPC':' human')+')':'next turn'}.
-[CHOICES] 4 numbered options for ${next?next.name:'next'} (${next?next.className:'?'}) specific to their class AND ${loc}.
-Mark: [COMBAT], [DISCOVERY], or [DECISION]. Under 220 words.`;
+[CHOICES]
+1. (option specific to ${next?next.className:'their class'} and ${loc})
+2. (different approach)
+3. (different approach)
+4. (different approach)
+
+One sentence each. Mark: [COMBAT], [DISCOVERY], or [DECISION]. Under 220 words.`;
 }
 
 // ══ HUMAN TURN ══
@@ -1191,8 +1221,36 @@ async function callGM(prompt){
     const data=await res.json();
     if(data.error)throw new Error(JSON.stringify(data.error));
     const raw=data.content&&data.content[0]?data.content[0].text:'The winds carry no answer tonight.';
-    const choices=(raw.match(/^\d+\.\s+.+$/gm)||[]).map(c=>c.replace(/^\d+\.\s*/,''));
-    const scene=raw.replace(/\[CHOICES\][\s\S]*/,'').trim();
+    // Robust choice extraction — handle all GM formatting variations
+    let choices=[];
+    let scene=raw;
+    // Try to split on [CHOICES] tag first
+    const choicesTagIdx=raw.search(/\[CHOICES\]/i);
+    if(choicesTagIdx>=0){
+      scene=raw.slice(0,choicesTagIdx).trim();
+      const choiceBlock=raw.slice(choicesTagIdx);
+      choices=(choiceBlock.match(/^\*{0,2}\d+[.)][\s*]+.+$/gm)||[])
+        .map(ch=>ch.replace(/^\*{0,2}\d+[.)]\s*\*{0,2}\s*/,'').replace(/\*{0,2}$/,'').trim())
+        .filter(ch=>ch.length>5);
+    }
+    // Fallback: find numbered lines anywhere in the response
+    if(!choices.length){
+      choices=(raw.match(/^\*{0,2}\d+[.)]\s+\*{0,2}.{10,}$/gm)||[])
+        .map(ch=>ch.replace(/^\*{0,2}\d+[.)]\s*\*{0,2}\s*/,'').replace(/\*{0,2}$/,'').trim())
+        .filter(ch=>ch.length>5);
+      // Remove the choice lines from scene text
+      if(choices.length){
+        scene=raw.replace(/^\*{0,2}\d+[.)]\s+\*{0,2}.{10,}$/gm,'').replace(/\n{3,}/g,'\n\n').trim();
+      }
+    }
+    // Last resort: split on newlines after OPTIONS: or CHOICES: label
+    if(!choices.length){
+      const optMatch=raw.match(/(OPTIONS|CHOICES|ACTIONS)[:\s]*([\s\S]+)$/i);
+      if(optMatch){
+        scene=raw.slice(0,raw.search(/(OPTIONS|CHOICES|ACTIONS)[:\s]/i)).trim();
+        choices=optMatch[2].split('\n').map(l=>l.replace(/^\*{0,2}\d+[.)]\s*\*{0,2}\s*/,'').replace(/\*{0,2}$/,'').trim()).filter(l=>l.length>5).slice(0,4);
+      }
+    }
     if(gState){gState.lastGM={text:scene,choices,ts:new Date().toISOString()};spawnEnemies(scene);await saveState(gState);}
     await addLog({type:'gm',who:'',text:scene,choices});
   }catch(e){
@@ -1222,12 +1280,13 @@ CONSEQUENCE (2-3 vivid sentences):
 - Reference ${who.name}'s class abilities in a fresh way${actHint?'\n- Hint at the upcoming transition':''}
 
 Now ${next?next.name+"'s turn ("+next.className+(next.isNPC?' — NPC D4 choice':' — human player')+')':'next turn'}.
-[CHOICES] 4 numbered options for ${next?next.name:'next'} (${next?next.className:'?'}):
-- Specific to their class and ${loc}
-- Genuinely different approaches (not variations of the same idea)
-- Each one vivid and concrete
+[CHOICES]
+1. (first option — specific to ${next?next.className:'their class'} and ${loc})
+2. (second option — different approach)
+3. (third option — different approach)
+4. (fourth option — different approach)
 
-Mark: [COMBAT], [DISCOVERY], or [DECISION]. Under 240 words total.`;
+Each option must be one sentence. Mark scene type: [COMBAT], [DISCOVERY], or [DECISION]. Under 240 words total.`;
 }
 
 // ══ COMBAT SYSTEMS ══
@@ -1271,7 +1330,8 @@ function renderInitiativeOrder(){
     const isEnemy=co.type==='enemy';
     const isCur=cur&&co.name===cur.name;
     const dead=(gState.enemies||[]).find(e=>e.name===co.name&&e.hp<=0);
-    return`<div class="init-pill" style="border:1px solid ${dead?'var(--border)':isEnemy?'rgba(196,74,40,0.4)':'rgba(191,161,90,0.3)'};background:${isCur?'rgba(191,161,90,0.12)':'var(--bg3)'};color:${dead?'var(--text5)':isEnemy?'var(--coral2)':'var(--amber2)'};text-decoration:${dead?'line-through':'none'};">${co.initiative} ${co.name}</div>`;
+    const activeGlow=isCur&&!dead?`box-shadow:0 0 0 2px ${isEnemy?'rgba(196,74,40,0.8)':'rgba(191,161,90,0.9)'}, 0 0 12px ${isEnemy?'rgba(196,74,40,0.5)':'rgba(191,161,90,0.5)'};transform:scale(1.08);font-weight:600;`:'';
+  return`<div class="init-pill${isCur&&!dead?' init-active':''}" style="border:1px solid ${dead?'var(--border)':isCur&&!isEnemy?'var(--amber)':isCur&&isEnemy?'var(--coral2)':isEnemy?'rgba(196,74,40,0.4)':'rgba(191,161,90,0.3)'};background:${isCur?isEnemy?'rgba(196,74,40,0.18)':'rgba(191,161,90,0.18)':'var(--bg3)'};color:${dead?'var(--text5)':isCur?isEnemy?'#ff8060':'var(--gold-bright)':isEnemy?'var(--coral2)':'var(--amber2)'};text-decoration:${dead?'line-through':'none'};transition:all 0.3s;${activeGlow}">${isCur?'⟁ ':''}${co.initiative} ${co.name}</div>`;
   }).join('');
 }
 function applyRollDamage(roll,actor,st){
