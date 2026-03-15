@@ -218,8 +218,11 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 /* Continue state */
 #bottom-continue{display:none;padding:14px 20px;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
 @media(max-width:640px){
-  #bottom-continue{position:sticky;bottom:0;background:var(--bg2);border-top:1px solid var(--amber-dim);z-index:20;padding:12px 16px;}
-  #bottom-human .act-row{position:sticky;bottom:0;background:var(--bg2);padding:10px 0 4px;margin:0 -20px;padding-left:20px;padding-right:20px;border-top:1px solid var(--border);}
+  #bottom-continue{position:sticky;bottom:0;background:var(--bg2);border-top:2px solid var(--amber-dim);z-index:20;padding:14px 16px;display:flex!important;justify-content:space-between;align-items:center;gap:10px;}
+  #bottom-continue .continue-hint{font-size:11px;}
+  #bottom-continue .btn-continue{padding:12px 24px;font-size:14px;min-width:130px;text-align:center;justify-content:center;}
+  #bottom-human .act-row{position:sticky;bottom:0;background:var(--bg2);padding:12px 16px;margin:0 -18px -18px;border-top:2px solid var(--amber-dim);}
+  .btn-act{width:100%;justify-content:center;padding:14px;}
 }
 .continue-hint{font-family:var(--font-d);font-size:12px;letter-spacing:1px;color:var(--text5);font-style:italic;}
 .btn-continue{display:inline-flex;align-items:center;padding:12px 28px;border:1px solid var(--amber);border-radius:var(--r);background:rgba(191,161,90,0.08);color:var(--amber2);font-family:var(--font-d);font-size:15px;cursor:pointer;letter-spacing:1px;transition:all 0.15s;}
@@ -692,7 +695,7 @@ async function selectCampaign(id){
     if(gState)partySize=gState.partySize||3;
     myChar=loadMyChar();
     if(gState&&gState.phase==='playing'){showGameScreen();return;}
-    if(gState&&gState.phase==='pregame'&&myChar){showScreen('lobby');renderLobby();return;}
+    if(gState&&gState.phase==='pregame'&&myChar){showScreen('lobby');renderLobby();startLobbyPolling();return;}
     renderPSZ();
     const sub=document.getElementById('title-sub');
     if(sub&&gState&&gState.campaignName)sub.textContent=gState.campaignName;
@@ -801,7 +804,7 @@ async function onCreateChar(){
   saveMyChar(myChar);
   gState.players[mySlot]=myChar;
   await saveState(gState);
-  showScreen('lobby');renderLobby();
+  showScreen('lobby');renderLobby();startLobbyPolling();
 }
 
 // ══ LOBBY ══
@@ -818,6 +821,32 @@ async function assignNPC(slot){
   if(st)st.textContent='';
 }
 async function removeNPC(slot){if(!gState)return;gState.players[slot]=null;await saveState(gState);renderLobby();}
+let lobbyTimer=null;
+
+function startLobbyPolling(){
+  if(lobbyTimer)clearInterval(lobbyTimer);
+  lobbyTimer=setInterval(async()=>{
+    // Only poll if lobby screen is active
+    if(!document.getElementById('s-lobby').classList.contains('active')){
+      stopLobbyPolling();return;
+    }
+    try{
+      const fresh=await loadState();
+      if(!fresh)return;
+      // If game has started, jump in
+      if(fresh.phase==='playing'){stopLobbyPolling();gState=fresh;showGameScreen();return;}
+      // Update gState and re-render if slots changed
+      const prevJSON=JSON.stringify(gState&&gState.players);
+      gState=fresh;
+      if(JSON.stringify(gState.players)!==prevJSON)renderLobby();
+    }catch(e){}
+  },5000);
+}
+
+function stopLobbyPolling(){
+  if(lobbyTimer){clearInterval(lobbyTimer);lobbyTimer=null;}
+}
+
 function renderLobby(){
   const sz=gState.partySize||partySize;
   const humans=gState.players.slice(0,sz).filter(p=>p&&!p.isNPC).length;
@@ -846,8 +875,13 @@ function renderLobby(){
 async function startNow(){
   if(isLoading)return;
   const sz=gState.partySize||partySize;
-  if(!gState.players.slice(0,sz).every(p=>!!p)){const st=document.getElementById('lobby-status');if(st)st.textContent='Fill all slots first.';return;}
-  const st=document.getElementById('lobby-status');if(st)st.textContent='Speaking the Oaths...';
+  const slots=gState.players.slice(0,sz);
+  const allFilled=slots.every(p=>!!p);
+  const hasHuman=slots.some(p=>p&&!p.isNPC);
+  const st=document.getElementById('lobby-status');
+  if(!allFilled){if(st)st.textContent='Fill all slots first — assign NPCs to empty slots.';return;}
+  if(!hasHuman){if(st)st.textContent='At least one human player is required.';return;}
+  if(st)st.textContent='Speaking the Oaths...';
   await startCampaign();
 }
 
@@ -858,6 +892,7 @@ async function startCampaign(){
   buildActs(gState.locationSeed);
   await saveState(gState);
   await addLog({type:'system',who:'',text:'The Radiants have spoken their Oaths. The saga begins in '+ACTS[0].location+'. The Chronicles begin.',choices:[]});
+  stopLobbyPolling();
   showGameScreen();
   setBottomLoading();
   await callGM(openingPrompt());
@@ -1054,6 +1089,8 @@ function setBottomContinue(hintText){
   document.getElementById('bottom-waiting').style.display='none';
   const cont=document.getElementById('bottom-continue');
   cont.style.display='flex';
+  cont.style.removeProperty('display'); // let CSS handle it, then force
+  cont.style.display='flex';
   const btn=document.getElementById('continue-btn');
   const hint=document.getElementById('continue-hint');
   btn.disabled=true;
@@ -1103,7 +1140,13 @@ function onContinue(){
     const h=document.getElementById('bottom-human');
     const ch=document.getElementById('action-choices');
     if(choices&&choices.length){
-      ch.innerHTML=choices.map((c,i)=>`<button class="achoice" onclick="selAct(this,\`${c.replace(/`/g,"'")}\`)"><span class="achoice-num">Option ${i+1}</span>${c}</button>`).join('');
+      ch.innerHTML=choices.map((ch,i)=>{
+        const display=ch
+          .replace(/\*\*/g,'')
+          .replace(/\s*\[(COMBAT|DISCOVERY|DECISION)\]/gi,'')
+          .trim();
+        return`<button class="achoice" onclick="selAct(this,\`${display.replace(/`/g,"'")}\`)"><span class="achoice-num">Option ${i+1}</span>${display}</button>`;
+      }).join('');
     } else {ch.innerHTML='';}
     h.style.display='block';
     setTimeout(()=>h.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
@@ -1160,12 +1203,13 @@ Second: Where things stand now and what demands attention next.
 
 It is now ${next?next.name+"'s turn ("+next.className+(next.isNPC?' NPC':' human')+')':'next turn'}.
 [CHOICES]
-1. (option specific to ${next?next.className:'their class'} and ${loc})
-2. (different approach)
-3. (different approach)
-4. (different approach)
-
-One sentence each. Mark: [COMBAT], [DISCOVERY], or [DECISION]. Under 220 words.`;
+Write exactly 4 options FOR ${next?next.name:'the next player'} (${next?next.className:'?'}) ONLY.
+CRITICAL: Every option must have ${next?next.name:'the player'} as the actor. Never name other party members as the subject of a choice.
+1. (${next?next.className:'class'}-specific action)
+2. (different approach using their abilities)
+3. (tactical option)
+4. (bold option)
+One sentence each. No ** markers. Tag at end: [COMBAT], [DISCOVERY], or [DECISION]. Under 220 words.`;
 }
 
 // ══ HUMAN TURN ══
@@ -1230,13 +1274,13 @@ async function callGM(prompt){
       scene=raw.slice(0,choicesTagIdx).trim();
       const choiceBlock=raw.slice(choicesTagIdx);
       choices=(choiceBlock.match(/^\*{0,2}\d+[.)][\s*]+.+$/gm)||[])
-        .map(ch=>ch.replace(/^\*{0,2}\d+[.)]\s*\*{0,2}\s*/,'').replace(/\*{0,2}$/,'').trim())
+        .map(ch=>ch.replace(/^\*{0,2}\d+[.)]\s*\*{0,2}\s*/,'').replace(/\*{0,2}$/,'').replace(/\s*\[(COMBAT|DISCOVERY|DECISION)\]/gi,'').trim())
         .filter(ch=>ch.length>5);
     }
     // Fallback: find numbered lines anywhere in the response
     if(!choices.length){
       choices=(raw.match(/^\*{0,2}\d+[.)]\s+\*{0,2}.{10,}$/gm)||[])
-        .map(ch=>ch.replace(/^\*{0,2}\d+[.)]\s*\*{0,2}\s*/,'').replace(/\*{0,2}$/,'').trim())
+        .map(ch=>ch.replace(/^\*{0,2}\d+[.)]\s*\*{0,2}\s*/,'').replace(/\*{0,2}$/,'').replace(/\s*\[(COMBAT|DISCOVERY|DECISION)\]/gi,'').trim())
         .filter(ch=>ch.length>5);
       // Remove the choice lines from scene text
       if(choices.length){
@@ -1281,12 +1325,13 @@ CONSEQUENCE (2-3 vivid sentences):
 
 Now ${next?next.name+"'s turn ("+next.className+(next.isNPC?' — NPC D4 choice':' — human player')+')':'next turn'}.
 [CHOICES]
-1. (first option — specific to ${next?next.className:'their class'} and ${loc})
-2. (second option — different approach)
-3. (third option — different approach)
-4. (fourth option — different approach)
-
-Each option must be one sentence. Mark scene type: [COMBAT], [DISCOVERY], or [DECISION]. Under 240 words total.`;
+Write exactly 4 options FOR ${next?next.name:'the next player'} (${next?next.className:'?'}) ONLY.
+CRITICAL: Every option must be an action ${next?next.name:'the player'} takes personally. Never name or direct another character. Use "I" framing or "${next?next.name:'the player'}" as subject.
+1. (${next?next.className:'class'}-specific action in ${loc})
+2. (different approach using their surges or abilities)
+3. (tactical or investigative option)
+4. (bold or unexpected option)
+One sentence each. No ** markers. No [COMBAT]/[DISCOVERY]/[DECISION] tags inside the options themselves — put ONE tag at the very end on its own line.`;
 }
 
 // ══ COMBAT SYSTEMS ══
