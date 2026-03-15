@@ -160,7 +160,9 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 .log-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
 .log-title{font-family:var(--font-display);font-size:11px;letter-spacing:2px;color:var(--text4);text-transform:uppercase;}
 .log-act{font-size:11px;color:var(--amber-dim);font-style:italic;}
-.log-scroll{padding:20px;display:flex;flex-direction:column;gap:16px;}
+.log-scroll{padding:20px;display:flex;flex-direction:column;gap:16px;max-height:55vh;overflow-y:auto;}
+.log-scroll::-webkit-scrollbar{width:5px;}
+.log-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 .log-scroll::-webkit-scrollbar{width:5px;}
 .log-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 .entry-gm{font-style:normal;font-size:22px;font-family:'Times New Roman',Times,serif;color:var(--text);line-height:1.85;border-left:2px solid var(--gold);padding-left:14px;}
@@ -1001,9 +1003,11 @@ async function showGameScreen(){
   showScreen('game');
   startPolling();
   await refreshGame();
-  // Show audio controls
+  // Show audio controls and auto-start ambient sound
   const ab=document.getElementById('audio-bar');
   if(ab)ab.style.display='flex';
+  // Auto-start storm on first game load (user interaction has happened)
+  if(!audioOn)setTimeout(()=>{try{startAudio();}catch(e){}},500);
 }
 
 async function refreshGame(){
@@ -1115,7 +1119,7 @@ function renderLog(log){
   s.innerHTML=log.map(e=>{
     if(e.type==='gm'){
       const badge=e.text.includes('[COMBAT]')?'<span class="event-badge badge-combat">Combat</span>':e.text.includes('[DISCOVERY]')?'<span class="event-badge badge-discovery">Discovery</span>':e.text.includes('[DECISION]')?'<span class="event-badge badge-decision">Decision</span>':'';
-      const clean=e.text.replace(/\[COMBAT\]|\[DISCOVERY\]|\[DECISION\]/g,'').replace(/\[CHOICES\][\s\S]*/,'').trim();
+      const clean=e.text.replace(/\[COMBAT\]|\[DISCOVERY\]|\[DECISION\]/g,'').replace(/\[CHOICES\][\s\S]*/,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/^\*+$|^#+\s*/gm,'').trim();
       const safeText=clean.replace(/`/g,"'").replace(/\\/g,'');
       const act=getAct(gState&&gState.totalMoves||0);
       return`<div class="entry-gm">${badge}<span class="gm-label">The Chronicle</span>${clean.replace(/\n/g,'<br/>')}<div style="margin-top:8px;"><button onclick="shareStoryMoment(this)" data-text="${safeText.substring(0,300)}" data-loc="${act.location||'Roshar'}" class="btn btn-sm" style="font-size:11px;padding:4px 12px;border-color:var(--border2);color:var(--text4);">📷 Share Moment</button></div></div>`;
