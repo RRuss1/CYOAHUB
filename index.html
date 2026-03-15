@@ -348,8 +348,12 @@ const CLASSES=[
   {id:'stoneward',name:'Stoneward',ideal:'I will be there when I am needed',desc:'Unbreakable through tension & cohesion. The last wall standing.',bonus:{str:2,dex:0,int:0,wis:1,cha:0,end:2},abilities:['Stone Shaping','Cohesion Wall','Peakspren Bond','Unyielding Stance']},
   {id:'elsecaller',name:'Elsecaller',ideal:'I will reach my potential so I may help others reach theirs',desc:'Master of transportation & transformation. Steps between realms.',bonus:{str:0,dex:0,int:2,wis:2,cha:0,end:1},abilities:['Shadesmar Step','Soulcast Expert','Inkspren Bond','Cognitive Insight']},
 ];
-const NPC_NAMES=['Adolin','Shallan','Kaladin','Dalinar','Lift','Szeth','Renarin','Jasnah'];
-const NPC_COLORS=['#8060c8','#c84070','#2a6fa8','#8E6A34','#25956e','#c44a28','#BFA15A','#5a8a5a'];
+// Roshar world names — common citizens, soldiers, merchants, not famous heroes
+const NPC_NAMES_MALE=['Moash','Drehy','Skar','Lopen','Bisig','Eth','Rod','Natam','Peet','Yake','Dallet','Gaz','Jaks','Leyten','Fisk','Hobber','Narm','Redin','Tevos','Grund','Sheler','Khen','Vathah','Durk','Rill','Beld','Lesh','Habid','Tur','Sas'];
+const NPC_NAMES_FEMALE=['Tarah','Laral','Roshone','Meelis','Tien','Lirin','Hesina','Kaza','Lift','Nale','Cyn','Sheler','Ishar','Ym','Baxil','Avyanna','Sani','Marta','Kef','Dreya','Veil','Radiant','Malli','Cord','Rushu','Sebarial','Isasik','Palona','Rind','Fafen'];
+const NPC_NAMES_ALL=[...NPC_NAMES_MALE,...NPC_NAMES_FEMALE];
+const NPC_NAMES=NPC_NAMES_ALL; // kept for compatibility
+const NPC_COLORS=['#8060c8','#c84070','#2a6fa8','#8E6A34','#25956e','#c44a28','#BFA15A','#5a8a5a','#7a9a5a','#a06040','#5a6a9a','#9a5a70'];
 const COLORS=[
   {name:'Amber',hex:'#e8a020'},{name:'Teal',hex:'#12a878'},
   {name:'Coral',hex:'#d85030'},{name:'Blue',hex:'#2a80d0'},
@@ -391,6 +395,7 @@ function getAct(moves){return ACTS.find(a=>moves>=a.start&&moves<=a.end)||ACTS[0
 
 let gState=null,myChar=null,mySlot=null,selClass=null,selColor=null,rolledStats=null;
 let selActionText='',sheetOpen=false,isLoading=false,pollTimer=null,partySize=3;
+let lastRenderedGMTs=''; // track last displayed GM entry to detect new ones
 let campaignId=null; // e.g. 'Campaign1', 'Campaign2'
 let readGated=false; // true when player must read before acting
 
@@ -427,8 +432,10 @@ function onContinue(){
   const bar=document.getElementById('continue-bar');
   if(wrap)wrap.classList.remove('locked');
   if(bar)bar.style.display='none';
-  // Scroll action panel into view
-  wrap&&wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
+  // Only scroll to actions if it's a human's turn
+  if(myChar&&gState&&gState.players[gState.turn]&&gState.players[gState.turn].name===myChar.name){
+    setTimeout(()=>wrap&&wrap.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+  }
 }
 function stateSheet(){return campaignId+'_State';}
 function logSheet(){const s=(campaignId||'NULL')+'_Log';return s;}
@@ -612,10 +619,11 @@ function pickSize(n){
 }
 
 function genNPC(slot){
-  const cls=CLASSES[slot%CLASSES.length];
+  const cls=CLASSES[Math.floor(Math.random()*CLASSES.length)]; // random class too
   const used=(gState&&gState.players?gState.players.filter(Boolean).map(p=>p.name):[]);
-  const name=NPC_NAMES.find(n=>!used.includes(n))||('Companion-'+(slot+1));
-  const color=NPC_COLORS[slot%NPC_COLORS.length];
+  const available=NPC_NAMES.filter(n=>!used.includes(n));
+  const name=available.length?available[Math.floor(Math.random()*available.length)]:('Radiant-'+(slot+1));
+  const color=NPC_COLORS[Math.floor(Math.random()*NPC_COLORS.length)];
   const stats={};STAT_KEYS.forEach(k=>stats[k]=Math.min(20,r4d6()+(cls.bonus[k]||0)));
   const hp=12+stats.end;
   return{name,className:cls.name,classId:cls.id,color,stats,hp,maxHp:hp,abilities:cls.abilities,slot,isNPC:true};
@@ -784,9 +792,7 @@ async function startCampaign(){
   // gState.lastGM is now set by callGM — render immediately without waiting for Sheets cache
   const freshLog=await loadLog(false);
   renderParty();renderLog(freshLog);renderPill();renderProgress();renderActions(freshLog);
-  // Gate actions until player reads the new GM entry
-  const myTurnNow=gState&&myChar&&gState.players[gState.turn]&&gState.players[gState.turn].name===myChar.name&&!gState.players[gState.turn].isNPC;
-  if(myTurnNow)gateActions();
+  // gateActions handled by renderLog
   // If first turn is NPC, handle it
   if(gState&&gState.phase==='playing'){
     const cur=gState.players[gState.turn];
@@ -796,19 +802,30 @@ async function startCampaign(){
 
 function openingPrompt(){
   const sz=gState.partySize||partySize;
-  const names=gState.players.slice(0,sz).map(p=>`${p.name} the ${p.className}${p.isNPC?' (AI NPC)':''}`).join(', ');
+  const names=gState.players.slice(0,sz).map(p=>`${p.name} the ${p.className}${p.isNPC?' (NPC)':''}`).join(', ');
   const a1=ACTS[0],a2=ACTS[1],a3=ACTS[2];
-  return`You are the Game Master for a Cosmere DND-style RPG set in Brandon Sanderson's Way of Kings universe. This is a 180-turn epic saga across 3 acts — each in a different Roshar location.
+  return`You are the Game Master for a dramatic Cosmere RPG on Roshar (Brandon Sanderson's Way of Kings universe). This is a 180-turn saga.
 
+THE THREE ACTS:
 ACT I (turns 1-60): ${a1.location}
-ACT II (turns 61-120): ${a2.location}  
+ACT II (turns 61-120): ${a2.location}
 ACT III (turns 121-180): ${a3.location}
 
-Party (${sz} Radiants): ${names}. NPCs act via D4 dice roll only — no AI decisions for them.
+PARTY: ${names}
 
-Open Act I in ${a1.location}. Describe this specific location vividly — its unique atmosphere, dangers, and what is happening there RIGHT NOW that demands immediate action. Do NOT default to a generic warcamp — this is ${a1.location}, give it its own character.
+DRAMATIC STORYTELLING RULES — follow these every single turn:
+1. SHOW, DON'T TELL. No "you sense danger." Show the crumbling wall. Show the spren flickering. 
+2. VARY YOUR SENTENCES. Mix short punchy lines with long atmospheric ones. Never start two paragraphs the same way.
+3. EACH SCENE CHANGES SOMETHING. End every narration with the world in a different state than it began.
+4. NO REPEATED WEAPONS. Do not open with a character drawing their Shardblade or weapon every turn. Find other ways to establish action.
+5. ESCALATING STAKES. Each turn the situation should feel MORE urgent than the last — raise the cost of failure.
+6. CHARACTER VOICE. Reference the characters' specific class abilities and personalities. An Edgedancer moves differently than a Stoneward.
+7. LOCATION SPECIFICITY. ${a1.location} has unique features — use them. Smells, sounds, architecture, weather, spren behavior specific to this place.
+8. DRAMATIC IRONY. Sometimes let the reader sense danger the characters cannot.
 
-End with [CHOICES] — 4 numbered options for ${gState.players[0].name} the ${gState.players[0].className}. Options should fit both the character's class AND the location. Under 230 words. Mark: [COMBAT], [DISCOVERY], or [DECISION].`;
+Open Act I in ${a1.location}. Describe an immediate crisis — specific, sensory, urgent. NOT a generic warcamp scene.
+
+[CHOICES] — 4 numbered options for ${gState.players[0].name} (${gState.players[0].className}), each reflecting a genuinely different approach (aggressive/cautious/clever/class-specific). Under 250 words total. Mark: [COMBAT], [DISCOVERY], or [DECISION].`;
 }
 
 async function showGameScreen(){
@@ -836,7 +853,7 @@ async function refreshGame(){
     } else {
       // Gate if it's our turn and we haven't read yet
       const myTurnNow=myChar&&cur&&cur.name===myChar.name;
-      if(myTurnNow&&!readGated&&log.some(e=>e.type==='gm'))gateActions();
+      // gateActions handled by renderLog
     }
   }
 }
@@ -867,11 +884,7 @@ async function handleNPC(log){
   const nextCur=gState.players[gState.turn];
   if(nextCur&&nextCur.isNPC){
     await handleNPC(freshLog);
-  } else {
-    // It's a human's turn now — gate so they read the NPC narrative before acting
-    const myTurnNow=myChar&&nextCur&&nextCur.name===myChar.name;
-    if(myTurnNow)gateActions();
-  }
+  } // gateActions handled by renderLog on next render
 }
 
 function npcTurnPrompt(action,npc,from){
@@ -929,8 +942,17 @@ function renderLog(log){
     if(e.type==='loading')return`<div class="entry-loading"><span class="dots">The Stormfather deliberates</span></div>`;
     return`<div class="entry-system">${e.text}</div>`;
   }).join('');
-  // Only auto-scroll if NOT gated (don't steal scroll position from reader)
-  if(!readGated)s.scrollTop=s.scrollHeight;
+  // Gate on every new GM entry — freeze actions until Continue is clicked
+  if(newGMEntry&&latestGM){
+    lastRenderedGMTs=latestGM.ts||'new';
+    // Small delay to let DOM paint before gating
+    setTimeout(()=>{
+      gateActions();
+      s.scrollTop=0; // scroll to top of story to start reading
+    },50);
+  } else if(!readGated){
+    s.scrollTop=s.scrollHeight;
+  }
 }
 
 function renderProgress(){
@@ -987,9 +1009,7 @@ async function onSubmitAction(){
   await refreshGame();
   // Restore lastGM if refreshGame's loadState cleared it
   if(savedLastGM&&gState&&!gState.lastGM)gState.lastGM=savedLastGM;
-  // Gate so player reads GM response before acting again
-  const myTurnAgain=gState&&myChar&&gState.players[gState.turn]&&gState.players[gState.turn].name===myChar.name&&!gState.players[gState.turn].isNPC;
-  if(myTurnAgain)gateActions();
+  // gateActions is now handled by renderLog detecting new GM entries
 }
 
 function getStat(a){a=a.toLowerCase();if(/attack|fight|strike|slash|charge/.test(a))return'str';if(/run|dodge|leap|fly|sneak/.test(a))return'dex';if(/magic|soulcast|illusion|lash|stormlight/.test(a))return'int';if(/search|detect|sense|notice|examine/.test(a))return'wis';if(/persuade|talk|convince|negotiate|threaten/.test(a))return'cha';return'end';}
@@ -1024,23 +1044,38 @@ async function callGM(prompt){
 function turnPrompt(action,roll,sk,from){
   const m=gState.totalMoves||0;
   const act=getAct(m);
-  const sz=gState.partySize||partySize;const next=gState.players[gState.turn];
+  const sz=gState.partySize||partySize;
+  const next=gState.players[gState.turn];
   const party=gState.players.slice(0,sz).map(p=>p?`${p.name}(${p.className}${p.isNPC?' NPC':''} HP:${p.hp}/${p.maxHp})`:'?').join(' | ');
-  const who=gState.players[from];const loc=act.location||act.name;
-  const rd=roll>=18?'critical success — exceptional outcome':roll>=14?'strong success':roll>=10?'partial success with complications':roll>=6?'failure with consequences':'critical failure — dramatic setback';
-  // Act transition hint
-  const nextAct=m===59?`
+  const who=gState.players[from];
+  const loc=act.location||act.name;
+  const rd=roll>=18?'CRITICAL SUCCESS — exceptional, surprising outcome':roll>=14?'Strong success — goal achieved with style':roll>=10?'Partial success — achieved but at a cost or complication':roll>=6?'Failure — goal missed, situation worsens':'CRITICAL FAILURE — dramatic setback, something goes very wrong';
+  const actHint=m===59?`
 
-NOTE: Next turn begins ${ACTS[1].tag} in ${ACTS[1].location} — hint at the transition.`:m===119?`
+ACT TRANSITION: This is the final turn of Act I. Close out ${loc} and foreshadow the journey to ${ACTS[1].location}.`:m===119?`
 
-NOTE: Next turn begins ${ACTS[2].tag} in ${ACTS[2].location} — hint at the transition.`:'';
-  return`GM for 180-turn Cosmere RPG. Turn ${m}/180. ${act.tag}: ${act.name} — Location: ${loc}.
+ACT TRANSITION: Final turn of Act II. Foreshadow the climax in ${ACTS[2].location}.`:'';
+  return`Cosmere RPG Game Master. Turn ${m}/180. ${act.tag} — ${loc}.
 Party: ${party}
-${who.name} (${who.className}) acted: "${action}" — d20 vs ${sk.toUpperCase()}: ${roll} (${rd})
-Narrate consequence (2-3 vivid sentences specific to ${loc}). Make the roll matter to the outcome.${nextAct}
-Now ${next?next.name+"'s turn ("+next.className+(next.isNPC?' NPC — D4 picks for them':' — human player')+')':"next turn"}.
-[CHOICES] 4 numbered options for ${next?next.name:'next'} (${next?next.className:'?'}) that fit BOTH their class AND the ${loc} setting.
-Mark: [COMBAT], [DISCOVERY], or [DECISION]. Under 220 words.`;
+${who.name} (${who.className}) just did: "${action}"
+Roll result: ${roll} — ${rd}${actHint}
+
+WRITE a dramatic 2-3 sentence consequence. RULES:
+- DO NOT open with a weapon being drawn or summoned
+- DO NOT repeat the same opening as recent turns  
+- Make the ${rd.split('—')[0].trim()} feel real — change something in the scene
+- Use the specific environment of ${loc}: its sounds, smells, architecture, weather
+- Reference ${who.name}'s specific ability (${who.className}) in a fresh way
+
+Then it is ${next?next.name+"'s turn":"next player's turn"}${next&&next.isNPC?' (NPC — they will roll D4 to choose)':''}.
+
+[CHOICES] — exactly 4 numbered options for ${next?next.name:'next'} that are:
+1. Specific to their class (${next?next.className:'?'}) 
+2. Specific to ${loc} — not generic fantasy actions
+3. Genuinely different from each other (not just "attack harder" vs "attack smarter")
+4. Each one sentence, vivid and concrete
+
+Mark scene type: [COMBAT], [DISCOVERY], or [DECISION]. Total response under 250 words.`;
 }
 
 function toggleSheet(){sheetOpen=!sheetOpen;document.getElementById('sheet-panel').style.display=sheetOpen?'block':'none';document.getElementById('sheet-arrow').textContent=sheetOpen?'▾':'▸';if(sheetOpen&&myChar)renderSheet();}
