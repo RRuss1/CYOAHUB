@@ -199,6 +199,12 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 .err{font-size:14px;color:var(--coral2);font-style:italic;margin-top:7px;}
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+/* Audio controls */
+.audio-bar{position:fixed;bottom:16px;right:16px;z-index:100;display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:6px 14px;}
+.audio-btn{background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);padding:0;line-height:1;}
+.audio-btn:hover{color:var(--amber2);}
+.audio-label{font-family:var(--font-display);font-size:10px;letter-spacing:1px;color:var(--text4);}
+.vol-slider{width:60px;accent-color:var(--amber);}
 @media print{
   body{background:#fff!important;color:#111!important;font-size:12pt;}
   .game-top,.party-strip,.action-wrap,.continue-bar,.sheet-toggle,.sheet-panel,#enemy-panel,.progress-wrap,.turn-pill,#export-btn{display:none!important;}
@@ -370,6 +376,7 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
         <div style="font-family:var(--font-display);font-size:10px;letter-spacing:2px;color:var(--coral2);text-transform:uppercase;margin-bottom:8px;">⚔ Enemies</div>
         <div id="enemy-list" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
       </div>
+      <div id="initiative-wrap" style="display:none;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg2);"></div>
       <div class="log-scroll" id="log-scroll"></div>
       <div class="continue-bar" id="continue-bar" style="display:none;">
         <span class="continue-hint" id="continue-hint">Scroll down to read →</span>
@@ -928,7 +935,7 @@ async function startCampaign(){
   // Wait for at least 2 log entries (system + gm) to be readable from sheet
   // gState.lastGM is now set by callGM — render immediately without waiting for Sheets cache
   const freshLog=await loadLog(false);
-  renderParty();renderEnemies();renderLog(freshLog);renderPill();renderProgress();renderActions(freshLog);
+  renderParty();renderEnemies();renderInitiativeOrder();renderLog(freshLog);renderPill();renderProgress();renderActions(freshLog);
   // gateActions handled by renderLog
   // If first turn is NPC, handle it
   if(gState&&gState.phase==='playing'){
@@ -969,6 +976,9 @@ async function showGameScreen(){
   showScreen('game');
   startPolling();
   await refreshGame();
+  // Show audio controls
+  const ab=document.getElementById('audio-bar');
+  if(ab)ab.style.display='flex';
 }
 
 async function refreshGame(){
@@ -982,7 +992,7 @@ async function refreshGame(){
     if(lastGMEntry)gState.lastGM={text:lastGMEntry.text,choices:lastGMEntry.choices};
     else if(prevLastGM)gState.lastGM=prevLastGM;
   }
-  renderParty();renderEnemies();renderLog(log);renderPill();renderProgress();renderActions(log);
+  renderParty();renderEnemies();renderInitiativeOrder();renderLog(log);renderPill();renderProgress();renderActions(log);
   if(gState&&gState.phase==='playing'&&!isLoading){
     const cur=gState.players[gState.turn];
     if(cur&&cur.isNPC){
@@ -1077,7 +1087,9 @@ function renderLog(log){
     if(e.type==='gm'){
       const badge=e.text.includes('[COMBAT]')?'<span class="event-badge badge-combat">Combat</span>':e.text.includes('[DISCOVERY]')?'<span class="event-badge badge-discovery">Discovery</span>':e.text.includes('[DECISION]')?'<span class="event-badge badge-decision">Decision</span>':'';
       const clean=e.text.replace(/\[COMBAT\]|\[DISCOVERY\]|\[DECISION\]/g,'').replace(/\[CHOICES\][\s\S]*/,'').trim();
-      return`<div class="entry-gm">${badge}<span class="gm-label">The Chronicle</span>${clean.replace(/\n/g,'<br/>')}</div>`;
+      const safeText=clean.replace(/`/g,"'").replace(/\\/g,'');
+      const act=getAct(gState&&gState.totalMoves||0);
+      return`<div class="entry-gm">${badge}<span class="gm-label">The Chronicle</span>${clean.replace(/\n/g,'<br/>')}<div style="margin-top:8px;"><button onclick="shareStoryMoment(this)" data-text="${safeText.substring(0,300)}" data-loc="${act.location||'Roshar'}" class="btn btn-sm" style="font-size:11px;padding:4px 12px;border-color:var(--border2);color:var(--text4);">📷 Share Moment</button></div></div>`;
     }
     if(e.type==='player'){const p=gState&&gState.players.find(x=>x&&x.name===e.who);return`<div class="entry-player"><div class="pname" style="color:${p?p.color:'var(--text3)'};">${e.who}</div>${e.text}</div>`;}
     if(e.type==='npc')return`<div class="entry-npc"><div class="pname">${e.who} <span style="font-size:10px;">(AI)</span></div>${e.text}</div>`;
@@ -1166,6 +1178,56 @@ function spawnEnemies(sceneText){
   // Spawn 1-2 enemies scaled to party size
   const count=Math.min(sz,2);
   gState.enemies=pool.slice(0,count).map(e=>({...e,id:Date.now()+Math.random()}));
+  rollInitiative(gState); // set initiative order for this combat
+}
+
+// ── INITIATIVE SYSTEM ──
+function rollInitiative(st){
+  if(!st.enemies||!st.enemies.length)return;
+  const sz=st.partySize||partySize;
+  // Roll initiative for all combatants
+  const combatants=[];
+  st.players.slice(0,sz).filter(Boolean).forEach(p=>{
+    const dex=p.stats&&p.stats.dex||10;
+    const init=Math.ceil(Math.random()*20)+Math.floor((dex-10)/2);
+    combatants.push({name:p.name,type:'player',initiative:init,isNPC:p.isNPC});
+  });
+  (st.enemies||[]).filter(e=>e.hp>0).forEach(e=>{
+    const init=Math.ceil(Math.random()*20)+2;
+    combatants.push({name:e.name,type:'enemy',initiative:init});
+  });
+  // Sort by initiative descending
+  combatants.sort((a,b)=>b.initiative-a.initiative);
+  st.combatOrder=combatants;
+  st.combatRound=1;
+  st.combatActive=true;
+  console.log('Initiative order:',combatants.map(c=>c.name+'('+c.initiative+')').join(' > '));
+}
+
+function renderInitiativeOrder(){
+  const wrap=document.getElementById('initiative-wrap');
+  if(!wrap)return;
+  if(!gState||!gState.combatActive||!gState.combatOrder||!gState.combatOrder.length){
+    wrap.style.display='none';return;
+  }
+  wrap.style.display='block';
+  const cur=gState.players&&gState.players[gState.turn];
+  wrap.innerHTML=`
+    <div style="font-family:var(--font-display);font-size:10px;letter-spacing:2px;color:var(--coral2);text-transform:uppercase;margin-bottom:8px;">⚔ Round ${gState.combatRound||1} — Initiative Order</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      ${gState.combatOrder.map(co=>{
+        const isEnemy=co.type==='enemy';
+        const isCurrent=cur&&co.name===cur.name;
+        const defeated=(gState.enemies||[]).find(e=>e.name===co.name&&e.hp<=0);
+        return`<div style="padding:4px 10px;border-radius:20px;font-family:var(--font-display);font-size:10px;letter-spacing:1px;
+          border:1px solid ${defeated?'var(--border)':isEnemy?'rgba(196,74,40,0.4)':'rgba(191,161,90,0.3)'};
+          background:${isCurrent?'rgba(191,161,90,0.12)':'var(--bg3)'};
+          color:${defeated?'var(--text5)':isEnemy?'var(--coral2)':'var(--amber2)'};
+          text-decoration:${defeated?'line-through':'none'};">
+          ${co.initiative} ${co.name}
+        </div>`;
+      }).join('')}
+    </div>`;
 }
 
 function applyRollDamage(roll, actor, st){
@@ -1177,10 +1239,15 @@ function applyRollDamage(roll, actor, st){
   const liveEnemies=(st.enemies||[]).filter(e=>e.hp>0);
   const targetEnemy=liveEnemies.length?liveEnemies[Math.floor(Math.random()*liveEnemies.length)]:null;
   if(roll>=18){
+    // Earn a Stormlight Fragment on crit
+    if(!actor.fragments)actor.fragments=0;
+    actor.fragments++;
     if(targetEnemy){
-      const dmgDealt=db.crit+Math.floor(Math.random()*3)+1;
+      const dmgDealt=db.crit+Math.floor(Math.random()*3)+1+(actor.bladeLevel||0);
       targetEnemy.hp=Math.max(0,targetEnemy.hp-dmgDealt);
-      msg=`✦ Critical! ${targetEnemy.name} takes ${dmgDealt} dmg (${targetEnemy.hp}/${targetEnemy.maxHp} HP)${targetEnemy.hp===0?' — DEFEATED!':''}`;
+      const defeatedBonus=targetEnemy.hp===0?3:0;
+      if(defeatedBonus){actor.fragments+=defeatedBonus;}
+      msg=`✦ Critical! ${targetEnemy.name} takes ${dmgDealt} dmg (${targetEnemy.hp}/${targetEnemy.maxHp} HP)${targetEnemy.hp===0?' — DEFEATED! +3 Fragments':''}  Fragments: ${actor.fragments}`;
     } else {
       const heal=Math.min(2,actor.maxHp-actor.hp);
       if(heal>0){actor.hp=Math.min(actor.maxHp,actor.hp+heal);msg=`⬆ +${heal} HP (Stormlight surge)`;}
@@ -1230,8 +1297,8 @@ function applyRollDamage(roll, actor, st){
       dropMsg=` ⚔ ${actor.shardblade} found! +2 to all combat rolls`;
     }
     if(dropMsg){
-      // Clear defeated enemies
       st.enemies=(st.enemies||[]).filter(e=>e.hp>0);
+      if(!st.enemies.length){st.combatActive=false;st.combatOrder=[];st.combatRound=0;}
     }
   }
   // Update in gState
@@ -1260,6 +1327,8 @@ async function onSubmitAction(){
   const dmgResult=applyRollDamage(total,myChar,gState);
   document.getElementById('dice-flash').textContent=`d20: ${roll} + ${sk.toUpperCase()}(${bonus>=0?'+':''}${bonus}) = ${total} ${dmgResult}`;
   await addLog({type:'player',who:myChar.name,text:action,choices:[]});
+  // Spren memory — record dramatic moments
+  recordSprenMemory(action, total, gState.totalMoves||0);
   const from=gState.turn;
   const sz=gState.partySize||partySize;
   gState.turn=(gState.turn+1)%sz;
@@ -1321,8 +1390,9 @@ function turnPrompt(action,roll,sk,from){
 ACT TRANSITION: This is the final turn of Act I. Close out ${loc} and foreshadow the journey to ${ACTS[1].location}.`:m===119?`
 
 ACT TRANSITION: Final turn of Act II. Foreshadow the climax in ${ACTS[2].location}.`:'';
+  const sprenCtx=getSprenMemoryContext();
   return`Cosmere RPG Game Master. Turn ${m}/180. ${act.tag} — ${loc}.
-Party: ${party}
+Party: ${party}${sprenCtx}
 ${who.name} (${who.className}) just did: "${action}"
 Roll result: ${roll} — ${rd}${actHint}
 
@@ -1344,6 +1414,40 @@ Then it is ${next?next.name+"'s turn":"next player's turn"}${next&&next.isNPC?' 
 Mark scene type: [COMBAT], [DISCOVERY], or [DECISION]. Total response under 250 words.`;
 }
 
+const BLADE_TIERS=['Nascent','Bonded','Ancient','Living','Divine'];
+const BLADE_COSTS=[3,5,5,5,5];
+
+function craftBlade(){
+  if(!myChar||!gState)return;
+  if((myChar.fragments||0)<3){alert('Need 3 Stormlight Fragments to forge a blade.');return;}
+  const bond=SPREN_BONDS[myChar.classId];
+  const bladeNames={'windrunner':'Silverwind Blade','lightweaver':'Illusory Edge','edgedancer':'Verdant Blade','stoneward':'Granite Shardblade','elsecaller':'Obsidian Catalyst','truthwatcher':'Starlight Blade','willshaper':'Freedom Edge','dustbringer':'Ember Blade','bondsmith':'Unity Shard','skybreaker':'Law Blade'};
+  myChar.shardblade=bladeNames[myChar.classId]||'Nascent Shardblade';
+  myChar.bladeLevel=1;
+  myChar.fragments=(myChar.fragments||0)-3;
+  saveMyChar(myChar,campaignId);
+  const idx=gState.players.findIndex(p=>p&&p.name===myChar.name);
+  if(idx>=0){gState.players[idx]=myChar;saveState(gState).catch(()=>{});}
+  renderSheet();
+  alert('⚔ '+myChar.shardblade+' forged! The blade answers your call.');
+}
+
+function upgradeBlade(){
+  if(!myChar||!gState)return;
+  const tier=myChar.bladeLevel||1;
+  if(tier>=5){alert('Your blade has reached its ultimate form.');return;}
+  if((myChar.fragments||0)<5){alert('Need 5 Stormlight Fragments to upgrade.');return;}
+  myChar.fragments=(myChar.fragments||0)-5;
+  myChar.bladeLevel=tier+1;
+  const tierName=BLADE_TIERS[tier]; // tier is 1-indexed, array 0-indexed
+  myChar.shardblade=myChar.shardblade.replace(/Nascent|Bonded|Ancient|Living|Forged/,'').trim();
+  saveMyChar(myChar,campaignId);
+  const idx=gState.players.findIndex(p=>p&&p.name===myChar.name);
+  if(idx>=0){gState.players[idx]=myChar;saveState(gState).catch(()=>{});}
+  renderSheet();
+  alert('⬆ Blade upgraded to Tier '+myChar.bladeLevel+' ('+tierName+')! Combat bonus: +'+(myChar.bladeLevel)+' to all rolls.');
+}
+
 function toggleSheet(){sheetOpen=!sheetOpen;document.getElementById('sheet-panel').style.display=sheetOpen?'block':'none';document.getElementById('sheet-arrow').textContent=sheetOpen?'▾':'▸';if(sheetOpen&&myChar)renderSheet();}
 function renderSheet(){
   const p=document.getElementById('sheet-panel');if(!myChar)return;
@@ -1356,8 +1460,11 @@ function renderSheet(){
     <div class="sheet-row"><span class="sheet-lbl">HP</span><span class="sheet-val">${myChar.hp} / ${myChar.maxHp}</span></div>
     ${STAT_KEYS.map((k,i)=>`<div class="sheet-row"><span class="sheet-lbl">${STAT_NAMES[i]}</span><span class="sheet-val">${myChar.stats[k]} (${modStr(myChar.stats[k])})</span></div>`).join('')}
     <div class="sheet-row"><span class="sheet-lbl">Crit Dmg</span><span class="sheet-val" style="color:var(--coral2);">+${cls.dmgBonus.crit} / Hit +${cls.dmgBonus.hit}</span></div>
-    ${myChar.shardblade?`<div class="sheet-row"><span class="sheet-lbl">⚔ Shardblade</span><span class="sheet-val" style="color:var(--amber2);">${myChar.shardblade}</span></div>`:''}
+    ${myChar.shardblade?`<div class="sheet-row"><span class="sheet-lbl">⚔ Shardblade</span><span class="sheet-val" style="color:var(--amber2);">${myChar.shardblade} (Tier ${myChar.bladeLevel||1})</span></div>`:''}
     ${myChar.shardplate?`<div class="sheet-row"><span class="sheet-lbl">⬛ Shardplate</span><span class="sheet-val" style="color:var(--gold);">Equipped (+40% HP)</span></div>`:''}
+    <div class="sheet-row"><span class="sheet-lbl">✦ Fragments</span><span class="sheet-val" style="color:var(--teal2);">${myChar.fragments||0} Stormlight Fragments</span></div>
+    ${myChar.fragments>=5&&(myChar.bladeLevel||0)<4?`<div style="margin-top:8px;"><button class="btn btn-sm btn-teal" onclick="upgradeBlade()" style="font-size:12px;">⬆ Upgrade Blade (5 Fragments)</button></div>`:''}
+    ${!myChar.shardblade&&(myChar.fragments||0)>=3?`<div style="margin-top:8px;"><button class="btn btn-sm btn-gold" onclick="craftBlade()" style="font-size:12px;">⚔ Forge Blade (3 Fragments)</button></div>`:''}
     ${sprenBond?`<div class="sheet-row"><span class="sheet-lbl">✦ Spren Bond</span><span class="sheet-val" style="color:${sprenBond.color||'var(--teal2)'};">Stage ${getSprenStage(gState&&gState.totalMoves||0)+1}/5 — ${sprenBond.name}</span></div>`:''}
     <div class="sheet-row" style="font-style:italic;font-size:13px;color:var(--text4);border:none;padding-top:4px;">${getSprenDesc(myChar,gState&&gState.totalMoves||0)}</div>
     <div style="margin-top:10px;font-size:12px;color:var(--text4);font-family:var(--font-display);letter-spacing:1px;">SURGES & ABILITIES</div>
@@ -1390,6 +1497,227 @@ async function onReset(){
   }catch(e){alert('Reset failed: '+e.message);}
 }
 
+// ══════════════════════════════════════
+// SPREN MEMORY SYSTEM
+// ══════════════════════════════════════
+function recordSprenMemory(action, roll, turn){
+  if(!myChar||!gState)return;
+  // Only record dramatic moments
+  if(roll<6||roll>=18||action.toLowerCase().includes('protect')||action.toLowerCase().includes('sacrifice')||action.toLowerCase().includes('refuse')||action.toLowerCase().includes('truth')||action.toLowerCase().includes('oath')){
+    const bond=SPREN_BONDS[myChar.classId];
+    if(!bond)return;
+    const loc=getAct(turn).location||'the field';
+    let memory='';
+    if(roll>=18)memory=`Turn ${turn}: ${myChar.name} achieved something extraordinary in ${loc} — "${action.substring(0,60)}"`;
+    else if(roll<6)memory=`Turn ${turn}: ${myChar.name} failed gravely in ${loc} — "${action.substring(0,60)}"`;
+    else memory=`Turn ${turn}: ${myChar.name} made a meaningful choice in ${loc} — "${action.substring(0,60)}"`;
+    if(!gState.sprenMemories)gState.sprenMemories={};
+    if(!gState.sprenMemories[myChar.name])gState.sprenMemories[myChar.name]=[];
+    // Keep last 5 memories per character
+    gState.sprenMemories[myChar.name].push(memory);
+    if(gState.sprenMemories[myChar.name].length>5)gState.sprenMemories[myChar.name].shift();
+    // Save to state (fire and forget)
+    saveState(gState).catch(()=>{});
+  }
+}
+
+function getSprenMemoryContext(){
+  if(!gState||!gState.sprenMemories)return'';
+  const sz=gState.partySize||partySize;
+  const lines=[];
+  gState.players.slice(0,sz).filter(Boolean).forEach(p=>{
+    const mems=gState.sprenMemories&&gState.sprenMemories[p.name];
+    const bond=SPREN_BONDS[p.classId];
+    if(mems&&mems.length&&bond){
+      lines.push(`${bond.nick} (bonded to ${p.name}) remembers: ${mems.slice(-2).join(' | ')}`);
+    }
+  });
+  return lines.length?'\n\nSPREN MEMORIES (reference naturally in narration, do not announce them):\n'+lines.join('\n'):'';
+}
+
+// ══════════════════════════════════════
+// STORMLIGHT AUDIO ENGINE
+// Procedural synthesis — no files needed
+// ══════════════════════════════════════
+let audioCtx=null,audioNodes={},audioOn=false,masterGain=null;
+
+function initAudio(){
+  if(audioCtx)return;
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  masterGain=audioCtx.createGain();
+  masterGain.gain.value=0.3;
+  masterGain.connect(audioCtx.destination);
+}
+
+function createWindLayer(freq,gainVal,speed){
+  const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*3,audioCtx.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+  const src=audioCtx.createBufferSource();
+  src.buffer=buf;src.loop=true;
+  const filt=audioCtx.createBiquadFilter();
+  filt.type='bandpass';filt.frequency.value=freq;filt.Q.value=0.8;
+  const g=audioCtx.createGain();g.gain.value=gainVal;
+  // LFO for wind sway
+  const lfo=audioCtx.createOscillator();
+  lfo.frequency.value=speed;
+  const lfoGain=audioCtx.createGain();lfoGain.gain.value=gainVal*0.4;
+  lfo.connect(lfoGain);lfoGain.connect(g.gain);
+  lfo.start();src.start();
+  src.connect(filt);filt.connect(g);g.connect(masterGain);
+  return{src,filt,g,lfo};
+}
+
+function createThunderRumble(){
+  const osc=audioCtx.createOscillator();
+  osc.type='sawtooth';osc.frequency.value=55;
+  const filt=audioCtx.createBiquadFilter();
+  filt.type='lowpass';filt.frequency.value=120;
+  const g=audioCtx.createGain();g.gain.value=0;
+  osc.connect(filt);filt.connect(g);g.connect(masterGain);
+  osc.start();
+  // Occasional thunder rumble
+  function rumble(){
+    const now=audioCtx.currentTime;
+    g.gain.setValueAtTime(0,now);
+    g.gain.linearRampToValueAtTime(0.15,now+0.1);
+    g.gain.exponentialRampToValueAtTime(0.001,now+2.5);
+    setTimeout(rumble,8000+Math.random()*12000);
+  }
+  setTimeout(rumble,3000+Math.random()*5000);
+  return{osc,filt,g};
+}
+
+function createStormlightHum(){
+  const osc=audioCtx.createOscillator();
+  osc.type='sine';osc.frequency.value=220;
+  const osc2=audioCtx.createOscillator();
+  osc2.type='sine';osc2.frequency.value=221.5; // slight detune = shimmer
+  const g=audioCtx.createGain();g.gain.value=0.02;
+  // Pulse LFO
+  const lfo=audioCtx.createOscillator();
+  lfo.frequency.value=0.3;
+  const lg=audioCtx.createGain();lg.gain.value=0.015;
+  lfo.connect(lg);lg.connect(g.gain);
+  lfo.start();osc.start();osc2.start();
+  osc.connect(g);osc2.connect(g);g.connect(masterGain);
+  return{osc,osc2,g,lfo};
+}
+
+function startAudio(){
+  initAudio();
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  audioNodes.wind1=createWindLayer(400,0.12,0.08);
+  audioNodes.wind2=createWindLayer(800,0.08,0.13);
+  audioNodes.wind3=createWindLayer(200,0.15,0.05);
+  audioNodes.thunder=createThunderRumble();
+  audioNodes.hum=createStormlightHum();
+  audioOn=true;
+  document.getElementById('audio-toggle').textContent='🌩';
+  document.getElementById('audio-label').textContent='STORM';
+}
+
+function stopAudio(){
+  if(!audioCtx)return;
+  Object.values(audioNodes).forEach(n=>{
+    try{if(n.src)n.src.stop();if(n.osc)n.osc.stop();if(n.osc2)n.osc2.stop();if(n.lfo)n.lfo.stop();}catch(e){}
+  });
+  audioNodes={};audioOn=false;
+  document.getElementById('audio-toggle').textContent='🔇';
+  document.getElementById('audio-label').textContent='MUTED';
+}
+
+function toggleAudio(){
+  if(!audioOn)startAudio();else stopAudio();
+}
+
+function setVolume(val){
+  if(masterGain)masterGain.gain.value=val/100*0.6;
+}
+
+function setStormIntensity(type){
+  // Adjust wind layers based on scene type
+  if(!audioOn||!audioNodes.wind1)return;
+  const now=audioCtx.currentTime;
+  const intensities={combat:{w1:0.22,w2:0.16,w3:0.25,hum:0.04},decision:{w1:0.06,w2:0.04,w3:0.08,hum:0.06},discovery:{w1:0.09,w2:0.07,w3:0.10,hum:0.08},normal:{w1:0.12,w2:0.08,w3:0.15,hum:0.02}};
+  const t=intensities[type]||intensities.normal;
+  audioNodes.wind1.g.gain.linearRampToValueAtTime(t.w1,now+2);
+  audioNodes.wind2.g.gain.linearRampToValueAtTime(t.w2,now+2);
+  audioNodes.wind3.g.gain.linearRampToValueAtTime(t.w3,now+2);
+  if(audioNodes.hum)audioNodes.hum.g.gain.linearRampToValueAtTime(t.hum,now+1.5);
+}
+
+function shareStoryMoment(btn){
+  const text=btn.getAttribute('data-text')||'';
+  const loc=btn.getAttribute('data-loc')||'Roshar';
+  const campaign=(gState&&gState.campaignName)||campaignId||'Stormlight Chronicles';
+  const party=gState&&gState.players?gState.players.filter(p=>p&&!p.isNPC).map(p=>p.name).join(', '):'';
+
+  // Create canvas
+  const canvas=document.createElement('canvas');
+  canvas.width=800;canvas.height=460;
+  const ctx=canvas.getContext('2d');
+
+  // Background — dark parchment gradient
+  const bg=ctx.createLinearGradient(0,0,0,460);
+  bg.addColorStop(0,'#1a1510');bg.addColorStop(1,'#0d0b08');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,800,460);
+
+  // Decorative border
+  ctx.strokeStyle='#70522B';ctx.lineWidth=1;ctx.strokeRect(16,16,768,428);
+  ctx.strokeStyle='#BFA15A';ctx.lineWidth=0.5;ctx.strokeRect(22,22,756,416);
+
+  // Glyph
+  ctx.fillStyle='#BFA15A';ctx.font='bold 36px serif';ctx.textAlign='center';
+  ctx.fillText('⟁',400,62);
+
+  // Title
+  ctx.fillStyle='#EFE5D1';ctx.font='bold 15px Georgia,serif';ctx.textAlign='center';
+  ctx.fillText('STORMLIGHT CHRONICLES',400,88);
+
+  // Campaign & location
+  ctx.fillStyle='#9C7B3C';ctx.font='italic 12px Georgia,serif';
+  ctx.fillText(campaign+' — '+loc,400,108);
+
+  // Divider
+  ctx.strokeStyle='#70522B';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(60,120);ctx.lineTo(740,120);ctx.stroke();
+
+  // Story text — word wrap
+  ctx.fillStyle='#D9BF8C';ctx.font='italic 16px Georgia,serif';ctx.textAlign='left';
+  const words=text.split(' ');
+  let line='';let y=148;const maxW=680;const lineH=26;
+  for(let i=0;i<words.length;i++){
+    const test=line+words[i]+' ';
+    if(ctx.measureText(test).width>maxW&&line!==''){
+      ctx.fillText(line.trim(),60,y);line=words[i]+' ';y+=lineH;
+      if(y>370)break;
+    } else{line=test;}
+  }
+  if(y<=370)ctx.fillText(line.trim(),60,y);
+
+  // Bottom divider
+  ctx.strokeStyle='#70522B';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(60,390);ctx.lineTo(740,390);ctx.stroke();
+
+  // Party & act
+  ctx.fillStyle='#70522B';ctx.font='11px Georgia,serif';ctx.textAlign='left';
+  ctx.fillText(party,60,410);
+  const act=getAct(gState&&gState.totalMoves||0);
+  ctx.textAlign='right';
+  ctx.fillText(act.tag+' · Turn '+(gState&&gState.totalMoves||0)+'/180',740,410);
+
+  // Watermark
+  ctx.fillStyle='rgba(191,161,90,0.15)';ctx.font='bold 10px Georgia,serif';ctx.textAlign='center';
+  ctx.fillText('rruss1.github.io/StormlightBRJ',400,438);
+
+  // Download
+  const link=document.createElement('a');
+  link.download='stormlight-moment.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+
 function exportToPDF(){
   // Fill print header
   const h=document.getElementById('print-campaign-name');
@@ -1415,5 +1743,11 @@ function showErr(el,msg){el.textContent=msg;el.style.display='block';}
   }
 })();
 </script>
+<!-- Audio bar (only shows in game screen) -->
+<div class="audio-bar" id="audio-bar" style="display:none;">
+  <button class="audio-btn" id="audio-toggle" onclick="toggleAudio()" title="Toggle Storm">🌩</button>
+  <span class="audio-label" id="audio-label">STORM</span>
+  <input type="range" class="vol-slider" id="vol-slider" min="0" max="100" value="30" oninput="setVolume(this.value)"/>
+</div>
 </body>
 </html>
