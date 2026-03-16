@@ -234,9 +234,7 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 #bottom-waiting{display:none;padding:16px 20px;text-align:center;}
 .waiting-msg{font-family:var(--font-d);font-size:13px;letter-spacing:1px;color:var(--text5);}
 
-/* Share moment button */
-.share-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border2);border-radius:20px;background:transparent;color:var(--text4);font-size:12px;cursor:pointer;margin-top:10px;transition:all 0.15s;}
-.share-btn:hover{border-color:var(--gold-dim);color:var(--text3);}
+
 
 /* ── CHARACTER SHEET ── */
 .sheet-toggle{font-size:13px;color:var(--text4);cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:var(--font-d);letter-spacing:1px;text-transform:uppercase;border:none;background:transparent;padding:0;}
@@ -260,7 +258,10 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 #print-header{display:none;}
 @media print{
   body{background:#fff!important;color:#111!important;font-size:12pt;}
-  .game-top,.party-strip,.bottom-zone,.sheet-toggle,.sheet-panel,#enemy-panel,#initiative-panel,.prog-wrap,.turn-pill,.audio-bar,#export-btn,#s-game>*:not(.game-body){display:none!important;}
+  .party-strip,.bottom-zone,.sheet-toggle,.sheet-panel,#enemy-panel,#initiative-panel,.prog-wrap,.turn-pill,.audio-bar,#export-btn,#export-btn-wrap,#thinking-bar{display:none!important;}
+  .game-top{border-bottom:1px solid #ccc;padding:10px 0;margin-bottom:16px;}
+  .game-logo{font-size:16pt;font-weight:bold;}
+  #lang-toggle{display:none!important;}
   .chronicle-card{border:none;}
   .story-text{font-size:12pt;color:#111!important;}
   #print-header{display:block!important;text-align:center;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #111;}
@@ -918,7 +919,8 @@ async function startCampaign(){
   await callGM(openingPrompt());
   const log=await loadLog(true);
   renderAll(log);
-  setBottomFromState(log);
+  // Small delay ensures DOM is painted and lastGM choices are available
+  setTimeout(()=>setBottomFromState(log),100);
 }
 function openingPrompt(){
   const sz=gState.partySize||partySize;
@@ -1041,9 +1043,7 @@ function renderStory(log){
         .trim();
       const badge=raw.includes('[COMBAT]')?'<span class="event-badge badge-combat">Combat</span>':raw.includes('[DISCOVERY]')?'<span class="event-badge badge-discovery">Discovery</span>':raw.includes('[DECISION]')?'<span class="event-badge badge-decision">Decision</span>':'';
       const clean=raw.replace(/\[COMBAT\]|\[DISCOVERY\]|\[DECISION\]/g,'').replace(/\[CHOICES\][\s\S]*/,'').trim();
-      const safeText=clean.replace(/`/g,"'").replace(/\\/g,'');
-      const act=getAct(gState&&gState.totalMoves||0);
-      return`<div style="border-left:2px solid var(--gold);padding-left:14px;margin-bottom:12px;">${badge}<span class="gm-label">The Chronicle</span>${clean.replace(/\n/g,'<br/>')}<br/><button class="share-btn" onclick="shareStoryMoment(this)" data-text="${safeText.substring(0,300)}" data-loc="${act.location||'Roshar'}">📷 Share Moment</button></div>`;
+      return`<div style="border-left:2px solid var(--gold);padding-left:14px;margin-bottom:12px;">${badge}<span class="gm-label">The Chronicle</span>${clean.replace(/\n/g,'<br/>')}</div>`;
     }
     if(e.type==='player'){const p=gState&&gState.players.find(x=>x&&x.name===e.who);return`<div class="entry-player"><div class="entry-pname" style="color:${p?p.color:'var(--text3)'};">${e.who}</div>${e.text}</div>`;}
     if(e.type==='npc')return''; // NPC actions are silent — summarised by GM in next beat
@@ -1205,7 +1205,7 @@ async function handleNPC(log){
   isLoading=false;
   const freshLog=await loadLog(true);
   renderAll(freshLog);
-  setBottomFromState(freshLog);
+  setTimeout(()=>setBottomFromState(freshLog),100);
   // NPC chain stops here — user must press Continue to advance
   // setBottomFromState will show Continue button for next NPC turn
 }
@@ -1279,7 +1279,7 @@ async function onSubmitAction(){
   isLoading=false;
   const freshLog=await loadLog(true);
   renderAll(freshLog);
-  setBottomFromState(freshLog);
+  setTimeout(()=>setBottomFromState(freshLog),100);
 }
 
 function getStat(a){a=a.toLowerCase();if(/attack|fight|strike|slash|charge/.test(a))return'str';if(/run|dodge|leap|fly|sneak/.test(a))return'dex';if(/magic|soulcast|illusion|lash|stormlight/.test(a))return'int';if(/search|detect|sense|notice|examine/.test(a))return'wis';if(/persuade|talk|convince|negotiate|threaten/.test(a))return'cha';return'end';}
@@ -1356,7 +1356,7 @@ CRITICAL RULE: ${next?next.name:'The player'} is the ONLY actor in every option.
 2. (different approach — physical or tactical)
 3. (investigative or discovery angle)
 4. (bold or high-risk option)
-First person "I do X" or "${next?next.name:'player'} does X". One sentence each. No ** markers. Tag on its own final line: [COMBAT], [DISCOVERY], or [DECISION].`;
+First person "I do X" or "${next?next.name:'player'} does X". One sentence each. No ** markers. Tag on its own final line: [COMBAT], [DISCOVERY], or [DECISION].${getLangInstruction()}`;
 }
 
 // ══ COMBAT SYSTEMS ══
@@ -1546,34 +1546,7 @@ function renderSheet(){
     <div class="abils">${myChar.abilities.map(a=>`<span class="abil">${a}</span>`).join('')}</div>`;
 }
 
-// ══ SHARE MOMENT ══
-function shareStoryMoment(btn){
-  const text=btn.getAttribute('data-text')||'';
-  const loc=btn.getAttribute('data-loc')||'Roshar';
-  const campaign=(gState&&gState.campaignName)||campaignId||'Stormlight Chronicles';
-  const party=gState&&gState.players?gState.players.filter(p=>p&&!p.isNPC).map(p=>p.name).join(', '):'';
-  const canvas=document.createElement('canvas');canvas.width=800;canvas.height=460;
-  const ctx=canvas.getContext('2d');
-  const bg=ctx.createLinearGradient(0,0,0,460);bg.addColorStop(0,'#1a1510');bg.addColorStop(1,'#0d0b08');
-  ctx.fillStyle=bg;ctx.fillRect(0,0,800,460);
-  ctx.strokeStyle='#70522B';ctx.lineWidth=1;ctx.strokeRect(16,16,768,428);
-  ctx.strokeStyle='#BFA15A';ctx.lineWidth=0.5;ctx.strokeRect(22,22,756,416);
-  ctx.fillStyle='#BFA15A';ctx.font='bold 36px serif';ctx.textAlign='center';ctx.fillText('⟁',400,62);
-  ctx.fillStyle='#EFE5D1';ctx.font='bold 15px Georgia,serif';ctx.fillText('STORMLIGHT CHRONICLES',400,88);
-  ctx.fillStyle='#9C7B3C';ctx.font='italic 12px Georgia,serif';ctx.fillText(campaign+' — '+loc,400,108);
-  ctx.strokeStyle='#70522B';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(60,120);ctx.lineTo(740,120);ctx.stroke();
-  ctx.fillStyle='#D9BF8C';ctx.font='italic 16px Georgia,serif';ctx.textAlign='left';
-  const words=text.split(' ');let line='';let y=148;
-  for(const word of words){const test=line+word+' ';if(ctx.measureText(test).width>680&&line){ctx.fillText(line.trim(),60,y);line=word+' ';y+=26;if(y>370)break;}else line=test;}
-  if(y<=370)ctx.fillText(line.trim(),60,y);
-  ctx.strokeStyle='#70522B';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(60,390);ctx.lineTo(740,390);ctx.stroke();
-  ctx.fillStyle='#70522B';ctx.font='11px Georgia,serif';ctx.textAlign='left';ctx.fillText(party,60,410);
-  const act=getAct(gState&&gState.totalMoves||0);
-  ctx.textAlign='right';ctx.fillText(act.tag+' · Turn '+(gState&&gState.totalMoves||0)+'/180',740,410);
-  ctx.fillStyle='rgba(191,161,90,0.15)';ctx.font='bold 10px Georgia,serif';ctx.textAlign='center';ctx.fillText('rruss1.github.io/StormlightBRJ',400,438);
-  const link=document.createElement('a');link.download='stormlight-moment.png';link.href=canvas.toDataURL('image/png');link.click();
-}
-
+// Share Moment removed
 // ══ PDF EXPORT ══
 function exportToPDF(){
   const h=document.getElementById('print-campaign-name');const d=document.getElementById('print-date');
@@ -1759,7 +1732,6 @@ const TH={
   'Waiting...':'รอ...',
   '⬇ Export Chronicle':'⬇ ส่งออกพงศาวดาร',
   'Character Sheet':'แผ่นตัวละคร',
-  'Share Moment':'แชร์ช่วงเวลา',
   '⚔ Enemies':'⚔ ศัตรู',
   'Option':'ตัวเลือก',
   'Name':'ชื่อ','Order':'Order','HP':'HP',
