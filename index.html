@@ -149,10 +149,10 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 .ppip-tag{font-size:9px;letter-spacing:1px;font-family:var(--font-d);}
 .hp-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
 .hp-fill{height:100%;border-radius:2px;transition:width 0.4s;}
-.game-body{flex:1;display:flex;flex-direction:column;gap:0;width:100%;}
+.game-body{flex:1;display:flex;flex-direction:column;gap:0;width:100%;overflow:visible;}
 .game-body-top{padding:16px 20px 0;max-width:840px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:14px;}
-.game-layout{display:grid;grid-template-columns:220px minmax(300px,840px) 220px;gap:14px;align-items:start;justify-content:center;padding:16px 20px 20px;width:100%;}
-.side-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;position:sticky;top:76px;}
+.game-layout{display:grid;grid-template-columns:220px 1fr 220px;gap:16px;align-items:start;padding:16px 20px 20px;width:100%;box-sizing:border-box;}
+.side-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;position:sticky;top:76px;min-height:200px;}
 .side-panel-body{padding:10px 14px;max-height:calc(100vh - 160px);overflow-y:auto;font-size:12px;}
 .side-panel-hdr{padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);text-transform:uppercase;}
 .side-panel-body::-webkit-scrollbar{width:3px;}
@@ -187,7 +187,7 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 @keyframes initpulse{0%,100%{box-shadow:0 0 0 2px rgba(191,161,90,0.9),0 0 12px rgba(191,161,90,0.4);}50%{box-shadow:0 0 0 3px rgba(191,161,90,0.7),0 0 20px rgba(191,161,90,0.6);}}
 
 /* ── CHRONICLE CARD ── */
-.chronicle-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r3);overflow:hidden;}
+.chronicle-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r3);overflow:hidden;max-width:840px;width:100%;margin:0 auto;}
 .chronicle-header{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
 .chronicle-title{font-family:var(--font-d);font-size:11px;letter-spacing:2px;color:var(--text4);text-transform:uppercase;}
 .chronicle-act{font-size:11px;color:var(--amber-dim);font-style:italic;}
