@@ -441,7 +441,7 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
     <!-- Chronicle card — unified -->
     <div class="chronicle-card">
       <div class="chronicle-header">
-        <span class="chronicle-title">The Chronicle</span>
+        <span class="chronicle-title" data-i18n="The Chronicle">The Chronicle</span>
         <span class="chronicle-act" id="chronicle-act"></span>
       </div>
       <div class="story-text" id="story-text">
@@ -450,7 +450,7 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
       <div class="bottom-zone">
         <!-- Loading -->
         <div id="bottom-loading">
-          <div class="loading-text dots">The Stormfather deliberates</div>
+          <div class="loading-text dots" data-i18n="The Stormfather deliberates">The Stormfather deliberates</div>
           <div class="pulse-row">
             <div class="pulse-dot" style="animation-delay:0s"></div>
             <div class="pulse-dot" style="animation-delay:0.2s"></div>
@@ -466,13 +466,13 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
           </div>
           <div class="act-row">
             <div class="err" id="action-err" style="display:none;"></div>
-            <button class="btn-act" onclick="onSubmitAction()">Act →</button>
+            <button class="btn-act" onclick="onSubmitAction()" data-i18n="Act →">Act →</button>
           </div>
         </div>
         <!-- Continue (NPC turn or post-read gate) -->
         <div id="bottom-continue">
           <span class="continue-hint" id="continue-hint"></span>
-          <button class="btn-continue" id="continue-btn" onclick="onContinue()" disabled>Continue →</button>
+          <button class="btn-continue" id="continue-btn" onclick="onContinue()" disabled data-i18n="Continue →">Continue →</button>
         </div>
         <!-- Waiting for other human -->
         <div id="bottom-waiting">
@@ -1025,6 +1025,9 @@ function renderStory(log){
         .replace(/^\*+$|^#+\s*/gm,'')
         .replace(/^(CONSEQUENCE|RESULT|OUTCOME|NARRATION|SUMMARY|SCENE|GM|NOTE|TURN \d+[^\n]*):\s*/gim,'')
         .replace(/^(PARAGRAPH \d+[^\n]*):\s*/gim,'')
+        .replace(/^[\w\s]+'s Options?:\s*/gim,'')
+        .replace(/^Options? for [\w\s]+:\s*/gim,'')
+        .replace(/^(YOUR|GORE|SLAC|PLAYER|CHARACTER)[^\n]*OPTIONS?[^\n]*:\s*/gim,'')
         .trim();
       const badge=raw.includes('[COMBAT]')?'<span class="event-badge badge-combat">Combat</span>':raw.includes('[DISCOVERY]')?'<span class="event-badge badge-discovery">Discovery</span>':raw.includes('[DECISION]')?'<span class="event-badge badge-decision">Decision</span>':'';
       const clean=raw.replace(/\[COMBAT\]|\[DISCOVERY\]|\[DECISION\]/g,'').replace(/\[CHOICES\][\s\S]*/,'').trim();
@@ -1086,7 +1089,7 @@ function setBottomReadGate(choices){
   const btn=document.getElementById('continue-btn');
   const hint=document.getElementById('continue-hint');
   btn.disabled=true;
-  hint.textContent='Scroll down to read →';
+  hint.textContent=T('Scroll down to read →');
   // Store choices for after Continue
   btn._pendingChoices=choices;
   // Enable after scroll or 4s
@@ -1336,15 +1339,14 @@ CONSEQUENCE (2-3 vivid sentences):
 - Use ${loc} specifically: its sounds, smells, architecture, light
 - Reference ${who.name}'s class abilities in a fresh way${actHint?'\n- Hint at the upcoming transition':''}
 
-Now ${next?next.name+"'s turn ("+next.className+(next.isNPC?' — NPC D4 choice':' — human player')+')':'next turn'}.
 [CHOICES]
-Write exactly 4 options FOR ${next?next.name:'the next player'} (${next?next.className:'?'}) ONLY.
-CRITICAL: Every option must be an action ${next?next.name:'the player'} takes personally. Never name or direct another character. Use "I" framing or "${next?next.name:'the player'}" as subject.
-1. (${next?next.className:'class'}-specific action in ${loc})
-2. (different approach using their surges or abilities)
-3. (tactical or investigative option)
-4. (bold or unexpected option)
-One sentence each. No ** markers. No [COMBAT]/[DISCOVERY]/[DECISION] tags inside the options themselves — put ONE tag at the very end on its own line.`;
+IT IS NOW ${next?next.name.toUpperCase()+"'S TURN":'THE NEXT PLAYER\'S TURN'} — write 4 options FOR ${next?next.name:'them'} (${next?next.className:'?'}) ONLY.
+CRITICAL RULE: ${next?next.name:'The player'} is the ONLY actor in every option. Never write an option where ${gState.players.slice(0,sz).filter(p=>p&&(!next||p.name!==next.name)&&!p.isNPC).map(p=>p.name).join(' or ')||'another player'} acts.
+1. (${next?next.className:'class'}-specific surge action in ${loc})
+2. (different approach — physical or tactical)
+3. (investigative or discovery angle)
+4. (bold or high-risk option)
+First person "I do X" or "${next?next.name:'player'} does X". One sentence each. No ** markers. Tag on its own final line: [COMBAT], [DISCOVERY], or [DECISION].`;
 }
 
 // ══ COMBAT SYSTEMS ══
