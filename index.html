@@ -334,6 +334,10 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
   <div id="camp-status" style="font-size:14px;color:var(--text4);font-style:italic;min-height:20px;margin-top:12px;"></div>
   <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;">
     <div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text5);text-transform:uppercase;margin-bottom:10px;"><span data-tr>Help Keep the Stormfather Alive</span></div>
+    <a href="https://venmo.com/u/goretusker" target="_blank" style="display:inline-flex;align-items:center;gap:10px;padding:10px 22px;border:1px solid #008CFF;border-radius:24px;background:rgba(0,140,255,0.07);text-decoration:none;transition:background 0.15s;margin-bottom:10px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#008CFF"/><path d="M17.5 5.5C17.9 6.3 18.1 7.1 18.1 8.2C18.1 11.5 15.2 15.8 12.8 18.5H7.2L5 6.2L10 5.7L11.1 13.4C12.2 11.5 13.6 8.5 13.6 6.5C13.6 5.4 13.4 4.6 13 4L17.5 5.5Z" fill="white"/></svg>
+      <span style="font-family:var(--font-d);font-size:14px;color:#008CFF;letter-spacing:1px;">Venmo &middot; @goretusker</span>
+    </a><br/>
     <a href="https://cash.app/%24rurich31" target="_blank" id="cashlink" style="display:inline-flex;align-items:center;gap:10px;padding:10px 22px;border:1px solid #00D632;border-radius:24px;background:rgba(0,214,50,0.07);text-decoration:none;transition:background 0.15s;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#00D632"/><path d="M15.5 8.5C15.5 8.5 14.5 7.5 12 7.5C9.5 7.5 8 9 8 10.5C8 12 9 12.8 11 13.3L13 13.8C14.5 14.2 15.5 15 15.5 16.5C15.5 18 14 19.5 11.5 19.5C9 19.5 7.5 18 7.5 18" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="6" x2="12" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="19.5" x2="12" y2="21.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
       <span style="font-family:var(--font-d);font-size:14px;color:#00D632;letter-spacing:1px;">Donate &middot; &#36;rurich31</span>
@@ -1754,13 +1758,60 @@ function speakStory(){
   stopSpeaking();
   const go=()=>{
     currentUtterance=new SpeechSynthesisUtterance(text);
-    currentUtterance.rate=0.88;currentUtterance.pitch=0.95;currentUtterance.volume=0.9;
+    currentUtterance.volume=0.95;
     const vv=window.speechSynthesis.getVoices();
-    const v=vv.find(x=>x.name==='Daniel')||vv.find(x=>x.lang==='en-GB'&&x.localService)||vv.find(x=>x.lang.startsWith('en-')&&x.localService)||vv.find(x=>x.lang.startsWith('en'))||vv[0];
-    if(v)currentUtterance.voice=v;
+    // Ranked preference list — best narrative voices first
+    const preferred=[
+      // macOS / iOS — excellent quality
+      'Daniel',          // British male — deep, authoritative (best overall)
+      'Aaron',           // US male — clear and warm
+      'Fred',            // US male — distinctive character
+      'Alex',            // US male — clear, good for narrative
+      'Arthur',          // British male
+      'Gordon',          // British male
+      'Jamie',           // British male
+      'Oliver',          // British male
+      'Rishi',           // British male
+      // Windows — better options
+      'Microsoft David Desktop',
+      'Microsoft Mark Desktop',
+      'Microsoft George Desktop',  // British
+      'Microsoft James Desktop',   // British
+      // Android
+      'en-gb-x-gba-local',
+      'en-gb-x-gbg-local',
+    ];
+    let chosen=null;
+    // Try exact name matches first
+    for(const name of preferred){
+      const match=vv.find(v=>v.name===name);
+      if(match){chosen=match;break;}
+    }
+    // Fallback: any local British English voice
+    if(!chosen)chosen=vv.find(v=>v.lang==='en-GB'&&v.localService);
+    // Fallback: any local English voice
+    if(!chosen)chosen=vv.find(v=>v.lang.startsWith('en')&&v.localService);
+    // Last resort: any English voice
+    if(!chosen)chosen=vv.find(v=>v.lang.startsWith('en'));
+    if(!chosen&&vv.length)chosen=vv[0];
+    if(chosen){
+      currentUtterance.voice=chosen;
+      // Tune rate/pitch per voice character
+      const name=chosen.name||'';
+      if(name==='Daniel'||name.includes('British')||name.includes('George')||name.includes('James')){
+        currentUtterance.rate=0.85;currentUtterance.pitch=0.88; // slower, deeper for British
+      } else if(name==='Fred'){
+        currentUtterance.rate=0.82;currentUtterance.pitch=0.85; // Fred has great gravitas slow
+      } else {
+        currentUtterance.rate=0.9;currentUtterance.pitch=0.92;  // default: slightly slower than normal
+      }
+    } else {
+      currentUtterance.rate=0.88;currentUtterance.pitch=0.92;
+    }
     currentUtterance.onend=currentUtterance.onerror=()=>{voiceActive=false;updateVoiceBtn();};
     window.speechSynthesis.speak(currentUtterance);
     voiceActive=true;updateVoiceBtn();
+    console.log('Voice:',chosen?chosen.name+' ('+chosen.lang+')':'none found');
   };
   if(window.speechSynthesis.getVoices().length>0)go();
   else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;go();};}
