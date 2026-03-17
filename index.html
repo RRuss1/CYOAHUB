@@ -315,6 +315,7 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 
 /* ── AUDIO BAR ── */
 .audio-bar{position:fixed;bottom:16px;right:16px;z-index:100;display:none;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:6px 14px;}
+@media(max-width:640px){.audio-bar{display:none!important;}.desktop-only{display:none!important;}}
 .audio-btn{background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);padding:0;}
 .audio-btn:hover{color:var(--amber2);}
 .audio-label{font-family:var(--font-d);font-size:10px;letter-spacing:1px;color:var(--text4);}
@@ -631,6 +632,16 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
   <button class="audio-btn" id="audio-toggle" onclick="toggleAudio()" title="Toggle Storm">🔇</button>
   <span class="audio-label" id="audio-label">OFF</span>
   <input type="range" class="vol-slider" id="vol-slider" min="0" max="100" value="30" oninput="setVolume(this.value)"/>
+  <div style="width:1px;height:16px;background:var(--border2);margin:0 2px;"></div>
+  <button id="voice-btn-bar" onclick="toggleVoice()" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;" title="Read story aloud">🔈</button>
+  <select id="voice-select" onchange="setKokoroVoice(this.value)" style="background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:3px 8px;font-size:11px;color:var(--text3);cursor:pointer;font-family:var(--font-d);letter-spacing:1px;">
+    <option value="am_michael">♂ Michael</option>
+    <option value="am_adam">♂ Adam</option>
+    <option value="am_echo">♂ Echo</option>
+    <option value="bf_emma">♀ Emma (British)</option>
+    <option value="af_heart">♀ Heart</option>
+    <option value="af_nova">♀ Nova</option>
+  </select>
 </div>
 
 <script>
@@ -1157,6 +1168,7 @@ async function showGameScreen(){
   if(ab)ab.style.display='flex';
   startPolling();
   await refreshGame();
+  preloadKokoroDesktop(); // silent preload on desktop
 }
 
 async function refreshGame(){
@@ -2404,78 +2416,174 @@ function speakFromElement(text){
   else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;go();};}
 }
 
-// ══ VOICE OVER ══
+// ══ VOICE OVER — Kokoro Neural TTS ══
+// Kokoro: 82M param neural model, runs 100% in browser via WASM
+// Desktop: silent preload on game screen load
+// Mobile: only on explicit tap with data warning
+// Fallback: Web Speech API if Kokoro fails
+
 let voiceActive=false,voiceEnabled=true,currentUtterance=null;
-function speakStory(){
-  if(!voiceEnabled||!window.speechSynthesis)return;
-  const el=document.getElementById('story-text');
-  if(!el)return;
-  const text=(el.innerText||'').replace(/Option \d+/g,'').replace(/THE CHRONICLE/gi,'').trim();
-  if(text.length<10)return;
+let kokoroTTS=null,kokoroLoading=false,kokoroReady=false,kokoroBlobURL=null;
+const KOKORO_VOICE='am_michael'; // Deep US male — best for dramatic narration
+// Alternatives: 'bf_emma' (British female), 'am_adam' (US male), 'af_heart' (US female)
+
+function isMobile(){return/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);}
+
+function setVoiceLabel(text){
+  const b=document.getElementById('voice-btn');
+  if(b){b.title=text;}
+  const al=document.getElementById('audio-label');
+  if(al&&text!=='STORM'){}  // keep storm label separate
+}
+
+async function loadKokoro(){
+  if(kokoroReady||kokoroLoading)return;
+  kokoroLoading=true;
+  const ab=document.getElementById('audio-bar');
+  const lbl=document.getElementById('audio-label');
+  if(lbl)lbl.textContent='Voice...';
+  try{
+    // Import KokoroTTS from CDN
+    const {KokoroTTS}=await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.js');
+    kokoroTTS=await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',{
+      dtype:'q8',   // ~82MB quantized — best size/quality balance
+      device:'wasm' // runs in browser, no GPU needed
+    });
+    kokoroReady=true;
+    kokoroLoading=false;
+    if(lbl)lbl.textContent='STORM';
+    console.log('Kokoro TTS ready ✓');
+    return true;
+  }catch(e){
+    console.warn('Kokoro failed, falling back to Web Speech:',e.message);
+    kokoroLoading=false;
+    kokoroReady=false;
+    if(lbl)lbl.textContent='STORM';
+    return false;
+  }
+}
+
+// Preload on desktop silently when game screen appears
+function preloadKokoroDesktop(){
+  if(!isMobile()&&!kokoroReady&&!kokoroLoading){
+    setTimeout(()=>loadKokoro(),2000); // 2s delay so game renders first
+  }
+}
+
+async function speakWithKokoro(text){
+  if(!kokoroReady||!kokoroTTS)return false;
+  try{
+    stopSpeaking();
+    voiceActive=true;updateVoiceBtn();
+    const voice=window._kokoroVoice||KOKORO_VOICE;
+    const audio=await kokoroTTS.generate(text,{voice});
+    // Convert to blob URL and play via Audio element
+    if(kokoroBlobURL)URL.revokeObjectURL(kokoroBlobURL);
+    const blob=new Blob([audio.audio],{type:'audio/wav'});
+    kokoroBlobURL=URL.createObjectURL(blob);
+    const audioEl=new Audio(kokoroBlobURL);
+    audioEl.volume=0.95;
+    audioEl.onended=()=>{voiceActive=false;updateVoiceBtn();};
+    audioEl.onerror=()=>{voiceActive=false;updateVoiceBtn();};
+    currentUtterance=audioEl; // store ref for stopSpeaking
+    await audioEl.play();
+    return true;
+  }catch(e){
+    console.warn('Kokoro speak failed:',e.message);
+    voiceActive=false;updateVoiceBtn();
+    return false;
+  }
+}
+
+function speakWithWebSpeech(text){
+  if(!window.speechSynthesis)return;
   stopSpeaking();
   const go=()=>{
-    currentUtterance=new SpeechSynthesisUtterance(text);
-    currentUtterance.volume=0.95;
+    const utt=new SpeechSynthesisUtterance(text);
+    utt.volume=0.95;
     const vv=window.speechSynthesis.getVoices();
-    // Ranked preference list — best narrative voices first
-    const preferred=[
-      // macOS / iOS — excellent quality
-      'Daniel',          // British male — deep, authoritative (best overall)
-      'Aaron',           // US male — clear and warm
-      'Fred',            // US male — distinctive character
-      'Alex',            // US male — clear, good for narrative
-      'Arthur',          // British male
-      'Gordon',          // British male
-      'Jamie',           // British male
-      'Oliver',          // British male
-      'Rishi',           // British male
-      // Windows — better options
-      'Microsoft David Desktop',
-      'Microsoft Mark Desktop',
-      'Microsoft George Desktop',  // British
-      'Microsoft James Desktop',   // British
-      // Android
-      'en-gb-x-gba-local',
-      'en-gb-x-gbg-local',
-    ];
-    let chosen=null;
-    // Try exact name matches first
-    for(const name of preferred){
-      const match=vv.find(v=>v.name===name);
-      if(match){chosen=match;break;}
-    }
-    // Fallback: any local British English voice
-    if(!chosen)chosen=vv.find(v=>v.lang==='en-GB'&&v.localService);
-    // Fallback: any local English voice
-    if(!chosen)chosen=vv.find(v=>v.lang.startsWith('en')&&v.localService);
-    // Last resort: any English voice
-    if(!chosen)chosen=vv.find(v=>v.lang.startsWith('en'));
-    if(!chosen&&vv.length)chosen=vv[0];
-    if(chosen){
-      currentUtterance.voice=chosen;
-      // Tune rate/pitch per voice character
-      const name=chosen.name||'';
-      if(name==='Daniel'||name.includes('British')||name.includes('George')||name.includes('James')){
-        currentUtterance.rate=0.85;currentUtterance.pitch=0.88; // slower, deeper for British
-      } else if(name==='Fred'){
-        currentUtterance.rate=0.82;currentUtterance.pitch=0.85; // Fred has great gravitas slow
-      } else {
-        currentUtterance.rate=0.9;currentUtterance.pitch=0.92;  // default: slightly slower than normal
-      }
-    } else {
-      currentUtterance.rate=0.88;currentUtterance.pitch=0.92;
-    }
-    currentUtterance.onend=currentUtterance.onerror=()=>{voiceActive=false;updateVoiceBtn();};
-    window.speechSynthesis.speak(currentUtterance);
+    const preferred=['Daniel','Aaron','Fred','Alex','Arthur','Gordon','Microsoft David Desktop','Microsoft George Desktop'];
+    let v=null;
+    for(const n of preferred){v=vv.find(x=>x.name===n);if(v)break;}
+    if(!v)v=vv.find(x=>x.lang==='en-GB'&&x.localService)||vv.find(x=>x.lang.startsWith('en')&&x.localService)||vv.find(x=>x.lang.startsWith('en'))||vv[0];
+    if(v)utt.voice=v;
+    const n=v?v.name:'';
+    utt.rate=n==='Daniel'||n.includes('George')?0.85:n==='Fred'?0.82:0.88;
+    utt.pitch=n==='Daniel'||n.includes('George')?0.88:0.92;
+    utt.onend=utt.onerror=()=>{voiceActive=false;updateVoiceBtn();};
+    window.speechSynthesis.speak(utt);
+    currentUtterance=utt;
     voiceActive=true;updateVoiceBtn();
-    console.log('Voice:',chosen?chosen.name+' ('+chosen.lang+')':'none found');
   };
   if(window.speechSynthesis.getVoices().length>0)go();
   else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;go();};}
 }
-function stopSpeaking(){if(window.speechSynthesis)window.speechSynthesis.cancel();voiceActive=false;updateVoiceBtn();}
-function toggleVoice(){if(voiceActive)stopSpeaking();else{voiceEnabled=true;speakStory();}}
-function updateVoiceBtn(){const b=document.getElementById('voice-btn');if(!b)return;b.textContent=voiceActive?'🔊':'🔈';b.title=voiceActive?'Stop reading':'Read story aloud';}
+
+async function speakStory(){
+  if(!voiceEnabled||isMobile())return;
+  const el=document.getElementById('story-text');
+  if(!el)return;
+  const text=(el.innerText||'').replace(/Option \d+/g,'').replace(/THE CHRONICLE/gi,'').replace(/[\n]{2,}/g,' ').trim();
+  if(text.length<10)return;
+  // Kokoro path
+  if(kokoroReady){const ok=await speakWithKokoro(text);if(ok)return;}
+  // Web Speech fallback
+  speakWithWebSpeech(text);
+}
+
+async function speakFromElement(text){
+  if(!voiceEnabled||!text||isMobile())return;
+  stopSpeaking();
+  if(kokoroReady){const ok=await speakWithKokoro(text);if(ok)return;}
+  speakWithWebSpeech(text);
+}
+
+function stopSpeaking(){
+  // Stop Kokoro audio element
+  if(currentUtterance&&currentUtterance instanceof HTMLAudioElement){
+    currentUtterance.pause();currentUtterance.currentTime=0;
+  }
+  // Stop Web Speech
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+  voiceActive=false;updateVoiceBtn();
+}
+
+async function toggleVoice(){
+  if(isMobile())return; // no voice on mobile
+  if(voiceActive){stopSpeaking();return;}
+  if(!kokoroReady&&!kokoroLoading){
+    const b=document.getElementById('voice-btn');
+    if(b)b.textContent='⏳';
+    await loadKokoro();
+  }
+  voiceEnabled=true;
+  speakStory();
+}
+
+function updateVoiceBtn(){
+  const label=voiceActive?'🔊':kokoroLoading?'⏳':'🔈';
+  const title=voiceActive?'Stop reading':kokoroReady?'Read story (Kokoro Neural)':'Read story aloud';
+  ['voice-btn','voice-btn-bar','voice-btn-combat'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b){b.textContent=label;b.title=title;}
+  });
+}
+
+function setKokoroVoice(voice){
+  window._kokoroVoice=voice;
+  // Save preference
+  localStorage.setItem('sc_voice',voice);
+}
+
+// Load saved voice preference
+function loadVoicePreference(){
+  const saved=localStorage.getItem('sc_voice');
+  if(saved){
+    window._kokoroVoice=saved;
+    const sel=document.getElementById('voice-select');
+    if(sel)sel.value=saved;
+  }
+}
 
 // ══ AUDIO ENGINE ══
 let audioCtx=null,audioNodes={},audioOn=false,masterGain=null;
@@ -2694,6 +2802,7 @@ async function maybeTranslateStory(){
 
 (async()=>{
   applyLang();
+  loadVoicePreference();
   showScreen('campaign');
   try{await tok();const camps=await listCampaigns();renderCampaigns(camps);document.getElementById('camp-status').textContent='';}
   catch(e){document.getElementById('camp-status').textContent='Connecting... '+e.message;}
