@@ -157,6 +157,54 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 .side-panel-hdr{padding:10px 14px;border-bottom:1px solid var(--border);font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);text-transform:uppercase;}
 .side-panel-body::-webkit-scrollbar{width:3px;}
 .side-panel-body::-webkit-scrollbar-thumb{background:var(--border2);}
+/* ══ COMBAT SCREEN ══ */
+#s-combat{padding:0;flex-direction:column;background:var(--bg);}
+.combat-top{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;border-bottom:1px solid var(--coral);background:rgba(158,56,32,0.08);}
+.combat-title{font-family:var(--font-d);font-size:13px;letter-spacing:3px;color:var(--coral2);text-transform:uppercase;}
+.combat-round-pill{font-family:var(--font-d);font-size:11px;letter-spacing:1px;padding:5px 14px;border-radius:20px;border:1px solid var(--coral);color:var(--coral2);}
+.combat-body{flex:1;display:grid;grid-template-columns:240px 1fr 240px;gap:0;height:calc(100vh - 52px);}
+.combat-party-col,.combat-enemy-col{display:flex;flex-direction:column;gap:10px;padding:16px 12px;overflow-y:auto;border-right:1px solid var(--border);}
+.combat-enemy-col{border-right:none;border-left:1px solid var(--border);}
+.combat-center{display:flex;flex-direction:column;overflow:hidden;}
+.char-combat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;transition:border-color 0.2s;}
+.char-combat-card.active-turn{border-color:var(--amber);box-shadow:0 0 12px rgba(191,161,90,0.25);}
+.char-combat-card.downed{opacity:0.45;border-color:var(--coral);background:rgba(158,56,32,0.05);}
+.char-combat-card.enemy-card{border-color:rgba(196,74,40,0.3);}
+.char-combat-card.enemy-card.active-turn{border-color:var(--coral2);box-shadow:0 0 12px rgba(196,74,40,0.3);}
+.ccard-name-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.ccard-hp-big{font-size:18px;font-weight:600;color:var(--text);}
+.ccard-hp-label{font-size:11px;color:var(--text4);font-family:var(--font-d);letter-spacing:1px;}
+.ccard-status{font-size:11px;letter-spacing:1px;font-family:var(--font-d);}
+.combat-narrative{padding:20px;border-bottom:1px solid var(--border);background:var(--bg2);font-family:'Times New Roman',Times,serif;font-size:18px;line-height:1.85;color:var(--text);min-height:120px;flex-shrink:0;}
+.combat-narrative .gm-label{font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--coral2);text-transform:uppercase;display:block;margin-bottom:8px;}
+.combat-actions{flex:1;overflow-y:auto;padding:16px 20px;}
+.combat-waiting{text-align:center;padding:24px;font-family:var(--font-d);font-size:12px;letter-spacing:2px;color:var(--text4);text-transform:uppercase;}
+.combat-player-label{font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--amber2);text-transform:uppercase;margin-bottom:10px;}
+.combat-submitted{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(26,107,82,0.12);border:1px solid rgba(26,107,82,0.25);border-radius:var(--r);font-size:13px;color:var(--teal2);margin-bottom:8px;}
+.resolve-btn{width:100%;padding:14px;border:1px solid var(--coral);border-radius:var(--r);background:rgba(158,56,32,0.1);color:var(--coral2);font-family:var(--font-d);font-size:14px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;margin-top:12px;}
+.resolve-btn:hover{background:rgba(158,56,32,0.2);}
+.resolve-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.combat-dice-ticker{padding:10px 20px;border-top:1px solid var(--border);background:var(--bg3);max-height:140px;overflow-y:auto;font-size:12px;font-family:var(--font-d);letter-spacing:0.5px;}
+.combat-dice-ticker::-webkit-scrollbar{width:3px;}
+.combat-dice-ticker::-webkit-scrollbar-thumb{background:var(--border2);}
+.dice-round-header{font-size:10px;letter-spacing:2px;color:var(--text4);text-transform:uppercase;margin:6px 0 4px;padding-top:6px;border-top:1px solid var(--border);}
+.dice-round-header:first-child{border-top:none;margin-top:0;padding-top:0;}
+.dice-row{display:flex;align-items:center;gap:6px;padding:2px 0;line-height:1.4;}
+.dice-name{min-width:70px;font-weight:600;}
+.dice-roll{color:var(--text3);}
+.dice-result-crit{color:var(--gold);}
+.dice-result-hit{color:var(--teal2);}
+.dice-result-miss{color:var(--text5);}
+.dice-result-dmg{color:var(--coral2);}
+.dice-result-heal{color:var(--teal2);}
+.combat-init-strip{padding:8px 20px;border-top:1px solid var(--border);background:var(--bg2);display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+
+@media(max-width:900px){
+  .combat-body{grid-template-columns:1fr;}
+  .combat-party-col,.combat-enemy-col{flex-direction:row;flex-wrap:wrap;border:none;border-bottom:1px solid var(--border);padding:8px;}
+  .char-combat-card{min-width:140px;flex:1;}
+}
+
 @media(max-width:1100px){
   .game-layout{grid-template-columns:1fr;padding:12px;}
   .side-panel{position:static;display:flex;flex-direction:row;gap:0;}
@@ -547,6 +595,37 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
   </div>
 </div>
 
+<!-- ══ COMBAT SCREEN ══ -->
+<div id="s-combat" class="screen">
+  <div class="combat-top">
+    <span class="combat-title">⚔ Combat</span>
+    <span class="combat-round-pill" id="combat-round-label">Round 1</span>
+    <div style="display:flex;gap:8px;">
+      <button id="voice-btn-combat" onclick="toggleVoice()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:5px 12px;cursor:pointer;font-size:14px;">🔈</button>
+    </div>
+  </div>
+  <div class="combat-body">
+    <!-- LEFT: Party -->
+    <div class="combat-party-col" id="combat-party-col"></div>
+    <!-- CENTER: Narrative + Actions -->
+    <div class="combat-center">
+      <div class="combat-narrative" id="combat-narrative">
+        <span class="gm-label">The Battle</span>
+        <span id="combat-narrative-text">Combat begins...</span>
+      </div>
+      <div class="combat-actions" id="combat-actions">
+        <div class="combat-waiting">Waiting for combat to begin...</div>
+      </div>
+      <div class="combat-dice-ticker" id="combat-dice-ticker">
+        <div style="color:var(--text5);font-size:11px;font-style:italic;">Dice results will appear here each round...</div>
+      </div>
+      <div class="combat-init-strip" id="combat-init-strip"></div>
+    </div>
+    <!-- RIGHT: Enemies -->
+    <div class="combat-enemy-col" id="combat-enemy-col"></div>
+  </div>
+</div>
+
 <!-- Audio bar -->
 <div class="audio-bar" id="audio-bar">
   <button class="audio-btn" id="audio-toggle" onclick="toggleAudio()" title="Toggle Storm">🔇</button>
@@ -607,6 +686,72 @@ const ALL_LOCS=[...ROSHAR_P,...ROSHAR_O,...ROSHAR_S,...ROSHAR_L];
 const BASE_ACTS=[{num:1,tag:'Act I',start:0,end:59},{num:2,tag:'Act II',start:60,end:119},{num:3,tag:'Act III',start:120,end:179}];
 let ACTS=BASE_ACTS.map(a=>({...a,name:a.tag,location:'Roshar'}));
 const BLADE_TIERS=['Nascent','Bonded','Ancient','Living','Divine'];
+
+// ══ COMBAT SYSTEM CONSTANTS ══
+const COMBAT_BEATS_MIN=3, COMBAT_BEATS_MAX=8;
+
+// Heal amounts by bond stage (0-4) and class
+function getHealAmount(player, stageOverride){
+  const stage=stageOverride!=null?stageOverride:getSprenStage(gState&&gState.totalMoves||0);
+  const base=(stage+1)*2; // 2,4,6,8,10
+  if(player.classId==='edgedancer')return Math.round(base*1.7); // 3,7,10,14,17
+  if(player.classId==='bondsmith')return null; // party heal handled separately
+  return base;
+}
+function getBondsmitnPartyHeal(stage){return Math.max(1,Math.floor(stage*0.7+1));} // 1,1,2,2,3
+function getReviveCost(stage){return Math.max(0,3-stage);} // 3,2,1,0,0 fragments
+function getReviveHP(stage){return Math.max(1,stage*2);} // 0,2,4,6,8 → capped at 1 min
+
+// Enemy HP scaling: base × act multiplier × blade factor
+function calcEnemyHP(baseHP, actNum, avgBladeTier){
+  const actMult=[1.0,1.5,2.0][actNum-1]||1.0;
+  const bladeFactor=1+(avgBladeTier*0.15);
+  return Math.round(baseHP*actMult*bladeFactor);
+}
+
+// Roll dice for enemy attack on a player
+function enemyAttackRoll(enemy, target){
+  const roll=Math.ceil(Math.random()*20)+Math.floor(enemy.attackBonus||2);
+  const defense=Math.floor(((target.stats&&target.stats.end||10)-10)/2)+(target.shardplate?3:0);
+  const hit=roll>10+defense;
+  const dmg=hit?Math.ceil(Math.random()*enemy.dmg)+Math.floor(enemy.dmg/2):0;
+  return{roll,hit,dmg,defense};
+}
+
+// Build combat choices for a player — always 4 options
+function buildCombatChoices(player, combatState){
+  const stage=getSprenStage(gState.totalMoves||0);
+  const cls=CLASSES.find(c=>c.id===player.classId)||CLASSES[0];
+  const sz=gState.partySize||partySize;
+  const party=gState.players.slice(0,sz).filter(p=>p&&!p.downed&&p.name!==player.name);
+  const downed=gState.players.slice(0,sz).filter(p=>p&&p.downed);
+  const enemies=(combatState.enemies||[]).filter(e=>e.hp>0);
+  const anyInjured=gState.players.slice(0,sz).some(p=>p&&p.hp<p.maxHp&&!p.downed);
+  const healAmt=getHealAmount(player,stage);
+  
+  const choices=[];
+  // 1. Class-specific attack
+  const abil=cls.abilities[0]||'Attack';
+  choices.push(`[ATTACK] Use ${abil} against ${enemies[0]?enemies[0].name:'the enemy'}`);
+  // 2. Tactical attack
+  choices.push(`[ATTACK] Focus all Stormlight into a precise strike at the weakest enemy`);
+  // 3. Defensive/tactical
+  choices.push(`[DEFEND] Take a defensive stance, protect an ally, and wait for an opening`);
+  // 4. Heal or bold attack
+  if(downed.length>0&&player.classId==='edgedancer'){
+    choices.push(`[HEAL] Use Regrowth to revive ${downed[0].name} (${getReviveHP(stage)} HP, costs ${getReviveCost(stage)} frags)`);
+  } else if(downed.length>0&&(player.fragments||0)>=getReviveCost(stage)){
+    choices.push(`[HEAL] Channel Stormlight to revive ${downed[0].name} (costs ${getReviveCost(stage)} frags)`);
+  } else if(anyInjured&&player.classId==='bondsmith'){
+    const pheal=getBondsmitnPartyHeal(stage);
+    choices.push(`[HEAL] Adhesion surge — channel unity through the party (+${pheal} HP to all)`);
+  } else if(anyInjured&&healAmt>=2){
+    choices.push(`[HEAL] Channel Stormlight into wounds to heal self (+${healAmt} HP)`);
+  } else {
+    choices.push(`[ATTACK] Surge attack — unleash full ${cls.name} power in a devastating strike`);
+  }
+  return choices;
+}
 const BLADE_NAMES={windrunner:'Silverwind Blade',lightweaver:'Illusory Edge',edgedancer:'Verdant Blade',stoneward:'Granite Shardblade',elsecaller:'Obsidian Catalyst',truthwatcher:'Starlight Blade',willshaper:'Freedom Edge',dustbringer:'Ember Blade',bondsmith:'Sibling-Touched Blade',skybreaker:'Law Blade'};
 
 // ══ STATE ══
@@ -960,6 +1105,10 @@ async function startNow(){
 // ══ CAMPAIGN START ══
 async function startCampaign(){
   gState.phase='playing';gState.turn=0;gState.totalMoves=0;gState.actionLog=[];
+  gState.combatMode=false;
+  gState.beatsUntilCombat=COMBAT_BEATS_MIN+Math.floor(Math.random()*(COMBAT_BEATS_MAX-COMBAT_BEATS_MIN+1));
+  gState.beatsSinceLastCombat=0;
+  gState.preCombatTriggered=false; // the "final tension" beat before combat
   if(!gState.locationSeed)gState.locationSeed=Math.floor(Math.random()*99999);
   buildActs(gState.locationSeed);
   await saveState(gState);
@@ -998,7 +1147,7 @@ Open Act I in ${a1.location}. Immediate crisis — specific, sensory, urgent. No
 3. (different approach)
 4. (different approach)
 
-One sentence each. Mark: [COMBAT], [DISCOVERY], or [DECISION]. Under 250 words.`;
+One sentence each. Mark: [COMBAT], [DISCOVERY], or [DECISION]. Under 250 words.${getLangInstruction()}`;
 }
 
 // ══ GAME SCREEN ══
@@ -1015,6 +1164,12 @@ async function refreshGame(){
   gState=await loadState();
   if(!gState)return;
   if(gState.locationSeed)buildActs(gState.locationSeed);
+  // Initialize combat tracking for existing campaigns
+  if(gState.phase==='playing'){
+    if(gState.beatsUntilCombat==null)gState.beatsUntilCombat=COMBAT_BEATS_MIN+Math.floor(Math.random()*(COMBAT_BEATS_MAX-COMBAT_BEATS_MIN+1));
+    if(gState.beatsSinceLastCombat==null)gState.beatsSinceLastCombat=0;
+    if(gState.combatMode==null)gState.combatMode=false;
+  }
   if(!gState.lastGM&&prev)gState.lastGM=prev;
   const log=await loadLog(false);
   if(gState&&!gState.lastGM){const lg=[...log].reverse().find(e=>e.type==='gm');if(lg)gState.lastGM={text:lg.text,choices:lg.choices,ts:lg.ts};}
@@ -1033,11 +1188,18 @@ async function refreshGame(){
   if(bottomState===''||storyChanged||(wasWaiting&&(nowMine||nowNPC))){
     setBottomFromState(log);
   }
+  // Enter combat screen if combatMode was just set
+  if(gState&&gState.combatMode&&!document.getElementById('s-combat').classList.contains('active')){
+    enterCombat();return;
+  }
   // Also update turn pill even if bottom zone didn't change
   renderPill();
 }
 
 function renderAll(log){
+  if(gState&&gState.combatMode&&document.getElementById('s-combat').classList.contains('active')){
+    renderCombatScreen();return;
+  }
   renderParty();renderEnemies();renderInitiativeOrder();renderStory(log);renderProgress();renderPill();renderActionLog();
 }
 
@@ -1323,6 +1485,16 @@ async function handleNPC(log){
   gState.turn=(gState.turn+1)%sz;
   gState.totalMoves=(gState.totalMoves||0)+1;
   if(gState.combatActive&&gState.turn===0)gState.combatRound=(gState.combatRound||1)+1;
+  // Track exploration beats and trigger pre-combat / combat
+  if(!gState.combatMode){
+    gState.beatsSinceLastCombat=(gState.beatsSinceLastCombat||0)+1;
+    const beatsLeft=(gState.beatsUntilCombat||5)-gState.beatsSinceLastCombat;
+    if(beatsLeft<=0&&gState.preCombatTriggered){
+      gState.combatMode=true; // next render will show combat screen
+    } else if(beatsLeft<=0&&!gState.preCombatTriggered){
+      gState.preCombatTriggered=true; // trigger the final tension beat first
+    }
+  }
   addActionLog(cur.name, pick, Math.ceil(Math.random()*4), ''); // D4 roll logged
   await saveState(gState);
   setBottomLoading();
@@ -1360,7 +1532,7 @@ CRITICAL: Every option must have ${next?next.name:'the player'} as the actor. Ne
 2. (different approach using their abilities)
 3. (tactical option)
 4. (bold option)
-One sentence each. No ** markers. Tag at end: [COMBAT], [DISCOVERY], or [DECISION]. Under 220 words.`;
+One sentence each. No ** markers. Tag at end: [COMBAT], [DISCOVERY], or [DECISION]. Under 220 words.${getLangInstruction()}`;
 }
 
 // ══ HUMAN TURN ══
@@ -1399,6 +1571,16 @@ async function onSubmitAction(){
   gState.turn=(gState.turn+1)%sz;
   gState.totalMoves=(gState.totalMoves||0)+1;
   if(gState.combatActive&&gState.turn===0)gState.combatRound=(gState.combatRound||1)+1;
+  // Track exploration beats and trigger pre-combat / combat
+  if(!gState.combatMode){
+    gState.beatsSinceLastCombat=(gState.beatsSinceLastCombat||0)+1;
+    const beatsLeft=(gState.beatsUntilCombat||5)-gState.beatsSinceLastCombat;
+    if(beatsLeft<=0&&gState.preCombatTriggered){
+      gState.combatMode=true; // next render will show combat screen
+    } else if(beatsLeft<=0&&!gState.preCombatTriggered){
+      gState.preCombatTriggered=true; // trigger the final tension beat first
+    }
+  }
   await saveState(gState);
   selActionText='';document.getElementById('custom-in').value='';
   document.querySelectorAll('.achoice').forEach(b=>b.classList.remove('sel'));
@@ -1469,6 +1651,14 @@ function turnPrompt(action,roll,sk,from){
   const who=gState.players[from];const loc=act.location||act.name;
   const rd=roll>=18?'CRITICAL SUCCESS':roll>=14?'Strong success':roll>=10?'Partial success — complications':roll>=6?'Failure with consequences':'CRITICAL FAILURE — dramatic setback';
   const gctx=getGenderContext();const mctx=getSprenMemoryContext();
+  // Phase instruction — tells GM how close to combat we are
+  const beatsLeft=(gState.beatsUntilCombat||5)-(gState.beatsSinceLastCombat||0);
+  const preCombatNow=gState.preCombatTriggered&&!gState.combatMode;
+  const phaseInstr=gState.combatMode?'':preCombatNow?
+    '\n\nPHASE: PRE-COMBAT. The enemy must NOW fully reveal itself and confront the party. End at the moment of confrontation. Choices should reflect combat readiness.':
+    beatsLeft<=1?
+    '\n\nPHASE: FINAL EXPLORATION BEAT. Hint strongly that danger is imminent — something is very wrong. Maximum tension. Last beat before combat.':
+    '\n\nPHASE: EXPLORATION ('+beatsLeft+' beats before conflict). Focus on discovery and world-building. Do NOT start combat yet.';
   const actHint=m===59?`\n\nACT TRANSITION: Close out ${loc}, foreshadow ${ACTS[1].location}.`:m===119?`\n\nACT TRANSITION: Final Act II turn. Foreshadow climax in ${ACTS[2].location}.`:'';
   return`Cosmere RPG GM. Turn ${m}/180. ${act.tag} — ${loc}.
 Party: ${party}${gctx}${mctx}
@@ -1487,7 +1677,7 @@ CRITICAL RULE: ${next?next.name:'The player'} is the ONLY actor in every option.
 2. (different approach — physical or tactical)
 3. (investigative or discovery angle)
 4. (bold or high-risk option)
-First person "I do X" or "${next?next.name:'player'} does X". One sentence each. No ** markers. Tag on its own final line: [COMBAT], [DISCOVERY], or [DECISION].`;
+First person "I do X" or "${next?next.name:'player'} does X". One sentence each. No ** markers. Tag on its own final line: [COMBAT], [DISCOVERY], or [DECISION].${phaseInstr}${getLangInstruction()}`;
 }
 
 // ══ COMBAT SYSTEMS ══
@@ -1612,7 +1802,7 @@ function getSprenMemoryContext(){
     const bond=SPREN_BONDS[p.classId];
     if(mems&&mems.length&&bond)lines.push(`${bond.nick} (bonded to ${p.name}) remembers: ${mems.slice(-2).join(' | ')}`);
   });
-  return lines.length?'\n\nSPREN MEMORIES (weave naturally into narration):\n'+lines.join('\n'):'';
+  return lines.length?'\n\nSPREN MEMORIES (weave naturally into narration):\n'+lines.join('\\n'):'';
 }
 function getGenderContext(){
   if(!gState||!gState.players)return'';
@@ -1625,7 +1815,7 @@ function getGenderContext(){
     else if(p.gender==='she/her'){subj='she';obj='her';poss='her';}
     lines.push(`${p.name}: ${p.gender} (${subj}/${obj}/${poss})`);
   });
-  return lines.length?'\n\nCHARACTER PRONOUNS — use consistently, never switch mid-scene:\n'+lines.join('\n'):'';
+  return lines.length?'\n\nCHARACTER PRONOUNS — use consistently, never switch mid-scene:\n'+lines.join('\\n'):'';
 }
 
 // ══ RENDER PROGRESS ══
@@ -1694,8 +1884,16 @@ function exportToPDF(){
 function startPolling(){
   if(pollTimer)clearInterval(pollTimer);
   pollTimer=setInterval(async()=>{
-    if(document.getElementById('s-game').classList.contains('active')&&!isLoading)await refreshGame();
-  },15000);
+    if(document.getElementById('s-game').classList.contains('active')&&!isLoading){
+      await refreshGame();
+    } else if(document.getElementById('s-combat').classList.contains('active')&&!isLoading){
+      // Poll combat state for multiplayer sync
+      const fresh=await loadState();
+      if(fresh&&JSON.stringify(fresh.pendingActions)!==JSON.stringify(gState&&gState.pendingActions)){
+        gState=fresh;renderCombatScreen();renderCombatActions();
+      }
+    }
+  },8000);
   // Window scroll listener for Continue button detection
   if(!window._stormScroll){
     window.addEventListener('scroll',()=>{if(bottomState==='human-gated'||bottomState==='continue')checkScrollEnable();},{passive:true});
@@ -1745,6 +1943,465 @@ async function onReset(){
     await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+SHEET_ID+'/values/'+encodeURIComponent(logSheet()+'!A:E')+'?valueInputOption=RAW',{method:'PUT',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify({range:logSheet()+'!A:E',majorDimension:'ROWS',values:[['','','','','']]})});
     gState=null;myChar=null;renderPSZ();renderSlots({players:new Array(partySize).fill(null),partySize});showScreen('title');
   }catch(e){alert('Reset failed: '+e.message);}
+}
+
+// ══════════════════════════════════════
+// COMBAT ENGINE
+// ══════════════════════════════════════
+
+// Show combat screen and initialize
+async function enterCombat(){
+  if(!gState)return;
+  const sz=gState.partySize||partySize;
+  const actNum=getAct(gState.totalMoves||0).num||1;
+  const avgBlade=gState.players.slice(0,sz).filter(Boolean).reduce((a,p)=>a+(p.bladeLevel||0),0)/sz;
+  // Spawn enemies scaled to act + party
+  const loc=(getAct(gState.totalMoves||0).location||'').toLowerCase();
+  let pool=[];
+  if(loc.includes('shadesmar')||loc.includes('nexus'))
+    pool=[{name:'Voidspren',type:'Spirit',baseHP:8,dmg:3,attackBonus:2},{name:'Gloomform',type:'Unmade Fragment',baseHP:14,dmg:5,attackBonus:4}];
+  else if(loc.includes('plains')||loc.includes('alethkar')||loc.includes('kholinar'))
+    pool=[{name:'Parshendi Warrior',type:'Warrior',baseHP:10,dmg:4,attackBonus:3},{name:'Parshendi Shardbearer',type:'Elite',baseHP:18,dmg:7,attackBonus:5}];
+  else if(loc.includes('braize')||loc.includes('damnation'))
+    pool=[{name:'Fused',type:'Ancient',baseHP:22,dmg:8,attackBonus:6},{name:'Regal',type:'Parsh Void',baseHP:12,dmg:5,attackBonus:4}];
+  else if(loc.includes('urithiru')||loc.includes('kharbranth'))
+    pool=[{name:'Unmade Servant',type:'Cognitive Shadow',baseHP:12,dmg:4,attackBonus:3},{name:'Voidbringer',type:'Fused',baseHP:16,dmg:6,attackBonus:5}];
+  else
+    pool=[{name:'Void Creature',type:'Unknown',baseHP:10,dmg:4,attackBonus:3},{name:'Darkform',type:'Soldier',baseHP:14,dmg:5,attackBonus:4}];
+  const count=Math.min(sz,2);
+  gState.combatEnemies=pool.slice(0,count).map((e,i)=>({
+    ...e,
+    id:'enemy_'+i,
+    hp:calcEnemyHP(e.baseHP,actNum,avgBlade),
+    maxHp:calcEnemyHP(e.baseHP,actNum,avgBlade),
+    downed:false
+  }));
+  gState.combatRound=1;
+  gState.combatPhase='narrative';
+  gState.pendingActions={};
+  gState.combatLog=[];
+  gState.diceLog=[]; // [{round, entries:[{name,roll,bonus,total,result,detail,color}]}]
+  await saveState(gState);
+  showScreen('combat');
+  renderCombatScreen();
+  // Get opening combat narrative from GM
+  await callCombatGM('opening');
+}
+
+function renderCombatScreen(){
+  if(!gState)return;
+  const sz=gState.partySize||partySize;
+  // Round label
+  const rl=document.getElementById('combat-round-label');
+  if(rl)rl.textContent=`Round ${gState.combatRound||1}`;
+  // Party column
+  renderCombatParty();
+  // Enemy column
+  renderCombatEnemies();
+  // Initiative strip
+  renderCombatInitiative();
+}
+
+function renderCombatParty(){
+  const el=document.getElementById('combat-party-col');if(!el||!gState)return;
+  const sz=gState.partySize||partySize;
+  el.innerHTML=`<div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--amber2);text-transform:uppercase;margin-bottom:8px;">Your Party</div>`+
+  gState.players.slice(0,sz).filter(Boolean).map(p=>{
+    const pct=Math.round((p.hp/p.maxHp)*100);
+    const hpCol=pct>60?'var(--teal2)':pct>30?'#BA7517':'var(--coral2)';
+    const bond=SPREN_BONDS[p.classId];
+    const isActive=gState.combatPhase==='choosing'&&gState.players[gState.turn]&&gState.players[gState.turn].name===p.name;
+    const submitted=gState.pendingActions&&gState.pendingActions[p.name];
+    return`<div class="char-combat-card${p.downed?' downed':''}${isActive?' active-turn':''}">
+      <div class="ccard-name-row">
+        <div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0;"></div>
+        <span style="font-family:var(--font-d);font-size:13px;font-weight:600;">${p.name}</span>
+        ${p.isNPC?'<span style="font-size:10px;color:var(--teal2);font-family:var(--font-d);">AI</span>':''}
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">${p.className}</div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:6px;">
+        <span class="ccard-hp-big" style="color:${hpCol};">${p.downed?'DOWNED':p.hp}</span>
+        <span class="ccard-hp-label">/ ${p.maxHp} HP</span>
+      </div>
+      <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:6px;">
+        <div style="height:100%;width:${p.downed?0:pct}%;background:${hpCol};transition:width 0.4s;border-radius:3px;"></div>
+      </div>
+      ${bond?`<div style="font-size:10px;color:${bond.color};font-family:var(--font-d);">✦ ${bond.nick} ${getSprenStage(gState.totalMoves||0)+1}/5</div>`:''}
+      ${p.shardblade?`<div style="font-size:10px;color:var(--amber2);">⚔ ${p.shardblade}</div>`:''}
+      ${p.shardplate?`<div style="font-size:10px;color:var(--gold);">⬛ Shardplate</div>`:''}
+      ${(p.fragments||0)>0?`<div style="font-size:10px;color:var(--teal2);">✦ ${p.fragments} frags</div>`:''}
+      ${submitted?`<div style="font-size:10px;color:var(--teal2);margin-top:4px;">✓ Action ready</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderCombatEnemies(){
+  const el=document.getElementById('combat-enemy-col');if(!el||!gState)return;
+  const enemies=gState.combatEnemies||[];
+  el.innerHTML=`<div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--coral2);text-transform:uppercase;margin-bottom:8px;">Enemies</div>`+
+  enemies.map(e=>{
+    const pct=Math.round((e.hp/e.maxHp)*100);
+    const hpCol=pct>60?'var(--coral2)':pct>30?'#BA7517':'#888';
+    return`<div class="char-combat-card enemy-card${e.downed?' downed':''}">
+      <div class="ccard-name-row">
+        <span style="font-family:var(--font-d);font-size:13px;font-weight:600;color:var(--coral2);">${e.name}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text4);margin-bottom:6px;">${e.type}</div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:6px;">
+        <span class="ccard-hp-big" style="color:${hpCol};">${e.downed?'DEFEATED':e.hp}</span>
+        <span class="ccard-hp-label">/ ${e.maxHp} HP</span>
+      </div>
+      <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${e.downed?0:pct}%;background:${hpCol};transition:width 0.4s;border-radius:3px;"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text5);margin-top:6px;">DMG: ${e.dmg} · ATK: +${e.attackBonus}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderDiceTicker(){
+  const el=document.getElementById('combat-dice-ticker');
+  if(!el||!gState)return;
+  const log=gState.diceLog||[];
+  if(!log.length){
+    el.innerHTML='<div style="color:var(--text5);font-size:11px;font-style:italic;">Dice results will appear here each round...</div>';
+    return;
+  }
+  // Show last 3 rounds, newest first
+  const recent=[...log].reverse().slice(0,3);
+  el.innerHTML=recent.map(round=>{
+    const entries=round.entries||[];
+    return`<div class="dice-round-header">Round ${round.round}</div>`+
+    entries.map(e=>{
+      const rollClass=e.result==='CRIT'?'dice-result-crit':e.result==='HIT'?'dice-result-hit':e.result==='HEAL'?'dice-result-heal':e.result==='MISS'?'dice-result-miss':'dice-result-dmg';
+      const p=gState.players&&gState.players.find(x=>x&&x.name===e.name);
+      const nameColor=p?p.color:e.isEnemy?'var(--coral2)':'var(--text3)';
+      return`<div class="dice-row">
+        <span class="dice-name" style="color:${nameColor};">${e.name}</span>
+        <span class="dice-roll">d20:${e.roll}${e.bonus!=null?(e.bonus>=0?'+':'')+e.bonus+'='+e.total:''}</span>
+        <span class="${rollClass}">▸ ${e.result}</span>
+        <span style="color:var(--text4);">${e.detail}</span>
+      </div>`;
+    }).join('');
+  }).join('');
+  // Scroll to top to show latest
+  el.scrollTop=0;
+}
+
+function renderCombatInitiative(){
+  const el=document.getElementById('combat-init-strip');if(!el||!gState)return;
+  const sz=gState.partySize||partySize;
+  const combatants=[
+    ...gState.players.slice(0,sz).filter(Boolean).map(p=>({name:p.name,type:'player',color:p.color,downed:p.downed})),
+    ...(gState.combatEnemies||[]).map(e=>({name:e.name,type:'enemy',color:'var(--coral2)',downed:e.downed}))
+  ];
+  el.innerHTML=combatants.map(co=>`<div class="init-pill${co.downed?' init-pill-dead':''}" style="border:1px solid ${co.type==='enemy'?'rgba(196,74,40,0.4)':'rgba(191,161,90,0.3)'};background:var(--bg3);color:${co.type==='enemy'?'var(--coral2)':'var(--amber2)'};text-decoration:${co.downed?'line-through':'none'};">${co.name}</div>`).join('');
+}
+
+function renderCombatActions(){
+  const el=document.getElementById('combat-actions');if(!el||!gState||!myChar)return;
+  const phase=gState.combatPhase;
+  const sz=gState.partySize||partySize;
+  const allSubmitted=gState.players.slice(0,sz).filter(p=>p&&!p.isNPC&&!p.downed).every(p=>gState.pendingActions&&gState.pendingActions[p.name]);
+
+  if(phase==='narrative'||phase==='resolving'){
+    el.innerHTML=`<div class="combat-waiting">The battle unfolds...</div>`;
+    return;
+  }
+  if(phase==='victory'||phase==='defeat'){
+    const won=phase==='victory';
+    el.innerHTML=`<div style="text-align:center;padding:24px;">
+      <div style="font-family:var(--font-d);font-size:20px;color:${won?'var(--amber2)':'var(--coral2)'};margin-bottom:12px;">${won?'⟁ Victory':'💀 Defeated'}</div>
+      <button class="resolve-btn" onclick="exitCombat(${won})" style="border-color:${won?'var(--amber)':'var(--coral)'};">Return to the Chronicle →</button>
+    </div>`;
+    return;
+  }
+
+  // phase === 'choosing'
+  const cur=gState.players[gState.turn];
+  const mine=cur&&myChar&&!cur.isNPC&&!cur.downed&&cur.name===myChar.name;
+  const mySubmitted=gState.pendingActions&&gState.pendingActions[myChar.name];
+
+  let html='';
+  // Show submitted actions
+  gState.players.slice(0,sz).filter(p=>p&&!p.isNPC&&gState.pendingActions&&gState.pendingActions[p.name]).forEach(p=>{
+    html+=`<div class="combat-submitted">✓ ${p.name}: ready</div>`;
+  });
+
+  if(mine&&!mySubmitted){
+    const choices=buildCombatChoices(myChar,gState);
+    html+=`<div class="combat-player-label">Your Action — ${myChar.name}</div>`;
+    html+=`<div class="action-choices" style="margin-bottom:12px;">${choices.map((ch,i)=>`<button class="achoice" onclick="selectCombatAction(this,'${ch.replace(/'/g,"\'")}')" ><span class="achoice-num">Option ${i+1}</span>${ch.replace(/\[ATTACK\]|\[DEFEND\]|\[HEAL\]/g,'').trim()}</button>`).join('')}</div>`;
+    html+=`<div class="custom-row"><input class="custom-in" id="combat-custom-in" placeholder="Or describe your own action..." maxlength="200"/></div>`;
+    html+=`<div class="act-row" style="margin-top:10px;"><button class="btn-act" onclick="submitCombatAction()">Act →</button></div>`;
+  } else if(mine&&mySubmitted){
+    html+=`<div class="combat-waiting">Waiting for others...</div>`;
+  } else if(!mine&&!mySubmitted){
+    const waiting=gState.players.slice(0,sz).filter(p=>p&&!p.isNPC&&!p.downed&&(!gState.pendingActions||!gState.pendingActions[p.name])).map(p=>p.name).join(', ');
+    html+=`<div class="combat-waiting">Waiting for ${waiting||'other players'}...</div>`;
+  }
+
+  // Show resolve button if all humans submitted
+  if(allSubmitted&&!mySubmitted===false){
+    html+=`<button class="resolve-btn" id="resolve-btn" onclick="resolveRound()" ${allSubmitted?'':'disabled'}>Resolve Round →</button>`;
+  } else if(allSubmitted){
+    html+=`<button class="resolve-btn" onclick="resolveRound()">Resolve Round →</button>`;
+  }
+  el.innerHTML=html;
+}
+
+let combatSelectedAction='';
+function selectCombatAction(btn,txt){
+  document.querySelectorAll('#combat-actions .achoice').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  combatSelectedAction=txt;
+  document.getElementById('combat-custom-in')&&(document.getElementById('combat-custom-in').value='');
+}
+
+async function submitCombatAction(){
+  const custom=document.getElementById('combat-custom-in');
+  const action=custom&&custom.value.trim()||combatSelectedAction;
+  if(!action||!myChar)return;
+  if(!gState.pendingActions)gState.pendingActions={};
+  gState.pendingActions[myChar.name]=action;
+  combatSelectedAction='';
+  await saveState(gState);
+  renderCombatActions();
+  // Auto NPC actions
+  const sz=gState.partySize||partySize;
+  gState.players.slice(0,sz).filter(p=>p&&p.isNPC&&!p.downed).forEach(p=>{
+    if(!gState.pendingActions[p.name]){
+      const choices=buildCombatChoices(p,gState);
+      gState.pendingActions[p.name]=choices[Math.floor(Math.random()*choices.length)];
+    }
+  });
+  await saveState(gState);
+  renderCombatActions();
+}
+
+async function resolveRound(){
+  if(!gState)return;
+  gState.combatPhase='resolving';
+  renderCombatActions();
+  // Build round summary for GM
+  const sz=gState.partySize||partySize;
+  const actions=Object.entries(gState.pendingActions||{}).map(([name,action])=>`${name}: ${action}`).join(' | ');
+  // Build dice log for this round
+  const roundDice={round:gState.combatRound,entries:[]};
+
+  // Log player actions with dice rolls
+  const sz2=gState.partySize||partySize;
+  Object.entries(gState.pendingActions||{}).forEach(([name,action])=>{
+    const p=gState.players.find(x=>x&&x.name===name);
+    if(!p)return;
+    if(action.includes('[HEAL]')){
+      const stage=getSprenStage(gState.totalMoves||0);
+      const amt=getHealAmount(p,stage);
+      roundDice.entries.push({name,roll:'-',bonus:null,total:null,result:'HEAL',detail:`+${amt||'?'} HP`,isEnemy:false});
+    } else {
+      const sk=getStat(action);
+      const sv=(p.stats&&p.stats[sk])||10;
+      const bonus=Math.floor((sv-10)/2)+(p.bladeLevel||0);
+      const roll=Math.ceil(Math.random()*20);
+      const total=Math.min(20,Math.max(1,roll+bonus));
+      const result=total>=18?'CRIT':total>=14?'HIT':total>=10?'PARTIAL':total>=6?'MISS':'FUMBLE';
+      // Apply damage to player for misses/fumbles
+      const db=(CLASSES.find(cl=>cl.id===p.classId)||CLASSES[0]).dmgBonus||{crit:2,hit:1};
+      const liveEn=(gState.combatEnemies||[]).filter(e=>!e.downed);
+      const target=liveEn[Math.floor(Math.random()*liveEn.length)];
+      let detail='';
+      if(target&&(total>=10)){
+        const dmg=total>=18?db.crit+Math.floor(Math.random()*3)+1:db.hit;
+        target.hp=Math.max(0,target.hp-dmg);
+        if(target.hp<=0)target.downed=true;
+        detail=`${target.name} -${dmg}HP${target.downed?' ☠':''}`;
+      } else if(total<6){
+        const self_dmg=Math.floor(Math.random()*4)+2;
+        p.hp=Math.max(0,p.hp-self_dmg);
+        if(p.hp===0)p.downed=true;
+        detail=`self -${self_dmg}HP${p.downed?' DOWNED':''}`;
+        const pi=gState.players.findIndex(x=>x&&x.name===name);
+        if(pi>=0)gState.players[pi]=p;
+      } else {
+        detail='no effect';
+      }
+      roundDice.entries.push({name,roll,bonus,total,result,detail,isEnemy:false});
+    }
+  });
+
+  // Enemy attacks — auto-resolve
+  const enemyAttackResults=[];
+  const livingEnemies=(gState.combatEnemies||[]).filter(e=>!e.downed);
+  const livingParty=gState.players.slice(0,sz).filter(p=>p&&!p.downed);
+  livingEnemies.forEach(enemy=>{
+    const target=livingParty[Math.floor(Math.random()*livingParty.length)];
+    if(!target)return;
+    const result=enemyAttackRoll(enemy,target);
+    if(result.hit){
+      target.hp=Math.max(0,target.hp-result.dmg);
+      if(target.hp===0)target.downed=true;
+    }
+    enemyAttackResults.push(`${enemy.name} attacked ${target.name}: ${result.hit?`hit for ${result.dmg} damage (${target.hp}/${target.maxHp} HP${target.downed?' — DOWNED!':''})`:'missed'}`);
+    roundDice.entries.push({name:enemy.name,roll:result.roll,bonus:null,total:null,
+      result:result.hit?'HIT':'MISS',
+      detail:result.hit?`${target.name} -${result.dmg}HP`:'no effect',isEnemy:true});
+    const idx=gState.players.findIndex(p=>p&&p.name===target.name);
+    if(idx>=0)gState.players[idx]=target;
+    if(myChar&&myChar.name===target.name){myChar=target;saveMyChar(target);}
+  });
+
+  // Save dice log (keep last 10 rounds)
+  if(!gState.diceLog)gState.diceLog=[];
+  gState.diceLog.push(roundDice);
+  if(gState.diceLog.length>10)gState.diceLog.shift();
+  renderDiceTicker();
+  // Process player healing actions
+  Object.entries(gState.pendingActions||{}).forEach(([name,action])=>{
+    if(!action.includes('[HEAL]'))return;
+    const actor=gState.players.find(p=>p&&p.name===name);
+    if(!actor)return;
+    const stage=getSprenStage(gState.totalMoves||0);
+    if(actor.classId==='bondsmith'&&action.includes('unity')){
+      const amt=getBondsmitnPartyHeal(stage);
+      gState.players.slice(0,sz).filter(p=>p&&!p.downed).forEach(p=>{p.hp=Math.min(p.maxHp,p.hp+amt);});
+    } else if(action.includes('revive')&&action.match(/revive (\w+)/i)){
+      const tname=action.match(/revive (\w+)/i)[1];
+      const target=gState.players.find(p=>p&&p.name.startsWith(tname));
+      if(target){target.downed=false;target.hp=getReviveHP(stage);actor.fragments=Math.max(0,(actor.fragments||0)-getReviveCost(stage));}
+    } else {
+      const amt=getHealAmount(actor,stage);
+      if(amt)actor.hp=Math.min(actor.maxHp,actor.hp+amt);
+    }
+    const idx=gState.players.findIndex(p=>p&&p.name===name);
+    if(idx>=0)gState.players[idx]=actor;
+  });
+  await saveState(gState);
+  // Check win/loss
+  const allEnemiesDead=(gState.combatEnemies||[]).every(e=>e.downed||e.hp<=0);
+  const allPartyDowned=gState.players.slice(0,sz).filter(Boolean).every(p=>p.downed);
+  if(allEnemiesDead){gState.combatPhase='victory';await saveState(gState);renderCombatScreen();renderCombatActions();await callCombatGM('victory');return;}
+  if(allPartyDowned){gState.combatPhase='defeat';await saveState(gState);renderCombatScreen();renderCombatActions();await callCombatGM('defeat');return;}
+  // Call GM for round narrative
+  await callCombatGM('round',actions,enemyAttackResults);
+  gState.pendingActions={};
+  gState.combatRound=(gState.combatRound||1)+1;
+  gState.combatPhase='choosing';
+  await saveState(gState);
+  renderCombatScreen();
+  renderCombatActions();
+}
+
+async function callCombatGM(type, playerActions, enemyResults){
+  const sz=gState.partySize||partySize;
+  const party=gState.players.slice(0,sz).map(p=>p?`${p.name}(${p.hp}/${p.maxHp}HP${p.downed?' DOWNED':''})`:'?').join(' | ');
+  const enemies=(gState.combatEnemies||[]).map(e=>`${e.name}(${e.hp}/${e.maxHp}HP${e.downed?' DEFEATED':''})`).join(' | ');
+  const loc=getAct(gState.totalMoves||0).location||'the battlefield';
+  const gctx=getGenderContext();
+  const mctx=getSprenMemoryContext();
+  let prompt='';
+  if(type==='opening'){
+    prompt=`Cosmere RPG Combat GM. Round 1. Location: ${loc}.
+Party: ${party}
+Enemies: ${enemies}${gctx}${mctx}
+
+Write EXACTLY 3 vivid sentences describing the combat opening — the enemies closing in, the environment, the immediate threat. Present tense, visceral, specific to ${loc}. End at the moment before weapons clash.`;
+  } else if(type==='round'){
+    prompt=`Cosmere RPG Combat GM. Round ${gState.combatRound}. Location: ${loc}.
+Party: ${party}
+Enemies: ${enemies}
+Player actions this round: ${playerActions}
+Enemy results: ${(enemyResults||[]).join(' | ')}${gctx}
+
+Write EXACTLY 3 vivid sentences narrating what happened this round — weave together the player actions AND the enemy attacks into a coherent combat moment. Show consequences. Present tense.`;
+  } else if(type==='victory'){
+    prompt=`Cosmere RPG Combat GM. Location: ${loc}.
+Party: ${party}
+All enemies defeated.${gctx}${mctx}
+
+Write 2 sentences: the moment of victory, and the immediate aftermath — what the party sees/feels/hears as the combat ends.`;
+  } else if(type==='defeat'){
+    prompt=`Cosmere RPG Combat GM. Location: ${loc}.
+All party members downed.${gctx}
+
+Write 2 sentences: the moment of defeat — what happens as the last party member falls. Leave them downed but alive — enemies do not deliver a killing blow.`;
+  }
+  const el=document.getElementById('combat-narrative-text');
+  if(el){el.textContent='...';el.parentElement.style.opacity='0.5';}
+  try{
+    const res=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const text=data.content&&data.content[0]?data.content[0].text.replace(/\*\*([^*]+)\*\*/g,'$1').trim():'The battle rages on.';
+    if(el){el.textContent=text;el.parentElement.style.opacity='1';}
+    gState.combatLog=gState.combatLog||[];
+    gState.combatLog.push({round:gState.combatRound,text,type});
+    await saveState(gState);
+    speakStory();
+    // For voice, read from combat narrative el
+    setTimeout(()=>{
+      const voiceEl=document.getElementById('combat-narrative-text');
+      if(voiceEl&&voiceEnabled)speakFromElement(voiceEl.textContent);
+    },200);
+  }catch(e){if(el){el.textContent='The battle continues...';el.parentElement.style.opacity='1';}}
+  // Update choosing phase if round type
+  if(type==='round'){gState.combatPhase='choosing';renderCombatActions();}
+}
+
+// Exit combat back to exploration
+async function exitCombat(won){
+  const sz=gState.partySize||partySize;
+  // Revive all downed players at 1 HP
+  gState.players.slice(0,sz).filter(p=>p&&p.downed).forEach(p=>{p.downed=false;p.hp=1;});
+  gState.combatMode=false;
+  gState.combatPhase=null;
+  gState.beatsUntilCombat=COMBAT_BEATS_MIN+Math.floor(Math.random()*(COMBAT_BEATS_MAX-COMBAT_BEATS_MIN+1));
+  gState.beatsSinceLastCombat=0;
+  gState.preCombatTriggered=false;
+  gState.pendingActions={};
+  await saveState(gState);
+  showScreen('game');
+  showGameScreen();
+  setBottomLoading();
+  // GM writes verbose aftermath
+  await callGM(combatAftermathPrompt(won));
+  const freshLog=await loadLog(true);
+  renderAll(freshLog);
+  setTimeout(()=>{setBottomFromState(freshLog);maybeTranslateStory();setTimeout(speakStory,400);if(gState&&gState.lastGM&&gState.lastGM.text)generateTLDR(gState.lastGM.text);},150);
+}
+
+function combatAftermathPrompt(won){
+  const sz=gState.partySize||partySize;
+  const party=gState.players.slice(0,sz).map(p=>p?`${p.name}(${p.className} HP:${p.hp}/${p.maxHp})`:'?').join(' | ');
+  const loc=getAct(gState.totalMoves||0).location||'the field';
+  const gctx=getGenderContext();const mctx=getSprenMemoryContext();
+  return`Cosmere RPG GM. Post-combat scene. Location: ${loc}.
+Party: ${party}
+Combat result: ${won?'VICTORY — enemies defeated':'DEFEAT — party was downed but survived'}${gctx}${mctx}
+
+Write a VERBOSE aftermath scene (4-6 sentences): the immediate aftermath of combat, wounds tended, what was discovered, how the environment has changed, what the victory/defeat means for the story going forward. Be specific to ${loc} and the characters involved.
+
+[CHOICES] 4 numbered options for ${gState.players[0]?gState.players[0].name:'the party'} (${gState.players[0]?gState.players[0].className:'?'}) — exploration and recovery focused.
+One sentence each. Tag: [DISCOVERY] or [DECISION].${getGenderContext()}`;
+}
+
+// Speak from a text string directly (for combat narrative)
+function speakFromElement(text){
+  if(!voiceEnabled||!window.speechSynthesis||!text)return;
+  stopSpeaking();
+  const go=()=>{
+    currentUtterance=new SpeechSynthesisUtterance(text);
+    currentUtterance.volume=0.95;currentUtterance.rate=0.85;currentUtterance.pitch=0.9;
+    const vv=window.speechSynthesis.getVoices();
+    const preferred=['Daniel','Aaron','Fred','Alex'];
+    let v=null;for(const n of preferred){v=vv.find(x=>x.name===n);if(v)break;}
+    if(!v)v=vv.find(x=>x.lang==='en-GB'&&x.localService)||vv.find(x=>x.lang.startsWith('en'))||vv[0];
+    if(v)currentUtterance.voice=v;
+    currentUtterance.onend=currentUtterance.onerror=()=>{voiceActive=false;updateVoiceBtn();};
+    window.speechSynthesis.speak(currentUtterance);
+    voiceActive=true;updateVoiceBtn();
+  };
+  if(window.speechSynthesis.getVoices().length>0)go();
+  else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;go();};}
 }
 
 // ══ VOICE OVER ══
@@ -1908,23 +2565,92 @@ function setStormIntensity(type){
 // ══════════════════════════════════════
 let lang=localStorage.getItem('sc_lang')||'en';
 
-function T(str){return str;} // No dictionary lookup — all UI stays English base
+function T(str){return str;}
 
 function toggleLang(){
   lang=lang==='en'?'th':'en';
   localStorage.setItem('sc_lang',lang);
-  applyLang();
+  if(lang==='th')applyThaiToPage();
+  else location.reload(); // simplest restore of English
 }
 
 function applyLang(){
-  const isTH=lang==='th';
-  const label=isTH?'🌐 ไทย':'🌐 EN';
+  const label=lang==='th'?'🌐 ไทย':'🌐 EN';
   ['lang-toggle','lang-toggle-camp'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.textContent=label;
   });
-  // Show/hide Thai notice banner
   const banner=document.getElementById('thai-banner');
-  if(banner)banner.style.display=isTH?'block':'none';
+  if(banner)banner.style.display=lang==='th'?'block':'none';
+  if(lang==='th')setTimeout(applyThaiToPage,200);
+}
+
+// Batch translate array of strings in one API call
+async function batchTranslate(strings){
+  if(!strings.length)return[];
+  const uncached=strings.filter(s=>!thaiCache[s]);
+  if(uncached.length){
+    try{
+      const prompt='Translate each numbered item to Thai. Keep character names, Rosharan place names, and game terms (Radiant, Stormlight, Shardblade, Spren, etc) in English. Return ONLY a numbered list:\n\n'+
+        uncached.map((s,i)=>`${i+1}. ${s}`).join('\\n');
+      const res=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:4000,
+          messages:[{role:'user',content:prompt}]})});
+      const data=await res.json();
+      const raw=data.content&&data.content[0]?data.content[0].text:'';
+      raw.split('\n').filter(l=>l.trim()).forEach(line=>{
+        const m=line.match(/^(\d+)\.\s*(.+)/);
+        if(m){const idx=parseInt(m[1])-1;if(idx>=0&&idx<uncached.length)thaiCache[uncached[idx]]=m[2].trim();}
+      });
+    }catch(e){console.warn('batchTranslate failed:',e.message);}
+  }
+  return strings.map(str=>thaiCache[str]||str);
+}
+
+let thaiCache={};
+let uiTranslating=false;
+
+// Translate all [data-tr] elements on the page
+async function applyThaiToPage(){
+  if(uiTranslating||lang!=='th')return;
+  uiTranslating=true;
+  const els=Array.from(document.querySelectorAll('[data-tr]'));
+  els.forEach(el=>{if(!el.getAttribute('data-tr-orig'))el.setAttribute('data-tr-orig',el.textContent.trim());});
+  const texts=els.map(el=>el.getAttribute('data-tr-orig')||el.textContent.trim()).filter(t=>t&&t.length>1);
+  if(texts.length){
+    const translated=await batchTranslate(texts);
+    els.forEach((el,i)=>{if(translated[i]&&translated[i]!==texts[i])el.textContent=translated[i];});
+  }
+  uiTranslating=false;
+  ['lang-toggle','lang-toggle-camp'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.textContent='🌐 ไทย';
+  });
+}
+
+// Translate choice tiles after reveal
+async function maybeTranslateChoices(){
+  if(lang!=='th')return;
+  const btns=document.querySelectorAll('.achoice');
+  if(!btns.length)return;
+  const texts=Array.from(btns).map(btn=>{
+    const nodes=[...btn.childNodes].filter(n=>n.nodeType===3&&n.textContent.trim());
+    return nodes.length?nodes[nodes.length-1].textContent.trim():'';
+  }).filter(t=>t.length>3&&!/[฀-๿]/.test(t));
+  if(!texts.length)return;
+  const translated=await batchTranslate(texts);
+  let ti=0;
+  btns.forEach(btn=>{
+    const textNodes=[...btn.childNodes].filter(n=>n.nodeType===3&&n.textContent.trim());
+    if(textNodes.length&&translated[ti]&&!/[฀-๿]/.test(textNodes[textNodes.length-1].textContent)){
+      textNodes[textNodes.length-1].textContent=translated[ti++];
+    }
+  });
+}
+
+// getLangInstruction — appended to GM prompts when Thai active
+function getLangInstruction(){
+  if(lang!=='th')return'';
+  const names=gState&&gState.players?gState.players.filter(Boolean).map(p=>p.name).join(', '):'';
+  return'\n\nสำคัญมาก: เขียนทั้งหมดเป็นภาษาไทย รวมถึงเนื้อเรื่อง ตัวเลือก และทุกอย่าง แต่ให้คงชื่อตัวละคร ('+names+') ไว้เหมือนเดิม';
 }
 
 // Translate a block of English text to Thai via Claude API
