@@ -1425,8 +1425,10 @@ async function refreshGame(){
   if(bottomState===''||storyChanged||(wasWaiting&&(nowMine||nowNPC))){
     setBottomFromState(log);
   }
-  // Enter combat screen if combatMode was just set
-  if(gState&&gState.combatMode&&!document.getElementById('s-combat').classList.contains('active')){
+  // Enter combat screen if combatMode is true and we're on game screen
+  const onGame=document.getElementById('s-game').classList.contains('active');
+  const onCombat=document.getElementById('s-combat').classList.contains('active');
+  if(gState&&gState.combatMode&&!onCombat){
     enterCombat();return;
   }
   // Also update turn pill even if bottom zone didn't change
@@ -2030,11 +2032,13 @@ function turnPrompt(action,roll,sk,from){
 Party: ${party}${gctx}${mctx}
 ${who.name} (${who.className}) acted: "${action}" — d20 vs ${sk.toUpperCase()}: ${roll} (${rd})${actHint}
 
-CONSEQUENCE (2-3 vivid sentences):
-- DO NOT open with a weapon being drawn or summoned
-- Make the ${rd} feel real — change something in the scene
-- Use ${loc} specifically: its sounds, smells, architecture, light
-- Reference ${who.name}'s class abilities in a fresh way${actHint?'\n- Hint at the upcoming transition':''}
+CONSEQUENCE (2-3 vivid sentences, NO MORE):
+- DO NOT restate or summarize what ${who.name} just did — the player already knows their action
+- Start with what HAPPENS as a result — the world's reaction, not the action itself
+- Make the ${rd} feel real and CHANGE something in the scene permanently
+- Use ${loc} specifically: its sounds, smells, textures, light — sensory detail only found here
+- VARY your sentence structure each turn — no two beats should open the same way
+- Never start with the character's name followed by a verb describing their action${actHint?'\n- Hint at the upcoming transition':''}
 
 [CHOICES]
 IT IS NOW ${next?next.name.toUpperCase()+"'S TURN":'THE NEXT PLAYER\'S TURN'} — write 4 options FOR ${next?next.name:'them'} (${next?next.className:'?'}) ONLY.
@@ -2419,17 +2423,27 @@ async function enterCombat(){
   const avgBlade=gState.players.slice(0,sz).filter(Boolean).reduce((a,p)=>a+(p.bladeLevel||0),0)/sz;
   // Spawn enemies scaled to act + party
   const loc=(getAct(gState.totalMoves||0).location||'').toLowerCase();
-  let pool=[];
-  if(loc.includes('shadesmar')||loc.includes('nexus'))
-    pool=[{name:'Voidspren',type:'Spirit',baseHP:8,dmg:3,attackBonus:2},{name:'Gloomform',type:'Unmade Fragment',baseHP:14,dmg:5,attackBonus:4}];
-  else if(loc.includes('plains')||loc.includes('alethkar')||loc.includes('kholinar'))
-    pool=[{name:'Parshendi Warrior',type:'Warrior',baseHP:10,dmg:4,attackBonus:3},{name:'Parshendi Shardbearer',type:'Elite',baseHP:18,dmg:7,attackBonus:5}];
-  else if(loc.includes('braize')||loc.includes('damnation'))
-    pool=[{name:'Fused',type:'Ancient',baseHP:22,dmg:8,attackBonus:6},{name:'Regal',type:'Parsh Void',baseHP:12,dmg:5,attackBonus:4}];
-  else if(loc.includes('urithiru')||loc.includes('kharbranth'))
-    pool=[{name:'Unmade Servant',type:'Cognitive Shadow',baseHP:12,dmg:4,attackBonus:3},{name:'Voidbringer',type:'Fused',baseHP:16,dmg:6,attackBonus:5}];
-  else
-    pool=[{name:'Void Creature',type:'Unknown',baseHP:10,dmg:4,attackBonus:3},{name:'Darkform',type:'Soldier',baseHP:14,dmg:5,attackBonus:4}];
+  // Large pool per region — pick randomly each combat for variety
+  const ENEMY_POOLS={
+    shadesmar:[ {name:'Voidspren',type:'Spirit',baseHP:8,dmg:3,attackBonus:2},{name:'Gloomform',type:'Unmade Fragment',baseHP:14,dmg:5,attackBonus:4},{name:'Midnight Essence',type:'Unmade Shard',baseHP:11,dmg:4,attackBonus:3},{name:'Cognitive Shadow',type:'Remnant',baseHP:9,dmg:3,attackBonus:3},{name:'Spren Construct',type:'Splinter',baseHP:7,dmg:4,attackBonus:4} ],
+    plains:[ {name:'Parshendi Warrior',type:'Warrior',baseHP:10,dmg:4,attackBonus:3},{name:'Parshendi Shardbearer',type:'Elite',baseHP:18,dmg:7,attackBonus:5},{name:'Parshendi Scout',type:'Scout',baseHP:8,dmg:3,attackBonus:3},{name:'Stormform Parshendi',type:'Voidbringer',baseHP:14,dmg:6,attackBonus:4},{name:'Warform Soldier',type:'Heavy',baseHP:16,dmg:5,attackBonus:4} ],
+    braize:[ {name:'Fused',type:'Ancient',baseHP:22,dmg:8,attackBonus:6},{name:'Regal',type:'Parsh Void',baseHP:12,dmg:5,attackBonus:4},{name:'Magnified One',type:'Fused Elite',baseHP:18,dmg:7,attackBonus:5},{name:'Deepest One',type:'Fused Ancient',baseHP:20,dmg:9,attackBonus:6},{name:'Heavenly One',type:'Fused',baseHP:15,dmg:6,attackBonus:5} ],
+    urithiru:[ {name:'Unmade Servant',type:'Cognitive Shadow',baseHP:12,dmg:4,attackBonus:3},{name:'Voidbringer',type:'Fused',baseHP:16,dmg:6,attackBonus:5},{name:'Re-Shephir Fragment',type:'Midnight Mother',baseHP:10,dmg:5,attackBonus:4},{name:'Ba-Ado-Mishram Echo',type:'Unmade',baseHP:18,dmg:6,attackBonus:4},{name:'Tower Shade',type:'Cognitive Shadow',baseHP:11,dmg:4,attackBonus:3} ],
+    hearthstone:[ {name:'Void Scout',type:'Soldier',baseHP:9,dmg:3,attackBonus:3},{name:'Corrupted Townsman',type:'Parshman',baseHP:11,dmg:4,attackBonus:2},{name:'Stormform Soldier',type:'Voidbringer',baseHP:13,dmg:5,attackBonus:4},{name:'Darkform Guard',type:'Soldier',baseHP:10,dmg:4,attackBonus:3},{name:'Slumbering Horror',type:'Unknown',baseHP:15,dmg:5,attackBonus:3} ],
+    sea:[ {name:'Sea Fiend',type:'Aimian',baseHP:12,dmg:5,attackBonus:4},{name:'Dysian Aimian',type:'Ancient',baseHP:16,dmg:6,attackBonus:4},{name:'Void Leviathan',type:'Sea Creature',baseHP:20,dmg:7,attackBonus:3},{name:'Santhid Spawn',type:'Creature',baseHP:10,dmg:4,attackBonus:3} ],
+    default:[ {name:'Void Creature',type:'Unknown',baseHP:10,dmg:4,attackBonus:3},{name:'Darkform Soldier',type:'Soldier',baseHP:14,dmg:5,attackBonus:4},{name:'Voidspren Bound',type:'Corrupted',baseHP:9,dmg:4,attackBonus:3},{name:'Unmade Thrall',type:'Servant',baseHP:12,dmg:4,attackBonus:3},{name:'Stormspawn',type:'Creature',baseHP:11,dmg:5,attackBonus:4},{name:'Parshman Soldier',type:'Voidbringer',baseHP:13,dmg:4,attackBonus:3} ],
+  };
+  let poolKey='default';
+  if(loc.includes('shadesmar')||loc.includes('nexus')||loc.includes('regret')||loc.includes('souls'))poolKey='shadesmar';
+  else if(loc.includes('plains')||loc.includes('alethkar')||loc.includes('kholinar')||loc.includes('herdaz'))poolKey='plains';
+  else if(loc.includes('braize')||loc.includes('damnation'))poolKey='braize';
+  else if(loc.includes('urithiru')||loc.includes('kharbranth')||loc.includes('thaylen'))poolKey='urithiru';
+  else if(loc.includes('hearthstone')||loc.includes('reshi')||loc.includes('purelake')||loc.includes('bavland'))poolKey='hearthstone';
+  else if(loc.includes('sea')||loc.includes('aimian')||loc.includes('aimia'))poolKey='sea';
+  // Shuffle pool and pick 2 different enemies
+  const fullPool=ENEMY_POOLS[poolKey];
+  const shuffled=[...fullPool].sort(()=>Math.random()-0.5);
+  const pool=shuffled.slice(0,2);
   const count=Math.min(sz,2);
   gState.combatEnemies=pool.slice(0,count).map((e,i)=>({
     ...e,
