@@ -138,7 +138,10 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 .turn-pill{font-family:var(--font-d);font-size:12px;letter-spacing:1px;padding:6px 16px;border-radius:20px;border:1px solid var(--border2);color:var(--text3);}
 .turn-pill.yours{border-color:var(--amber);color:var(--amber2);background:rgba(191,161,90,0.12);animation:pillpulse 2s ease-in-out infinite;}
 @keyframes pillpulse{0%,100%{box-shadow:0 0 0 0 rgba(191,161,90,0.35);}50%{box-shadow:0 0 0 7px rgba(191,161,90,0);}}
-.party-strip{display:flex;gap:10px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto;}
+.party-strip{display:flex;gap:6px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto;align-items:stretch;}
+.ppip-pair{display:flex;gap:4px;align-items:stretch;flex:1;min-width:0;}
+.spren-card{width:54px;flex-shrink:0;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+.spren-card svg{width:44px;height:44px;}
 .ppip{flex:1;min-width:110px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:4px;transition:border-color 0.2s;}
 .ppip.active{border-color:var(--amber);}
 .ppip.npc{border-color:var(--teal-dim);}
@@ -1494,16 +1497,20 @@ function renderParty(){
     const bond=SPREN_BONDS[p.classId];
     const stage=getSprenStage(gState.totalMoves||0);
     const sprenSVG=getSprenSVG(p.classId,bond);
-    return`<div class="ppip${gState.turn===i?' active':''}${p.isNPC?' npc':''}" id="ppip-${p.name.replace(/\s/g,'_')}">
-      <div class="ppip-top"><div class="ppip-dot" style="background:${p.color};"></div><span class="ppip-name">${p.name}</span></div>
-      <div class="ppip-info">${p.className} · ${p.hp}/${p.maxHp} HP</div>
-      ${bond?`<div class="ppip-tag" style="color:${bond.color};">✦ ${bond.nick} Oath ${p.oathStage||1}/5</div>`:''}
-      ${p.isNPC?'<div class="ppip-tag" style="color:var(--teal2);">AI COMPANION</div>':''}
-      ${p.shardblade?`<div class="ppip-tag" style="color:var(--amber2);">⚔ ${p.shardblade} T${p.bladeLevel||1}</div>`:''}
-      ${p.shardplate?`<div class="ppip-tag" style="color:var(--gold);">⬛ Shardplate</div>`:''}
-      ${(p.fragments||0)>0?`<div class="ppip-tag" style="color:var(--teal2);">✦ ${p.fragments} frags</div>`:''}
-      <div class="hp-track"><div class="hp-fill" id="hp-fill-${p.name.replace(/\s/g,'_')}" style="width:${pct}%;background:${hpCol};"></div></div>
-      ${sprenSVG}
+    return`<div class="ppip-pair">
+      <div class="ppip${gState.turn===i?' active':''}${p.isNPC?' npc':''}" id="ppip-${p.name.replace(/\s/g,'_')}">
+        <div class="ppip-top"><div class="ppip-dot" style="background:${p.color};"></div><span class="ppip-name">${p.name}</span></div>
+        <div class="ppip-info">${p.className} · ${p.hp}/${p.maxHp} HP</div>
+        ${bond?`<div class="ppip-tag" style="color:${bond.color};">✦ ${bond.nick} Oath ${p.oathStage||1}/5</div>`:''}
+        ${p.isNPC?'<div class="ppip-tag" style="color:var(--teal2);">AI COMPANION</div>':''}
+        ${p.shardblade?`<div class="ppip-tag" style="color:var(--amber2);">⚔ ${p.shardblade} T${p.bladeLevel||1}</div>`:''}
+        ${p.shardplate?`<div class="ppip-tag" style="color:var(--gold);">⬛ Shardplate</div>`:''}
+        ${(p.fragments||0)>0?`<div class="ppip-tag" style="color:var(--teal2);">✦ ${p.fragments} frags</div>`:''}
+        <div class="hp-track"><div class="hp-fill" id="hp-fill-${p.name.replace(/\s/g,'_')}" style="width:${pct}%;background:${hpCol};"></div></div>
+      </div>
+      <div class="spren-card" style="border-color:${bond?bond.color+'55':'var(--border)'};">
+        ${sprenSVG||`<div style="font-size:18px;opacity:0.3;">✦</div>`}
+      </div>
     </div>`;
   }).join('');
 }
@@ -1741,6 +1748,7 @@ function npcPrompt(action,npc,from){
   const loc=act.location||act.name;
   const gctx=getGenderContext();
   const mctx=getSprenMemoryContext();
+  const wmctx=getWorldMemoryContext();
   return`Cosmere RPG GM. Turn ${m}/180. ${act.tag}: ${loc}.
 Party: ${party}${gctx}${mctx}${wmctx}
 
@@ -2805,11 +2813,15 @@ async function loadKokoro(){
   const lbl=document.getElementById('audio-label');
   if(lbl)lbl.textContent='Voice...';
   try{
-    // Import KokoroTTS from CDN
-    const {KokoroTTS}=await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.js');
+    // Import KokoroTTS — use ESM browser build
+    // kokoro-js wraps @xenova/transformers which has a proper browser build
+    const mod=await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js').catch(()=>null)
+      ||await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.0/dist/kokoro.web.js').catch(()=>null);
+    if(!mod)throw new Error('No browser build found');
+    const {KokoroTTS}=mod;
     kokoroTTS=await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',{
-      dtype:'q8',   // ~82MB quantized — best size/quality balance
-      device:'wasm' // runs in browser, no GPU needed
+      dtype:'q8',
+      device:'wasm'
     });
     kokoroReady=true;
     kokoroLoading=false;
