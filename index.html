@@ -2432,6 +2432,7 @@ Tag: [COMBAT]. Under 200 words.${getGenderContext()}`;
 // Show combat screen and initialize
 async function enterCombat(){
   if(!gState)return;
+  try{
   const sz=gState.partySize||partySize;
   const actNum=getAct(gState.totalMoves||0).num||1;
   const avgBlade=gState.players.slice(0,sz).filter(Boolean).reduce((a,p)=>a+(p.bladeLevel||0),0)/sz;
@@ -2496,8 +2497,13 @@ async function enterCombat(){
   await saveState(gState);
   showScreen('combat');
   renderCombatScreen();
-  // Get opening combat narrative from GM
   await callCombatGM('opening');
+  }catch(e){
+    console.error('enterCombat failed:',e);
+    // Recover — reset combat state and return to game
+    if(gState){gState.combatMode=false;gState.combatPhase=null;await saveState(gState);}
+    showScreen('game');showGameScreen();
+  }
 }
 
 function renderCombatScreen(){
@@ -2722,6 +2728,7 @@ async function submitCombatAction(){
 
 async function resolveRound(){
   if(!gState)return;
+  try{
   gState.combatPhase='resolving';
   renderCombatActions();
   // Build round summary for GM
@@ -2819,26 +2826,7 @@ async function resolveRound(){
   gState.diceLog.push(roundDice);
   if(gState.diceLog.length>10)gState.diceLog.shift();
   renderDiceTicker();
-  // Process player healing actions
-  Object.entries(gState.pendingActions||{}).forEach(([name,action])=>{
-    if(!action.includes('[HEAL]'))return;
-    const actor=gState.players.find(p=>p&&p.name===name);
-    if(!actor)return;
-    const stage=getSprenStage(gState.totalMoves||0);
-    if(actor.classId==='bondsmith'&&action.includes('unity')){
-      const amt=getBondsmitnPartyHeal(stage);
-      gState.players.slice(0,sz).filter(p=>p&&!p.downed).forEach(p=>{p.hp=Math.min(p.maxHp,p.hp+amt);});
-    } else if(action.includes('revive')&&action.match(/revive (\w+)/i)){
-      const tname=action.match(/revive (\w+)/i)[1];
-      const target=gState.players.find(p=>p&&p.name.startsWith(tname));
-      if(target){target.downed=false;target.hp=getReviveHP(stage);actor.fragments=Math.max(0,(actor.fragments||0)-getReviveCost(stage));}
-    } else {
-      const amt=getHealAmount(actor,stage);
-      if(amt)actor.hp=Math.min(actor.maxHp,actor.hp+amt);
-    }
-    const idx=gState.players.findIndex(p=>p&&p.name===name);
-    if(idx>=0)gState.players[idx]=actor;
-  });
+  // Healing already processed above in player action loop
   await saveState(gState);
   // Check win/loss
   const allEnemiesDead=(gState.combatEnemies||[]).every(e=>e.downed||e.hp<=0);
@@ -2846,13 +2834,19 @@ async function resolveRound(){
   if(allEnemiesDead){gState.combatPhase='victory';await saveState(gState);renderCombatScreen();renderCombatActions();await callCombatGM('victory');return;}
   if(allPartyDowned){gState.combatPhase='defeat';await saveState(gState);renderCombatScreen();renderCombatActions();await callCombatGM('defeat');return;}
   // Call GM for round narrative
-  await callCombatGM('round',actions,enemyAttackResults);
+  await callCombatGM('round',playerOutcomes.join(' | '),enemyAttackResults);
   gState.pendingActions={};
   gState.combatRound=(gState.combatRound||1)+1;
   gState.combatPhase='choosing';
   await saveState(gState);
   renderCombatScreen();
   renderCombatActions();
+  }catch(e){
+    console.error('resolveRound failed:',e);
+    // Try to recover — reset to choosing so players can try again
+    if(gState){gState.combatPhase='choosing';gState.pendingActions={};await saveState(gState).catch(()=>{});}
+    renderCombatScreen();renderCombatActions();
+  }
 }
 
 async function callCombatGM(type, playerActions, enemyResults){
@@ -2873,10 +2867,11 @@ Write EXACTLY 3 vivid sentences describing the combat opening — the enemies cl
     prompt=`Cosmere RPG Combat GM. Round ${gState.combatRound}. Location: ${loc}.
 Party: ${party}
 Enemies: ${enemies}
-Player actions this round: ${playerActions}
-Enemy results: ${(enemyResults||[]).join(' | ')}${gctx}
+What actually happened this round:
+PLAYER OUTCOMES: ${playerActions}
+ENEMY ATTACKS: ${(enemyResults||[]).join(' | ')}${gctx}
 
-Write EXACTLY 3 vivid sentences narrating what happened this round — weave together the player actions AND the enemy attacks into a coherent combat moment. Show consequences. Present tense.`;
+Write EXACTLY 3 vivid sentences narrating this round. You MUST reference the actual outcomes above — if someone healed, describe the Stormlight surging. If an enemy was hit, describe the blow landing. If someone fumbled, show the consequence. Weave it all into one coherent combat moment. Present tense, visceral, specific to ${loc}.`;
   } else if(type==='victory'){
     prompt=`Cosmere RPG Combat GM. Location: ${loc}.
 Party: ${party}
@@ -2924,8 +2919,9 @@ Write 2 sentences: the moment of defeat — what happens as the last party membe
 
 // Exit combat back to exploration
 async function exitCombat(won){
+  if(!gState)return;
+  try{
   const sz=gState.partySize||partySize;
-  // Revive all downed players at 1 HP
   gState.players.slice(0,sz).filter(p=>p&&p.downed).forEach(p=>{p.downed=false;p.hp=1;});
   gState.combatMode=false;
   gState.combatPhase=null;
@@ -2945,6 +2941,10 @@ async function exitCombat(won){
   const freshLog=await loadLog(true);
   renderAll(freshLog);
   setTimeout(()=>{setBottomFromState(freshLog);maybeTranslateStory();setTimeout(speakStory,400);if(gState&&gState.lastGM&&gState.lastGM.text)generateTLDR(gState.lastGM.text);},150);
+  }catch(e){
+    console.error('exitCombat failed:',e);
+    showScreen('game');showGameScreen();
+  }
 }
 
 function combatAftermathPrompt(won){
