@@ -2725,8 +2725,13 @@ Write 2 sentences: the moment of defeat — what happens as the last party membe
       if(voiceEl&&voiceEnabled)speakFromElement(voiceEl.textContent);
     },200);
   }catch(e){if(el){el.textContent='The battle continues...';el.parentElement.style.opacity='1';}}
-  // Update choosing phase if round type
-  if(type==='round'){gState.combatPhase='choosing';renderCombatActions();}
+  // Transition to choosing phase after opening or round narration
+  if(type==='opening'||type==='round'){
+    gState.combatPhase='choosing';
+    await saveState(gState);
+    renderCombatScreen();
+    renderCombatActions();
+  }
 }
 
 // Exit combat back to exploration
@@ -2897,10 +2902,7 @@ async function speakStory(){
   if(!voiceEnabled||isMobile())return;
   const el=document.getElementById('story-text');
   if(!el)return;
-  // Only first 120 words — enough for dramatic opening, won't lag
-  const fullText=(el.innerText||'').replace(/Option \d+/g,'').replace(/THE CHRONICLE/gi,'').replace(/\n+/g,' ').trim();
-  const words=fullText.split(' ');
-  const text=words.slice(0,120).join(' ')+(words.length>120?' ...':'');
+  const text=(el.innerText||'').replace(/Option \d+/g,'').replace(/THE CHRONICLE/gi,'').replace(/\n+/g,' ').trim();
   if(text.length<10)return;
   // Kokoro only if already loaded (user opted in) — never trigger load from auto-speak
   if(kokoroReady){const ok=await speakWithKokoro(text);if(ok)return;}
@@ -2911,10 +2913,8 @@ async function speakStory(){
 async function speakFromElement(text){
   if(!voiceEnabled||!text||isMobile())return;
   stopSpeaking();
-  // Truncate combat narration to 3 sentences max
-  const sentences=text.split(/[.!?]+/).filter(s=>s.trim().length>5).slice(0,3).join('. ')+'.';
-  if(kokoroReady){const ok=await speakWithKokoro(sentences);if(ok)return;}
-  speakWithWebSpeech(sentences);
+  if(kokoroReady){const ok=await speakWithKokoro(text);if(ok)return;}
+  speakWithWebSpeech(text);
 }
 
 function stopSpeaking(){
