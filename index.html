@@ -1386,17 +1386,18 @@ function renderAll(log){
 }
 
 // ══ ACTION LOG + TLDR PANELS ══
-function addActionLog(name, action, roll, hpMsg){
+function addActionLog(name, action, roll, hpMsg, total){
   if(!gState)return;
   if(!gState.actionLog)gState.actionLog=[];
-  const words=action.trim().split(/\s+/);
-  // Extract verb (first word) and noun (next 2-3 words)
+  const words=action.trim().replace(/\[.*?\]/g,'').trim().split(/\s+/);
   const verb=words[0]||'Acts';
   const noun=words.slice(1,4).join(' ')||(action.substring(0,20));
-  const success=roll>=18?'critical!':roll>=14?'success':roll>=10?'partial':roll>=6?'failed':'critical fail';
+  // Use total if provided (roll+bonus), otherwise raw roll
+  const displayRoll=total||roll;
+  const success=displayRoll>=18?'CRIT!':displayRoll>=14?'SUCCESS':displayRoll>=10?'PARTIAL':displayRoll>=6?'FAILED':'FUMBLE';
   const ts=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  const entry={name,verb,noun,success,roll,ts,hpMsg:hpMsg||''};
-  gState.actionLog.unshift(entry); // newest first
+  const entry={name,verb,noun,success,roll,total:displayRoll,ts,hpMsg:hpMsg||''};
+  gState.actionLog.unshift(entry);
   if(gState.actionLog.length>20)gState.actionLog.pop();
   renderActionLog();
   saveState(gState).catch(()=>{});
@@ -1418,7 +1419,7 @@ function renderActionLog(){
       <div style="color:var(--text2);margin:2px 0;">${e.verb} ${e.noun}</div>
       <div style="display:flex;gap:6px;align-items:center;">
         <span style="color:${col};font-family:var(--font-d);font-size:10px;letter-spacing:1px;">[${e.success}]</span>
-        <span style="color:var(--text4);font-size:10px;">d20:${e.roll}</span>
+        <span style="color:var(--text4);font-size:10px;">d20:${e.roll}${e.total&&e.total!==e.roll?'→'+e.total:''}</span>
         ${e.hpMsg?`<span style="color:${e.hpMsg.includes('⬆')?'var(--teal2)':'var(--coral2)'};font-size:10px;">${e.hpMsg.split(' ').slice(0,3).join(' ')}</span>`:''}
       </div>
     </div>`;
@@ -1797,7 +1798,7 @@ async function onSubmitAction(){
   // Record spren memory
   recordSprenMemory(action,total,gState.totalMoves||0);
   // Add to action log
-  addActionLog(myChar.name, action, total, dmgMsg);
+  addActionLog(myChar.name, action, roll, dmgMsg, total);
   // Log action
   await addLog({type:'player',who:myChar.name,text:action,choices:[]});
   const from=gState.turn;
