@@ -1041,6 +1041,7 @@ function renderCampaigns(camps){
       <span class="camp-phase ${phase==='playing'?'phase-playing':'phase-pregame'}">${phase==='playing'?'In Progress':'Pre-Game'}</span>
     </div>`;
   }).join('')+`<div class="camp-card new-camp" onclick="promptNewCampaign(${next})"><div class="camp-new-icon">+</div><div class="camp-new-txt">New Campaign ${next}</div></div>`;
+  if(lang==='th')setTimeout(applyThaiToPage,100);
 }
 function promptNewCampaign(num){
   pendingCampNum=num;
@@ -1628,6 +1629,7 @@ function renderParty(){
       </div>
     </div>`;
   }).join('');
+  if(lang==='th')setTimeout(applyThaiToPage,200);
 }
 
 // ══ RENDER STORY TEXT ══
@@ -2497,6 +2499,7 @@ async function enterCombat(){
   await saveState(gState);
   showScreen('combat');
   renderCombatScreen();
+  if(lang==='th')setTimeout(applyThaiToPage,200);
   await callCombatGM('opening');
   }catch(e){
     console.error('enterCombat failed:',e);
@@ -2687,6 +2690,8 @@ function renderCombatActions(){
     html+=`<button class="resolve-btn" onclick="resolveRound()">⚔ Resolve Round →</button>`;
   }
   el.innerHTML=html;
+  // Translate action choices and labels if Thai active
+  if(lang==='th')setTimeout(applyThaiToPage,100);
 }
 
 let combatSelectedAction='';
@@ -2892,6 +2897,16 @@ Write 2 sentences: the moment of defeat — what happens as the last party membe
     const data=await res.json();
     const text=data.content&&data.content[0]?data.content[0].text.replace(/\*\*([^*]+)\*\*/g,'$1').trim():'The battle rages on.';
     if(el){el.textContent=text;el.parentElement.style.opacity='1';}
+    // Translate combat narrative to Thai if active
+    if(lang==='th'&&el){
+      translateToThai(text).then(thai=>{
+        if(thai&&thai!==text){
+          el.textContent=thai;
+          // Re-read the translated version
+          setTimeout(()=>{if(voiceEnabled&&!voiceActive)speakFromElement(thai);},300);
+        }
+      }).catch(()=>{});
+    }
     gState.combatLog=gState.combatLog||[];
     gState.combatLog.push({round:gState.combatRound,text,type});
     await saveState(gState);
@@ -3317,13 +3332,55 @@ let uiTranslating=false;
 async function applyThaiToPage(){
   if(uiTranslating||lang!=='th')return;
   uiTranslating=true;
-  const els=Array.from(document.querySelectorAll('[data-tr]'));
-  els.forEach(el=>{if(!el.getAttribute('data-tr-orig'))el.setAttribute('data-tr-orig',el.textContent.trim());});
-  const texts=els.map(el=>el.getAttribute('data-tr-orig')||el.textContent.trim()).filter(t=>t&&t.length>1);
-  if(texts.length){
-    const translated=await batchTranslate(texts);
-    els.forEach((el,i)=>{if(translated[i]&&translated[i]!==texts[i])el.textContent=translated[i];});
+
+  // Collect ALL visible text nodes in the document
+  // Skip: script, style, input values, already-Thai text, very short strings
+  const textNodes=[];
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{
+    acceptNode(node){
+      const parent=node.parentElement;
+      if(!parent)return NodeFilter.FILTER_REJECT;
+      const tag=parent.tagName;
+      // Skip non-visible or non-translatable nodes
+      if(['SCRIPT','STYLE','INPUT','TEXTAREA','SELECT','OPTION'].includes(tag))return NodeFilter.FILTER_REJECT;
+      // Skip if hidden
+      const style=window.getComputedStyle(parent);
+      if(style.display==='none'||style.visibility==='hidden')return NodeFilter.FILTER_SKIP;
+      const text=node.textContent.trim();
+      if(!text||text.length<2)return NodeFilter.FILTER_REJECT;
+      // Skip if already Thai
+      if(/[฀-๿]/.test(text))return NodeFilter.FILTER_REJECT;
+      // Skip pure numbers, symbols, URLs, IDs
+      if(/^[\d\s\.\-\+\%\/\:\→\←\⟁\✦\⚔\⬛\☠\•\|]+$/.test(text))return NodeFilter.FILTER_REJECT;
+      if(text.startsWith('http')||text.startsWith('Campaign')||text.startsWith('@'))return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  let node;
+  while((node=walker.nextNode()))textNodes.push(node);
+
+  // Deduplicate by text content, batch translate unique strings
+  const unique=[...new Set(textNodes.map(n=>n.textContent.trim()))].filter(t=>t.length>1);
+  if(unique.length){
+    const translated=await batchTranslate(unique);
+    const map={};
+    unique.forEach((t,i)=>{if(translated[i]&&translated[i]!==t)map[t]=translated[i];});
+    // Apply translations back to text nodes
+    textNodes.forEach(n=>{
+      const orig=n.textContent.trim();
+      if(map[orig])n.textContent=n.textContent.replace(orig,map[orig]);
+    });
   }
+
+  // Also handle data-tr tagged elements (static HTML)
+  const tagged=Array.from(document.querySelectorAll('[data-tr]'));
+  tagged.forEach(el=>{if(!el.getAttribute('data-tr-orig'))el.setAttribute('data-tr-orig',el.textContent.trim());});
+  const taggedTexts=tagged.map(el=>el.getAttribute('data-tr-orig')||el.textContent.trim()).filter(t=>t&&t.length>1&&!/[฀-๿]/.test(t));
+  if(taggedTexts.length){
+    const taggedTrans=await batchTranslate(taggedTexts);
+    tagged.forEach((el,i)=>{if(taggedTrans[i]&&taggedTrans[i]!==taggedTexts[i])el.textContent=taggedTrans[i];});
+  }
+
   uiTranslating=false;
   ['lang-toggle','lang-toggle-camp'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.textContent='🌐 ไทย';
