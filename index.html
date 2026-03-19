@@ -1150,6 +1150,7 @@ function showScreen(id){
   }
   target.classList.add('active');
   window.scrollTo(0,0);
+  console.log('showScreen('+id+') called from:', new Error().stack.split('\n')[2]);
   // Debug overlay
   let dbg=document.getElementById('__dbg');
   if(!dbg){dbg=document.createElement('div');dbg.id='__dbg';dbg.style.cssText='position:fixed;bottom:4px;left:4px;background:rgba(0,0,0,0.85);color:#0f0;font-size:10px;font-family:monospace;padding:4px 8px;z-index:99999;border-radius:4px;pointer-events:none;';document.body.appendChild(dbg);}
@@ -1301,22 +1302,22 @@ function findOpenSlot(){
   return idx===-1?-1:idx;
 }
 
-async function reserveSlot(i){
+async function reserveSlotOnly(i){
+  // Reserve a slot with placeholder — does NOT navigate to create screen
   mySlot=i;
-  // Reload state if null before writing placeholder
-  if(!gState){
-    try{gState=await loadState();}catch(e){}
-  }
-  if(!gState){
-    gState={players:new Array(partySize).fill(null),partySize,turn:0,
-      totalMoves:0,phase:'pregame',campaignId,campaignName:campaignId};
-  }
+  if(!gState){try{gState=await loadState();}catch(e){}}
+  if(!gState){gState={players:new Array(partySize).fill(null),partySize,turn:0,
+    totalMoves:0,phase:'pregame',campaignId,campaignName:campaignId};}
   if(!gState.players)gState.players=new Array(gState.partySize||partySize).fill(null);
   while(gState.players.length<=i)gState.players.push(null);
   const placeholder={name:'...',className:'Joining...',classId:'pending',
     color:'#555',hp:0,maxHp:0,slot:i,isNPC:false,campaignId,isPlaceholder:true};
   gState.players[i]=placeholder;
   try{await saveState(gState);}catch(e){console.warn('reserveSlot save failed:',e);}
+}
+
+async function reserveSlot(i){
+  await reserveSlotOnly(i);
   showScreen('create');renderCreate();
   startCreatePolling();
 }
@@ -1507,7 +1508,7 @@ async function onCreateChar(){
 
     // ── Resolve slot ──
     if(mySlot===null||mySlot===undefined){
-      if(!gState||!gState.players)await reserveSlot(0);
+      if(!gState||!gState.players)await reserveSlotOnly(0);
       else{
         const idx=gState.players.findIndex(p=>!p||p.isPlaceholder);
         mySlot=idx>=0?idx:0;
