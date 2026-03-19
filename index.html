@@ -2429,17 +2429,22 @@ async function onSubmitAction(){
   setTimeout(()=>{setBottomFromState(freshLog);maybeTranslateStory();setTimeout(autoSpeakStory,300);if(gState&&gState.lastGM&&gState.lastGM.text)generateTLDR(gState.lastGM.text);},150);
 }
 
-function getStat(a){
-  a=a.toLowerCase();
-  if(/attack|fight|strike|slash|charge|hit|smash|stab|cut|kill|destroy/.test(a))return'str';
-  if(/run|dodge|leap|fly|sneak|dash|tumble|escape|evade|sprint|jump/.test(a))return'dex';
-  if(/magic|soulcast|illusion|lash|stormlight|surge|transform|summon|cast|conjure|transmute/.test(a))return'int';
-  if(/search|detect|sense|notice|examine|investigate|study|read|perceive|watch|scout/.test(a))return'wis';
-  if(/persuade|talk|convince|negotiate|threaten|bluff|charm|intimidate|deceive|lie/.test(a))return'cha';
-  if(/heal|regrow|mend|restore|tend|bandage|revive|cure/.test(a))return'wis';
-  if(/fart|trip|stumble|fall|bump|accident/.test(a))return'end'; // comic relief still gets a roll
-  return'end';
+function getActionBucket(a){
+  // Returns {bucket, stat}
+  // bucket: 'attack'|'heal'|'revive'|'defend'|'surge'|'skill'
+  const t=a.toLowerCase();
+  const isHeal=/\[heal\]|heal|regrow|mend|restore|tend|bandage|cure|knit|stormlight.*wound/.test(t);
+  const isRevive=/revive|stabilize|pull.*back|save.*downed|rouse|wake.*up/.test(t)&&/hobber|ally|companion|downed/.test(t);
+  if(isRevive)return{bucket:'revive',stat:'wis'};
+  if(isHeal)return{bucket:'heal',stat:'wis'};
+  if(/defend|protect|shield|block|parry|stance|barrier|brace/.test(t))return{bucket:'defend',stat:'end'};
+  if(/soulcast|lash|illusion|surge|transform|summon|conjure|transmute|pattern|lightweave/.test(t))return{bucket:'surge',stat:'int'};
+  if(/search|detect|sense|notice|examine|investigate|scout|perceive/.test(t))return{bucket:'skill',stat:'wis'};
+  if(/persuade|negotiate|threaten|bluff|charm|intimidate|deceive/.test(t))return{bucket:'skill',stat:'cha'};
+  if(/run|dodge|leap|sneak|dash|tumble|evade|sprint|flip|slide/.test(t))return{bucket:'attack',stat:'dex'};
+  return{bucket:'attack',stat:'str'};
 }
+function getStat(a){return getActionBucket(a).stat;}
 
 // ══ GM CALL ══
 async function callGM(prompt){
@@ -3163,38 +3168,92 @@ async function resolveRound(){
   Object.entries(gState.pendingActions||{}).forEach(([name,action])=>{
     const p=gState.players.find(x=>x&&x.name===name);
     if(!p)return;
-    if(action.includes('[HEAL]')){
-      const stage=getSprenStage(gState.totalMoves||0);
-      const amt=getHealAmount(p,stage);
-      // Actually apply the heal
-      p.hp=Math.min(p.maxHp||p.hp,p.hp+(amt||0));
-      const pi=gState.players.findIndex(x=>x&&x.name===name);
+    const {bucket,stat}=getActionBucket(action);
+    const sv=(p.stats&&p.stats[stat])||10;
+    const bonus=Math.floor((sv-10)/2)+(p.bladeLevel||0);
+    const roll=Math.ceil(Math.random()*20);
+    const total=Math.min(20,Math.max(1,roll+bonus));
+    const result=total>=18?'CRIT':total>=14?'HIT':total>=10?'PARTIAL':total>=6?'MISS':'FUMBLE';
+    const stage=getSprenStage(gState.totalMoves||0);
+    let detail='';
+    const pi=gState.players.findIndex(x=>x&&x.name===name);
+
+    if(bucket==='revive'){
+      // Revive a downed ally — WIS roll, costs fragments on success
+      const downedAlly=gState.players.find(x=>x&&x.downed&&x.name!==name);
+      if(!downedAlly){
+        detail='no downed ally found';
+        roundDice.entries.push({name,roll,bonus,total,result:'MISS',detail,isEnemy:false});
+      } else if(total>=10){
+        // Success — revive with HP based on roll quality
+        const revHP=total>=18?getReviveHP(stage)*2:total>=14?getReviveHP(stage):Math.max(1,Math.floor(getReviveHP(stage)/2));
+        downedAlly.hp=revHP;
+        downedAlly.downed=false;
+        const ai=gState.players.findIndex(x=>x&&x.name===downedAlly.name);
+        if(ai>=0)gState.players[ai]=downedAlly;
+        if(myChar&&myChar.name===downedAlly.name){myChar=downedAlly;saveMyChar(downedAlly);}
+        detail=`${downedAlly.name} revived +${revHP}HP`;
+        roundDice.entries.push({name,roll,bonus,total,result:total>=18?'CRIT':total>=14?'HIT':'PARTIAL',detail,isEnemy:false});
+      } else {
+        detail=`failed to revive ${downedAlly.name}`;
+        roundDice.entries.push({name,roll,bonus,total,result,detail,isEnemy:false});
+      }
+
+    } else if(bucket==='heal'){
+      // Self heal — WIS roll determines amount
+      const baseAmt=getHealAmount(p,stage)||6;
+      let healAmt=0;
+      if(total>=18)healAmt=Math.round(baseAmt*1.5);       // CRIT — bonus heal
+      else if(total>=14)healAmt=baseAmt;                  // HIT — full
+      else if(total>=10)healAmt=Math.round(baseAmt*0.6);  // PARTIAL — reduced
+      else if(total>=6){healAmt=0;detail='heal fizzled';}  // MISS — nothing
+      else{                                                 // FUMBLE — drain
+        healAmt=-Math.floor(baseAmt*0.3);
+        detail='Stormlight backlash';
+      }
+      if(healAmt>0){
+        p.hp=Math.min(p.maxHp||p.hp,p.hp+healAmt);
+        detail=`+${healAmt}HP`;
+      } else if(healAmt<0){
+        p.hp=Math.max(1,p.hp+healAmt);
+        detail=`${healAmt}HP (backlash)`;
+      }
       if(pi>=0)gState.players[pi]=p;
       if(myChar&&myChar.name===name){myChar=p;saveMyChar(p);}
-      roundDice.entries.push({name,roll:'-',bonus:null,total:null,result:'HEAL',detail:`+${amt||'?'} HP`,isEnemy:false});
+      roundDice.entries.push({name,roll,bonus,total,result:total>=18?'CRIT':total>=14?'HEAL':total>=10?'PARTIAL':total>=6?'MISS':'FUMBLE',detail,isEnemy:false});
+
+    } else if(bucket==='defend'){
+      // Defend — END roll, grants damage reduction next incoming attack
+      if(total>=14){
+        p.defending=true;
+        if(pi>=0)gState.players[pi]=p;
+        detail=total>=18?'perfect stance (+4 DR)':'defensive stance (+2 DR)';
+      } else if(total>=10){
+        detail='partial block';
+      } else {
+        detail='stance broken';
+      }
+      roundDice.entries.push({name,roll,bonus,total,result,detail,isEnemy:false});
+
     } else {
-      const sk=getStat(action);
-      const sv=(p.stats&&p.stats[sk])||10;
-      const bonus=Math.floor((sv-10)/2)+(p.bladeLevel||0);
-      const roll=Math.ceil(Math.random()*20);
-      const total=Math.min(20,Math.max(1,roll+bonus));
-      const result=total>=18?'CRIT':total>=14?'HIT':total>=10?'PARTIAL':total>=6?'MISS':'FUMBLE';
-      const db=(CLASSES.find(cl=>cl.id===p.classId)||CLASSES[0]).dmgBonus||{crit:2,hit:1};
+      // ATTACK or SURGE or SKILL — standard roll vs enemies
+      const db=(CLASSES.find(cl=>cl.id===p.classId)||CLASSES[0]).dmgBonus||{crit:3,hit:2};
       const liveEn=(gState.combatEnemies||[]).filter(e=>!e.downed);
       const target=liveEn[Math.floor(Math.random()*liveEn.length)];
-      let detail='';
-      if(target&&(total>=10)){
-        const dmg=total>=18?db.crit+Math.floor(Math.random()*3)+1:db.hit;
+      if(target&&total>=10){
+        const dmg=total>=18?db.crit+Math.floor(Math.random()*3)+1:total>=14?db.hit:1;
         target.hp=Math.max(0,target.hp-dmg);
         if(target.hp<=0)target.downed=true;
+        const ei=gState.combatEnemies.findIndex(e=>e.name===target.name);
+        if(ei>=0)gState.combatEnemies[ei]=target;
         detail=`${target.name} -${dmg}HP${target.downed?' ☠':''}`;
       } else if(total<6){
         const self_dmg=Math.floor(Math.random()*4)+2;
         p.hp=Math.max(0,p.hp-self_dmg);
         if(p.hp===0)p.downed=true;
-        detail=`self -${self_dmg}HP${p.downed?' DOWNED':''}`;
-        const pi=gState.players.findIndex(x=>x&&x.name===name);
         if(pi>=0)gState.players[pi]=p;
+        if(myChar&&myChar.name===name){myChar=p;saveMyChar(p);}
+        detail=`self -${self_dmg}HP${p.downed?' DOWNED':''}`;
       } else {
         detail='no effect';
       }
