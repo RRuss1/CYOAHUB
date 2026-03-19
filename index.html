@@ -1640,6 +1640,7 @@ function renderLobby(){
   if(!grid){console.error('renderLobby: lobby-slots not found');return;}
   const cols=sz<=3?`repeat(${sz},1fr)`:'repeat(3,1fr)';
   grid.style.gridTemplateColumns=cols;
+  console.log('renderLobby building grid sz=',sz);
   const isPlaying=gState.phase==='playing';
   grid.innerHTML=Array.from({length:sz},(_,i)=>{
     const p=gState.players[i];
@@ -1683,6 +1684,7 @@ function renderLobby(){
       ${unclaimed?`<div style="margin-top:8px;"><span class="slot-npc-btn" style="border-color:var(--amber-dim);color:var(--amber2);" onclick="claimSlot(${i})">This is me →</span></div>`:''}
     </div>`;
   }).join('');
+  console.log('renderLobby grid built, innerHTML length=',grid.innerHTML.length);
   if(lang==='th')setTimeout(applyThaiToPage,200);
   const actions=document.getElementById('lobby-actions');
   if(!actions){console.error('renderLobby: lobby-actions not found');return;}
@@ -1696,6 +1698,7 @@ function renderLobby(){
     actions.innerHTML+=`<div style="font-family:var(--font-d);font-size:11px;letter-spacing:2px;color:var(--text4);padding:10px 0;">WAITING FOR HOST TO START...</div>`;
   }
   actions.innerHTML+=`<button class="btn btn-sm" onclick="showScreen('campaign')">← Campaigns</button>`;
+  console.log('renderLobby COMPLETE actions=',actions.innerHTML.length);
   }catch(e){
     console.error('renderLobby crashed:',e);
     const el=document.getElementById('lobby-err');
