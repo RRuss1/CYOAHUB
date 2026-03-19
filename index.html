@@ -1313,7 +1313,11 @@ async function selectCampaign(id){
     if(gState&&gState.locationSeed)buildActs(gState.locationSeed);
     if(gState)partySize=gState.partySize||3;
     myChar=loadMyChar();
-    if(gState&&gState.phase==='playing'){showGameScreen();return;}
+    if(gState&&gState.phase==='playing'&&myChar){showGameScreen();return;}
+    if(gState&&gState.phase==='playing'&&!myChar){
+      // Game in progress but no character on this device — go to lobby to claim/create
+      showScreen('lobby');renderLobby();startLobbyPolling();return;
+    }
     if(gState&&gState.phase==='pregame'&&myChar){showScreen('lobby');renderLobby();startLobbyPolling();return;}
     renderPSZ();
     const sub=document.getElementById('title-sub');
@@ -1375,9 +1379,7 @@ async function onEnter(){
     myChar=loadMyChar();
     if(myChar&&gState&&gState.phase==='playing'){showGameScreen();return;}
     if(myChar&&gState&&gState.phase==='pregame'){showScreen('lobby');renderLobby();startLobbyPolling();return;}
-    if(gState&&gState.phase==='playing'){
-      showScreen('lobby');renderLobby();startLobbyPolling();return;
-    }
+    // No character yet — fall through to create regardless of phase
     const empty=findOpenSlot();
     if(empty===-1){setTitleStatus('All slots filled.');return;}
     await reserveSlot(empty);
@@ -1668,7 +1670,7 @@ function startLobbyPolling(){
     try{
       const fresh=await loadState();
       if(!fresh)return;
-      if(fresh.phase==='playing'){stopLobbyPolling();gState=fresh;showGameScreen();return;}
+      if(fresh.phase==='playing'&&myChar){stopLobbyPolling();gState=fresh;showGameScreen();return;}
       const prevJSON=JSON.stringify(gState&&gState.players);
       gState=fresh;
       if(JSON.stringify(gState.players)!==prevJSON){
