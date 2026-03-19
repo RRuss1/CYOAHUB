@@ -572,119 +572,9 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
     </div>
   </div>
 
-<!-- s-lobbytml>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Stormlight Chronicles</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,8 92,88 8,88' fill='none' stroke='%23BFA15A' stroke-width='7'/><polygon points='50,28 76,72 24,72' fill='none' stroke='%23BFA15A' stroke-width='4'/></svg>"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap" rel="stylesheet"/>
 
-</head>
-<body>
 
-<!-- ══ CAMPAIGN SCREEN ══ -->
-<div id="s-campaign" class="screen active">
-  <div style="position:absolute;top:16px;right:16px;">
-    <button id="lang-toggle-camp" onclick="toggleLang()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:5px 14px;cursor:pointer;font-family:var(--font-d);font-size:11px;letter-spacing:1px;color:var(--text3);">🌐 EN</button>
-  </div>
-  <div style="font-size:60px;color:var(--amber);font-family:var(--font-d);text-shadow:0 0 40px rgba(191,161,90,0.45);margin-bottom:0.5rem;">⟁</div>
-  <h1 class="title-h1">Stormlight Chronicles</h1>
-  <p class="title-h2"><span data-tr>Choose Your Adventure</span></p>
-  <div id="thai-banner" style="display:none;margin-top:8px;padding:6px 16px;background:rgba(191,161,90,0.1);border:1px solid var(--amber-dim);border-radius:20px;font-size:13px;color:var(--amber2);font-family:var(--font-d);letter-spacing:1px;">
-    🌐 โหมดภาษาไทย — เนื้อเรื่องจะแปลเป็นภาษาไทย
-  </div>
-  <div class="title-line"></div>
-  <p class="slots-label"><span data-tr>Your Campaigns</span></p>
-  <div class="camp-grid" id="camp-grid"></div>
-  <div id="new-camp-modal">
-    <div style="font-family:var(--font-d);font-size:13px;letter-spacing:2px;color:var(--amber2);text-transform:uppercase;margin-bottom:12px;"><span data-tr>Name Your Campaign</span></div>
-    <input id="camp-name-input" class="form-in" type="text" maxlength="48" placeholder="e.g. The Everstorm Accord, Kaladin's Oath..." style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')confirmNewCampaign()"/>
-    <div style="font-size:13px;color:var(--text5);font-style:italic;margin-bottom:14px;"><span data-tr>This name appears on your campaign card and in the story export.</span></div>
-    <div style="display:flex;gap:10px;">
-      <button class="btn btn-sm" onclick="cancelNewCampaign()"><span data-tr>← Cancel</span></button>
-      <button class="btn btn-gold btn-sm" onclick="confirmNewCampaign()"><span data-tr>Begin Campaign →</span></button>
-    </div>
-    <div id="new-camp-err" class="err" style="display:none;margin-top:6px;"></div>
-  </div>
-  <div id="camp-status" style="font-size:14px;color:var(--text4);font-style:italic;min-height:20px;margin-top:12px;"></div>
-  <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;">
-    <div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text5);text-transform:uppercase;margin-bottom:10px;"><span data-tr>Help Keep the Stormfather Alive</span></div>
-    <a href="https://venmo.com/u/goretusker" target="_blank" style="display:inline-flex;align-items:center;gap:10px;padding:10px 22px;border:1px solid #008CFF;border-radius:24px;background:rgba(0,140,255,0.07);text-decoration:none;transition:background 0.15s;margin-bottom:6px;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#008CFF"/><path d="M17.5 5.5C17.9 6.3 18.1 7.1 18.1 8.2C18.1 11.5 15.2 15.8 12.8 18.5H7.2L5 6.2L10 5.7L11.1 13.4C12.2 11.5 13.6 8.5 13.6 6.5C13.6 5.4 13.4 4.6 13 4L17.5 5.5Z" fill="white"/></svg>
-      <span style="font-family:var(--font-d);font-size:14px;color:#008CFF;letter-spacing:1px;">Venmo &middot; @goretusker</span>
-    </a>
-    <div style="font-size:12px;color:var(--text4);margin-bottom:10px;">(XXX) XXX - 6991</div><br/>
-    <a href="https://cash.app/%24rurich31" target="_blank" id="cashlink" style="display:inline-flex;align-items:center;gap:10px;padding:10px 22px;border:1px solid #00D632;border-radius:24px;background:rgba(0,214,50,0.07);text-decoration:none;transition:background 0.15s;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#00D632"/><path d="M15.5 8.5C15.5 8.5 14.5 7.5 12 7.5C9.5 7.5 8 9 8 10.5C8 12 9 12.8 11 13.3L13 13.8C14.5 14.2 15.5 15 15.5 16.5C15.5 18 14 19.5 11.5 19.5C9 19.5 7.5 18 7.5 18" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="6" x2="12" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="19.5" x2="12" y2="21.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
-      <span style="font-family:var(--font-d);font-size:14px;color:#00D632;letter-spacing:1px;">Donate &middot; &#36;rurich31</span>
-    </a>
-    <div style="font-size:12px;color:var(--text5);margin-top:8px;font-style:italic;">API costs ~$0.003 per turn &middot; Every bit helps</div>
-  </div>
-</div>
-
-<!-- ══ TITLE SCREEN ══ -->
-<div id="s-title" class="screen">
-  <div class="title-glyph">⟁</div>
-  <h1 class="title-h1">Stormlight Chronicles</h1>
-  <p class="title-h2" id="title-sub"><span data-tr>A Saga of the Shattered Plains</span></p>
-  <div class="title-line"></div>
-  <p class="title-quote">"You must find the most important words a man can say."<cite>— The Way of Kings</cite></p>
-  <div class="psz-wrap">
-    <span class="psz-label"><span data-tr>Party Size</span></span>
-    <div class="psz-row" id="psz-row"></div>
-    <div style="font-size:13px;color:var(--text5);margin-top:8px;font-style:italic;"><span data-tr>Unfilled slots become AI companions</span></div>
-  </div>
-  <p class="slots-label"><span data-tr>Radiant Company</span></p>
-  
-  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-    <button class="btn btn-gold" onclick="onEnter()"><span data-tr>⟁ Enter the Storm</span></button>
-    <button class="btn btn-sm btn-danger" onclick="onReset()"><span data-tr>Reset Campaign</span></button>
-  </div>
-  <div id="title-status" style="font-size:14px;color:var(--text4);margin-top:14px;font-style:italic;min-height:22px;"></div>
-</div>
-
-<!-- ══ CREATE SCREEN ══ -->
-<div id="s-create" class="screen">
-  <div class="create-wrap">
-    <h2 class="screen-title"><span data-tr>Forge Your Radiant</span></h2>
-    <p class="screen-sub"><span data-tr>Speak your name. Choose your Order. The Stormfather is watching.</span></p>
-    <div class="form-block">
-      <label class="form-lbl"><span data-tr>Your Name</span></label>
-      <input class="form-in" id="in-name" type="text" maxlength="24" placeholder="What do they call you on the Plains?"/>
-    </div>
-    <div class="form-block">
-      <label class="form-lbl"><span data-tr>Pronouns</span></label>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;">
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:16px;color:var(--text3);"><input type="radio" name="gender" value="he/him" checked style="accent-color:var(--amber);"/> He / Him</label>
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:16px;color:var(--text3);"><input type="radio" name="gender" value="she/her" style="accent-color:var(--amber);"/> She / Her</label>
-      </div>
-    </div>
-    <div class="form-block">
-      <label class="form-lbl"><span data-tr>Your Color</span></label>
-      <div class="color-row" id="color-row"></div>
-    </div>
-    <div class="form-block">
-      <label class="form-lbl"><span data-tr>Your Order of Knights Radiant</span></label>
-      <div class="class-grid" id="class-grid"></div>
-    </div>
-    <div class="form-block">
-      <label class="form-lbl">Your Stats <span style="font-weight:300;color:var(--text4);">— rolled from the Almighty's dice</span></label>
-      <div class="stats-grid" id="stats-grid"></div>
-      <button class="btn btn-sm" onclick="rollStats()" style="margin-top:8px;"><span data-tr>↻ Reroll</span></button>
-    </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:1.25rem;">
-      <button class="btn" onclick="showScreen('title')"><span data-tr>← Back</span></button>
-      <button class="btn btn-gold" onclick="onCreateChar()"><span data-tr>Speak the First Oath →</span></button>
-    </div>
-    <div class="err" id="create-err" style="display:none;margin-top:8px;"></div>
-  </div>
-</div>
-
-<!-- ══ LOBBY SCREEN ══ -->
-<div id="s-lobby" class="screen">
+id="s-lobby" class="screen">
   <div class="lobby-wrap">
     <div style="text-align:center;margin-bottom:2rem;">
       <div style="font-family:var(--font-d);font-size:13px;letter-spacing:3px;color:var(--text4);text-transform:uppercase;margin-bottom:6px;"><span data-tr>Radiant Company</span></div>
@@ -702,7 +592,7 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 
 <!-- ══ GAME SCREEN ══ -->
 <div id="s-game" class="screen">
-  <div class="game-top">
+  <div class="game-top" id="game-top">
     <span class="game-logo">⟁ Stormlight Chronicles</span>
     <div style="display:flex;align-items:center;gap:8px;">
       <button id="lang-toggle" onclick="toggleLang()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:5px 14px;cursor:pointer;font-family:var(--font-d);font-size:11px;letter-spacing:1px;color:var(--text3);white-space:nowrap;">🌐 EN</button>
