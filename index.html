@@ -703,7 +703,7 @@ select option{background:var(--bg3);color:var(--text);}
           <div class="dice-flash" id="dice-flash"></div>
           <div class="action-choices" id="action-choices"></div>
           <div class="custom-row">
-            <input class="custom-in" id="custom-in" placeholder="Or describe your own action..." maxlength="220" autocomplete="off"/>
+            <input class="custom-in" id="custom-in" placeholder="Or describe your own action..." maxlength="220" autocomplete="off" oninput="broadcastTyping&&broadcastTyping()"/>
             <button id="voice-input-btn" onclick="startVoiceInput('custom-in')" title="Speak your action" style="background:none;border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;cursor:pointer;font-size:16px;color:var(--text4);transition:all 0.2s;flex-shrink:0;" onmouseenter="this.style.borderColor='var(--amber)';this.style.color='var(--amber2)'" onmouseleave="this.style.borderColor='var(--border2)';this.style.color='var(--text4)'">🎙</button>
           </div>
           <div class="act-row">
@@ -1129,6 +1129,74 @@ let selActionText='',sheetOpen=false,isLoading=false,pollTimer=null,partySize=3;
 let campaignId=null,pendingCampNum=null;
 let bottomState='';
 let lastGMTs=''; // timestamp of last rendered GM entry — detects new ones
+
+// ══ WEBSOCKET SESSION ══
+let ws=null,wsConnected=false;
+const WS_URL='wss://stormlight-proxy.rruss7997.workers.dev/session';
+
+function connectSession(){
+  if(!campaignId||!myChar)return;
+  if(ws&&ws.readyState===WebSocket.OPEN)return;
+  const url=`${WS_URL}?campaign=${encodeURIComponent(campaignId)}&player=${myChar.slot}&name=${encodeURIComponent(myChar.name)}`;
+  ws=new WebSocket(url);
+  ws.onopen=()=>{wsConnected=true;console.log('⟁ Session connected');stopLobbyPolling();if(pollTimer)clearInterval(pollTimer);};
+  ws.onmessage=(event)=>{try{handleSessionMessage(JSON.parse(event.data));}catch{}};
+  ws.onclose=()=>{wsConnected=false;setTimeout(connectSession,3000);};
+  ws.onerror=()=>{wsConnected=false;};
+}
+
+function handleSessionMessage(msg){
+  switch(msg.type){
+    case 'state_sync':
+      if(!msg.gState)return;
+      const prevPlayers=JSON.stringify(gState?.players);
+      gState=msg.gState;
+      if(JSON.stringify(gState.players)!==prevPlayers){
+        const isOnCombat=document.getElementById('s-combat')?.classList.contains('active');
+        if(isOnCombat){renderCombatScreen();renderCombatActions();}
+        else{renderAll();setBottomFromState();}
+      }
+      break;
+    case 'action_received':showActionBadge(msg.playerName);break;
+    case 'typing':showTypingIndicator(msg.playerName);break;
+    case 'player_connected':showToast('\u27C1 '+msg.playerName+' joined');break;
+    case 'player_disconnected':showToast(msg.playerName+' disconnected');break;
+    case 'pong':break;
+  }
+}
+
+async function saveAndBroadcast(state){
+  await saveState(state);
+  if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'state_update',gState:state}));
+}
+
+function broadcastTyping(){
+  if(ws?.readyState===WebSocket.OPEN&&myChar)ws.send(JSON.stringify({type:'typing',playerName:myChar.name}));
+}
+
+setInterval(()=>{if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}));},30000);
+
+function showActionBadge(playerName){
+  const id='ppip-'+playerName.replace(/\s/g,'_');
+  const ppip=document.getElementById(id);if(!ppip)return;
+  const existing=ppip.querySelector('.action-badge');if(existing)existing.remove();
+  const badge=document.createElement('div');badge.className='action-badge';
+  badge.style.cssText='position:absolute;top:4px;right:4px;font-size:9px;color:var(--teal2);font-family:var(--font-d);letter-spacing:1px;';
+  badge.textContent='\u2713 READY';ppip.appendChild(badge);
+}
+
+function showTypingIndicator(playerName){
+  const el=document.getElementById('waiting-msg');if(!el)return;
+  el.textContent=playerName+' is deciding...';
+  setTimeout(()=>{if(gState)setBottomFromState();},3000);
+}
+
+function showToast(message){
+  const toast=document.createElement('div');
+  toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:8px 20px;font-family:var(--font-d);font-size:11px;letter-spacing:1px;color:var(--text3);z-index:9999;pointer-events:none';
+  toast.textContent=message;document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(),3000);
+}
 
 // ══ LOCATION SEED ══
 function pickLocations(seed){
@@ -2005,6 +2073,7 @@ async function showGameScreen(){
   const ab=document.getElementById('audio-bar');
   if(ab)ab.style.display='flex';
   startPolling();
+  connectSession();
   await refreshGame();
   setTimeout(initParallax,500);
 }
@@ -2668,7 +2737,7 @@ async function onSubmitAction(){
       gState.preCombatTriggered=true; // trigger the final tension beat first
     }
   }
-  await saveState(gState);
+  await saveAndBroadcast(gState);
   selActionText='';document.getElementById('custom-in').value='';
   document.querySelectorAll('.achoice').forEach(b=>b.classList.remove('sel'));
   await callGM(turnPrompt(action,total,sk,from));
@@ -2838,7 +2907,7 @@ async function callGM(prompt){
           .filter(ch=>ch.length>5);
         if(choices.length){scene=raw.replace(/^\*{0,2}\d+[.)]\s+\*{0,2}.{10,}$/gm,'').replace(/\n{3,}/g,'\n\n').trim();}
       }
-      if(gState){gState.lastGM={text:scene,choices,ts:new Date().toISOString()};await saveState(gState);}
+      if(gState){gState.lastGM={text:scene,choices,ts:new Date().toISOString()};await saveAndBroadcast(gState);}
       await addLog({type:'gm',who:'',text:scene,choices});
       if(tb)tb.style.display='none';
       updateWorldMemory(scene,gState&&gState.lastAction,gState&&gState.totalMoves).catch(()=>{});
@@ -2875,7 +2944,7 @@ async function callGM(prompt){
         choices=optMatch[2].split('\n').map(l=>l.replace(/^\*{0,2}\d+[.)]\s*\*{0,2}\s*/,'').replace(/\*{0,2}$/,'').trim()).filter(l=>l.length>5).slice(0,4);
       }
     }
-    if(gState){gState.lastGM={text:scene,choices,ts:new Date().toISOString()};await saveState(gState);}
+    if(gState){gState.lastGM={text:scene,choices,ts:new Date().toISOString()};await saveAndBroadcast(gState);}
     await addLog({type:'gm',who:'',text:scene,choices});
     const tb2=document.getElementById('thinking-bar');if(tb2)tb2.style.display='none';
     updateWorldMemory(scene,gState&&gState.lastAction,gState&&gState.totalMoves).catch(()=>{});
@@ -3940,8 +4009,8 @@ async function resolveRound(){
   // ══ VICTORY / DEFEAT CHECK ══
   const allEnemiesDead=(gState.combatEnemies||[]).every(e=>e.downed||e.hp<=0);
   const allPartyDowned=gState.players.slice(0,sz).filter(p=>p&&!p.isNPC).every(p=>p.downed);
-  if(allEnemiesDead){gState.combatPhase='victory';await saveState(gState);renderCombatScreen();renderCombatActions();return;}
-  if(allPartyDowned){gState.combatPhase='defeat';await saveState(gState);renderCombatScreen();renderCombatActions();return;}
+  if(allEnemiesDead){gState.combatPhase='victory';await saveAndBroadcast(gState);renderCombatScreen();renderCombatActions();return;}
+  if(allPartyDowned){gState.combatPhase='defeat';await saveAndBroadcast(gState);renderCombatScreen();renderCombatActions();return;}
 
   // ══ CALL GM TO NARRATE THE ROUND ══
   gState.combatRound=(gState.combatRound||1)+1;
@@ -3955,7 +4024,7 @@ async function resolveRound(){
     console.error('resolveRound failed:',e);
     gState.combatPhase='choosing';
     gState.pendingActions={};
-    await saveState(gState).catch(()=>{});
+    await saveAndBroadcast(gState).catch(()=>{});
     renderCombatScreen();renderCombatActions();
   }
 }
@@ -4068,7 +4137,7 @@ async function exitCombat(won){
   gState.beatsSinceLastCombat=0;
   gState.preCombatTriggered=false;
   gState.pendingActions={};
-  await saveState(gState);
+  await saveAndBroadcast(gState);
   showScreen('game');
   showGameScreen();
   setBottomLoading();
