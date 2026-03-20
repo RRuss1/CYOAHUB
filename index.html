@@ -703,7 +703,7 @@ select option{background:var(--bg3);color:var(--text);}
           <div class="dice-flash" id="dice-flash"></div>
           <div class="action-choices" id="action-choices"></div>
           <div class="custom-row">
-            <input class="custom-in" id="custom-in" placeholder="Or describe your own action..." maxlength="220" autocomplete="off" oninput="broadcastTyping&&broadcastTyping()"/>
+            <input class="custom-in" id="custom-in" placeholder="Or describe your own action..." maxlength="220" autocomplete="off"/>
             <button id="voice-input-btn" onclick="startVoiceInput('custom-in')" title="Speak your action" style="background:none;border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;cursor:pointer;font-size:16px;color:var(--text4);transition:all 0.2s;flex-shrink:0;" onmouseenter="this.style.borderColor='var(--amber)';this.style.color='var(--amber2)'" onmouseleave="this.style.borderColor='var(--border2)';this.style.color='var(--text4)'">🎙</button>
           </div>
           <div class="act-row">
@@ -1207,74 +1207,6 @@ let selActionText='',sheetOpen=false,isLoading=false,pollTimer=null,partySize=3;
 let campaignId=null,pendingCampNum=null;
 let bottomState='';
 let lastGMTs=''; // timestamp of last rendered GM entry — detects new ones
-
-// ══ WEBSOCKET SESSION ══
-let ws=null,wsConnected=false;
-const WS_URL='wss://stormlight-proxy.rruss7997.workers.dev/session';
-
-function connectSession(){
-  if(!campaignId||!myChar)return;
-  if(ws&&ws.readyState===WebSocket.OPEN)return;
-  const url=`${WS_URL}?campaign=${encodeURIComponent(campaignId)}&player=${myChar.slot}&name=${encodeURIComponent(myChar.name)}`;
-  ws=new WebSocket(url);
-  ws.onopen=()=>{wsConnected=true;console.log('⟁ Session connected');stopLobbyPolling();if(pollTimer)clearInterval(pollTimer);};
-  ws.onmessage=(event)=>{try{handleSessionMessage(JSON.parse(event.data));}catch{}};
-  ws.onclose=()=>{wsConnected=false;setTimeout(connectSession,3000);};
-  ws.onerror=()=>{wsConnected=false;};
-}
-
-function handleSessionMessage(msg){
-  switch(msg.type){
-    case 'state_sync':
-      if(!msg.gState)return;
-      const prevPlayers=JSON.stringify(gState?.players);
-      gState=msg.gState;
-      if(JSON.stringify(gState.players)!==prevPlayers){
-        const isOnCombat=document.getElementById('s-combat')?.classList.contains('active');
-        if(isOnCombat){renderCombatScreen();renderCombatActions();}
-        else{renderAll();setBottomFromState();}
-      }
-      break;
-    case 'action_received':showActionBadge(msg.playerName);break;
-    case 'typing':showTypingIndicator(msg.playerName);break;
-    case 'player_connected':showToast('\u27C1 '+msg.playerName+' joined');break;
-    case 'player_disconnected':showToast(msg.playerName+' disconnected');break;
-    case 'pong':break;
-  }
-}
-
-async function saveAndBroadcast(state){
-  await saveState(state);
-  if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'state_update',gState:state}));
-}
-
-function broadcastTyping(){
-  if(ws?.readyState===WebSocket.OPEN&&myChar)ws.send(JSON.stringify({type:'typing',playerName:myChar.name}));
-}
-
-setInterval(()=>{if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}));},30000);
-
-function showActionBadge(playerName){
-  const id='ppip-'+playerName.replace(/\s/g,'_');
-  const ppip=document.getElementById(id);if(!ppip)return;
-  const existing=ppip.querySelector('.action-badge');if(existing)existing.remove();
-  const badge=document.createElement('div');badge.className='action-badge';
-  badge.style.cssText='position:absolute;top:4px;right:4px;font-size:9px;color:var(--teal2);font-family:var(--font-d);letter-spacing:1px;';
-  badge.textContent='\u2713 READY';ppip.appendChild(badge);
-}
-
-function showTypingIndicator(playerName){
-  const el=document.getElementById('waiting-msg');if(!el)return;
-  el.textContent=playerName+' is deciding...';
-  setTimeout(()=>{if(gState)setBottomFromState();},3000);
-}
-
-function showToast(message){
-  const toast=document.createElement('div');
-  toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:8px 20px;font-family:var(--font-d);font-size:11px;letter-spacing:1px;color:var(--text3);z-index:9999;pointer-events:none';
-  toast.textContent=message;document.body.appendChild(toast);
-  setTimeout(()=>toast.remove(),3000);
-}
 
 // ══ LOCATION SEED ══
 function pickLocations(seed){
@@ -2846,7 +2778,7 @@ async function onSubmitAction(){
       gState.preCombatTriggered=true; // trigger the final tension beat first
     }
   }
-  await saveAndBroadcast(gState);
+  await saveState(gState);
   selActionText='';document.getElementById('custom-in').value='';
   document.querySelectorAll('.achoice').forEach(b=>b.classList.remove('sel'));
   await callGM(turnPrompt(action,total,sk,from));
