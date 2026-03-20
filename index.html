@@ -291,6 +291,26 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
 .custom-row{display:flex;gap:10px;margin-bottom:14px;}
 .custom-in{flex:1;padding:12px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font-b);font-size:16px;outline:none;transition:border-color 0.2s;}
 .custom-in:focus{border-color:var(--amber);}
+.action-tooltip{display:none;position:absolute;bottom:calc(100% + 8px);left:0;right:0;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r2);padding:12px 14px;z-index:100;box-shadow:0 -4px 20px rgba(0,0,0,0.4);}
+.custom-in:focus~.action-tooltip,.action-tooltip:hover{display:block;}
+.custom-row:focus-within .action-tooltip{display:block;}
+.tooltip-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;}
+.tooltip-key{font-family:var(--font-d);font-size:11px;letter-spacing:1px;color:var(--amber2);background:rgba(191,161,90,0.1);border:1px solid var(--amber-dim);border-radius:4px;padding:1px 6px;white-space:nowrap;}
+.tooltip-desc{font-size:12px;color:var(--text3);}
+.custom-in::placeholder,.form-in::placeholder{color:var(--text5);opacity:1;}
+input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,
+textarea:-webkit-autofill,textarea:-webkit-autofill:hover,textarea:-webkit-autofill:focus,
+select:-webkit-autofill,select:-webkit-autofill:hover,select:-webkit-autofill:focus{
+  -webkit-text-fill-color:var(--text)!important;
+  -webkit-box-shadow:0 0 0 1000px var(--bg3) inset!important;
+  box-shadow:0 0 0 1000px var(--bg3) inset!important;
+  background-color:var(--bg3)!important;
+  caret-color:var(--amber);
+  transition:background-color 5000s ease-in-out 0s;
+}
+select{background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:var(--r);padding:8px 12px;font-family:var(--font-b);font-size:15px;outline:none;cursor:pointer;}
+select:focus{border-color:var(--amber);}
+select option{background:var(--bg3);color:var(--text);}
 .act-row{display:flex;justify-content:flex-end;align-items:center;gap:12px;}
 .btn-act{display:inline-flex;align-items:center;padding:13px 36px;border:1px solid var(--amber);border-radius:var(--r);background:rgba(191,161,90,0.10);color:var(--amber2);font-family:var(--font-d);font-size:16px;cursor:pointer;letter-spacing:1px;transition:all 0.15s;}
 .btn-act:hover{background:rgba(191,161,90,0.22);border-color:var(--amber3);}
@@ -388,7 +408,7 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
   <div class="camp-grid" id="camp-grid"></div>
   <div id="new-camp-modal">
     <div style="font-family:var(--font-d);font-size:13px;letter-spacing:2px;color:var(--amber2);text-transform:uppercase;margin-bottom:12px;"><span data-tr>Name Your Campaign</span></div>
-    <input id="camp-name-input" class="form-in" type="text" maxlength="48" placeholder="e.g. The Everstorm Accord, Kaladin's Oath..." style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')confirmNewCampaign()"/>
+    <input id="camp-name-input" class="form-in" type="text" maxlength="48" autocomplete="off" placeholder="e.g. The Everstorm Accord, Kaladin's Oath..." style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')confirmNewCampaign()"/>
     <div style="font-size:13px;color:var(--text5);font-style:italic;margin-bottom:14px;"><span data-tr>This name appears on your campaign card and in the story export.</span></div>
     <div style="display:flex;gap:10px;">
       <button class="btn btn-sm" onclick="cancelNewCampaign()"><span data-tr>← Cancel</span></button>
@@ -495,7 +515,7 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
       <p class="screen-sub" data-tr>The GM will remember every word of this.</p>
       <div class="form-block">
         <label class="form-lbl" data-tr>Your Name</label>
-        <input class="form-in" id="in-name" type="text" maxlength="24" placeholder="What do they call you on the Plains?"/>
+        <input class="form-in" id="in-name" type="text" maxlength="24" placeholder="What do they call you on the Plains?" autocomplete="off"/>
       </div>
       <div class="form-block">
         <label class="form-lbl" data-tr>Pronouns</label>
@@ -679,7 +699,7 @@ body{background-image:radial-gradient(ellipse 70% 40% at 50% -5%,rgba(191,161,90
           <div class="dice-flash" id="dice-flash"></div>
           <div class="action-choices" id="action-choices"></div>
           <div class="custom-row">
-            <input class="custom-in" id="custom-in" placeholder="Or describe your own action..." maxlength="220"/>
+            <input class="custom-in" id="custom-in" placeholder="Or describe your own action..." maxlength="220" autocomplete="off"/>
           </div>
           <div class="act-row">
             <div class="err" id="action-err" style="display:none;"></div>
@@ -3239,7 +3259,21 @@ function renderCombatActions(){
       }).join('');
       html+=`<div class="action-choices" style="margin-bottom:12px;">${choiceHTML}</div>`;
     }
-    html+=`<div class="custom-row"><input class="custom-in" id="combat-custom-in" placeholder="Or describe your own action... (or type ATTACK, HEAL, REVIVE, DEFEND, SURGE, SKILL)" maxlength="200"/></div>`;
+    html+=`<div class="custom-row" style="position:relative;">
+  <input class="custom-in" id="combat-custom-in" placeholder="Or describe your own action..." maxlength="200" oninput="broadcastTyping&&broadcastTyping()"/>
+  <div class="action-tooltip" id="action-tooltip">
+    <div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--amber2);margin-bottom:6px;">KEYWORDS</div>
+    <div class="tooltip-grid">
+      <span class="tooltip-key">attack</span><span class="tooltip-desc">offensive strike</span>
+      <span class="tooltip-key">defend</span><span class="tooltip-desc">guard stance, DR next hit</span>
+      <span class="tooltip-key">heal</span><span class="tooltip-desc">Stormlight recovery</span>
+      <span class="tooltip-key">revive</span><span class="tooltip-desc">bring back downed ally</span>
+      <span class="tooltip-key">surge</span><span class="tooltip-desc">surgebinding ability</span>
+      <span class="tooltip-key">skill</span><span class="tooltip-desc">social or perception</span>
+    </div>
+    <div style="font-size:10px;color:var(--text5);margin-top:6px;font-style:italic;">Start your action with a keyword to tag it automatically</div>
+  </div>
+</div>`;
     html+=`<div class="act-row" style="margin-top:10px;"><button class="btn-act" onclick="submitCombatAction()">⚔ Act →</button></div>`;
   } else if(iAmHuman&&mySubmitted){
     const stillWaiting=gState.players.slice(0,sz).filter(p=>p&&!p.isNPC&&!p.downed&&(!gState.pendingActions||!gState.pendingActions[p.name])).map(p=>p.name);
