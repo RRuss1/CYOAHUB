@@ -583,10 +583,12 @@ select option{background:var(--bg3);color:var(--text);}
       </div>
       <div class="form-block" style="margin-top:20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <label class="form-lbl" data-tr>Your Stats</label>
-          <button class="btn btn-sm" onclick="rollStats()" data-tr>↻ Reroll</button>
+          <label class="form-lbl" data-tr>Your Attributes</label>
+          <button class="btn btn-sm" onclick="rollStats()" data-tr>↻ Rebalance</button>
         </div>
+        <div style="font-size:12px;color:var(--text4);font-style:italic;margin-bottom:8px;">12 points distributed across 6 attributes (max 3 each at creation). Class bonuses applied on top.</div>
         <div class="stats-grid" id="stats-grid"></div>
+        <div id="stats-derived"></div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:16px;">
         <button class="btn btn-sm" onclick="createBack()" data-tr>← Back</button>
@@ -791,7 +793,7 @@ select option{background:var(--bg3);color:var(--text);}
 
 <script>
 const SHEET_ID='1f2lS_y0e4eZHYBX68QHJHG-8mmI9680nBNf1fG3ZdEw';
-const PROXY_URL='https://stormlight-proxy.rruss7997.workers.dev';
+const PROXY_URL='https://stormlight-proxy.goretusk55.workers.dev';
 
 // ══ WEBSOCKET SESSION ══
 let ws=null,wsConnected=false;
@@ -877,16 +879,16 @@ const SA={
 
 // ══ GAME DATA ══
 const CLASSES=[
-  {id:'windrunner',name:'Windrunner',ideal:'I will protect those who cannot protect themselves',desc:'Gravitation & pressure. Flies where others crawl, shields those who fall.',bonus:{str:2,dex:2,int:0,wis:0,cha:0,end:0},spren:'Honorspren',abilities:['Lashing','Full Lashing','Reverse Lashing','Windspren Bond'],dmgBonus:{crit:3,hit:2,miss:0}},
-  {id:'lightweaver',name:'Lightweaver',ideal:'I am who I needed when I was young',desc:'Illumination & transformation. Reality bends to your will.',bonus:{str:0,dex:1,int:2,wis:0,cha:2,end:0},spren:'Cryptic (Pattern)',abilities:['Soulcast','Major Illusion','Memory Weave','Lightweaving'],dmgBonus:{crit:2,hit:1,miss:0}},
-  {id:'edgedancer',name:'Edgedancer',ideal:'I will remember those who have been forgotten',desc:'Abrasion & progression. Grace personified — heals allies, never stops moving.',bonus:{str:0,dex:2,int:0,wis:2,cha:1,end:0},spren:'Cultivationspren (Wyndle)',abilities:['Friction Control','Regrowth','Fleet Step','Wyndle Bond'],dmgBonus:{crit:2,hit:1,miss:1}},
-  {id:'stoneward',name:'Stoneward',ideal:'I will be there when I am needed',desc:'Tension & cohesion. Last to fall, first to hold the line.',bonus:{str:2,dex:0,int:0,wis:1,cha:0,end:2},spren:'Peakspren',abilities:['Stone Shaping','Cohesion Wall','Unyielding Stance','Peakspren Bond'],dmgBonus:{crit:2,hit:2,miss:1}},
-  {id:'elsecaller',name:'Elsecaller',ideal:'I will reach my potential so I may help others reach theirs',desc:'Transportation & transformation. Steps between the Physical and Cognitive Realms.',bonus:{str:0,dex:0,int:2,wis:2,cha:0,end:1},spren:'Inkspren',abilities:['Shadesmar Step','Soulcast Expert','Cognitive Insight','Realm Walking'],dmgBonus:{crit:3,hit:1,miss:0}},
-  {id:'truthwatcher',name:'Truthwatcher',ideal:'I will seek truth, even when it is painful',desc:'Progression & illumination. Sees what others miss, heals what others cannot.',bonus:{str:0,dex:0,int:2,wis:3,cha:0,end:0},spren:'Mistspren',abilities:['Truthsight','Progression Heal','Voidspren Detection','Mistspren Bond'],dmgBonus:{crit:2,hit:1,miss:1}},
-  {id:'willshaper',name:'Willshaper',ideal:'I will seek freedom for those in bondage',desc:'Transportation & cohesion. Unpredictable, dangerous, deeply free.',bonus:{str:1,dex:2,int:0,wis:0,cha:2,end:0},spren:'Lightspren (Reachers)',abilities:['Transport Surge','Cohesion Strike','Freedom Step','Reacher Bond'],dmgBonus:{crit:3,hit:1,miss:0}},
-  {id:'dustbringer',name:'Dustbringer',ideal:'I will seek self-mastery above all else',desc:'Division & abrasion. Controlled destruction — burns away what must not remain.',bonus:{str:2,dex:1,int:0,wis:0,cha:0,end:2},spren:'Ashspren',abilities:['Division Burn','Abrasion Surge','Self-Mastery','Ashspren Bond'],dmgBonus:{crit:4,hit:2,miss:0}},
-  {id:'bondsmith',name:'Bondsmith',ideal:'I will unite instead of divide',desc:'Tension & adhesion. The rarest Order — only three Bondsmiths can exist. You do not find the Sibling. The Sibling finds you.',bonus:{str:0,dex:0,int:1,wis:2,cha:2,end:0},spren:'The Sibling (Ancient Godspren of Urithiru)',abilities:['Adhesion Field','Spiritual Connection','Perpendicularity Pull','Bondsmith Aura'],dmgBonus:{crit:1,hit:0,miss:2}},
-  {id:'skybreaker',name:'Skybreaker',ideal:'I will follow the law',desc:'Gravitation & division. Absolute in justice, terrifying in execution.',bonus:{str:1,dex:2,int:0,wis:0,cha:0,end:2},spren:'Highspren',abilities:['Division Strike','Gravitation Law','Judgment Lashing','Highspren Bond'],dmgBonus:{crit:3,hit:2,miss:0}},
+  {id:'windrunner',name:'Windrunner',ideal:'I will protect those who cannot protect themselves',desc:'Gravitation & pressure. Flies where others crawl, shields those who fall.',bonus:{str:2,spd:2,int:0,wil:0,awa:0,pre:0},spren:'Honorspren',abilities:['Lashing','Full Lashing','Reverse Lashing','Windspren Bond'],dmgBonus:{crit:3,hit:2,miss:0}},
+  {id:'lightweaver',name:'Lightweaver',ideal:'I am who I needed when I was young',desc:'Illumination & transformation. Reality bends to your will.',bonus:{str:0,spd:1,int:2,wil:0,awa:2,pre:0},spren:'Cryptic (Pattern)',abilities:['Soulcast','Major Illusion','Memory Weave','Lightweaving'],dmgBonus:{crit:2,hit:1,miss:0}},
+  {id:'edgedancer',name:'Edgedancer',ideal:'I will remember those who have been forgotten',desc:'Abrasion & progression. Grace personified — heals allies, never stops moving.',bonus:{str:0,spd:2,int:0,wil:2,awa:1,pre:0},spren:'Cultivationspren (Wyndle)',abilities:['Friction Control','Regrowth','Fleet Step','Wyndle Bond'],dmgBonus:{crit:2,hit:1,miss:1}},
+  {id:'stoneward',name:'Stoneward',ideal:'I will be there when I am needed',desc:'Tension & cohesion. Last to fall, first to hold the line.',bonus:{str:2,spd:0,int:0,wil:1,awa:0,pre:2},spren:'Peakspren',abilities:['Stone Shaping','Cohesion Wall','Unyielding Stance','Peakspren Bond'],dmgBonus:{crit:2,hit:2,miss:1}},
+  {id:'elsecaller',name:'Elsecaller',ideal:'I will reach my potential so I may help others reach theirs',desc:'Transportation & transformation. Steps between the Physical and Cognitive Realms.',bonus:{str:0,spd:0,int:2,wil:2,awa:0,pre:1},spren:'Inkspren',abilities:['Shadesmar Step','Soulcast Expert','Cognitive Insight','Realm Walking'],dmgBonus:{crit:3,hit:1,miss:0}},
+  {id:'truthwatcher',name:'Truthwatcher',ideal:'I will seek truth, even when it is painful',desc:'Progression & illumination. Sees what others miss, heals what others cannot.',bonus:{str:0,spd:0,int:2,wil:3,awa:0,pre:0},spren:'Mistspren',abilities:['Truthsight','Progression Heal','Voidspren Detection','Mistspren Bond'],dmgBonus:{crit:2,hit:1,miss:1}},
+  {id:'willshaper',name:'Willshaper',ideal:'I will seek freedom for those in bondage',desc:'Transportation & cohesion. Unpredictable, dangerous, deeply free.',bonus:{str:1,spd:2,int:0,wil:0,awa:2,pre:0},spren:'Lightspren (Reachers)',abilities:['Transport Surge','Cohesion Strike','Freedom Step','Reacher Bond'],dmgBonus:{crit:3,hit:1,miss:0}},
+  {id:'dustbringer',name:'Dustbringer',ideal:'I will seek self-mastery above all else',desc:'Division & abrasion. Controlled destruction — burns away what must not remain.',bonus:{str:2,spd:1,int:0,wil:0,awa:0,pre:2},spren:'Ashspren',abilities:['Division Burn','Abrasion Surge','Self-Mastery','Ashspren Bond'],dmgBonus:{crit:4,hit:2,miss:0}},
+  {id:'bondsmith',name:'Bondsmith',ideal:'I will unite instead of divide',desc:'Tension & adhesion. The rarest Order — only three Bondsmiths can exist. You do not find the Sibling. The Sibling finds you.',bonus:{str:0,spd:0,int:1,wil:2,awa:2,pre:0},spren:'The Sibling (Ancient Godspren of Urithiru)',abilities:['Adhesion Field','Spiritual Connection','Perpendicularity Pull','Bondsmith Aura'],dmgBonus:{crit:1,hit:0,miss:2}},
+  {id:'skybreaker',name:'Skybreaker',ideal:'I will follow the law',desc:'Gravitation & division. Absolute in justice, terrifying in execution.',bonus:{str:1,spd:2,int:0,wil:0,awa:0,pre:2},spren:'Highspren',abilities:['Division Strike','Gravitation Law','Judgment Lashing','Highspren Bond'],dmgBonus:{crit:3,hit:2,miss:0}},
 ];
 
 const SPREN_BONDS={
@@ -907,8 +909,45 @@ const NPC_F=['Tarah','Laral','Meelis','Kaza','Nale','Avyanna','Sani','Marta','Ke
 const NPC_ALL=[...NPC_M,...NPC_F];
 const COLORS=[{name:'Amber',hex:'#e8a020'},{name:'Teal',hex:'#12a878'},{name:'Coral',hex:'#d85030'},{name:'Blue',hex:'#2a80d0'},{name:'Purple',hex:'#8060c8'},{name:'Rose',hex:'#c84070'},{name:'Gold',hex:'#BFA15A'},{name:'Sage',hex:'#5a8a5a'}];
 const NPC_COLORS=['#8060c8','#c84070','#2a6fa8','#8E6A34','#25956e','#c44a28','#BFA15A','#5a8a5a','#7a9a5a','#a06040'];
-const STAT_KEYS=['str','dex','int','wis','cha','end'];
-const STAT_NAMES=['STR','DEX','INT','WIS','CHA','END'];
+const STAT_KEYS=['str','spd','int','wil','awa','pre'];
+const STAT_NAMES=['STR','SPD','INT','WIL','AWA','PRE'];
+const STAT_FULL=['Strength','Speed','Intellect','Willpower','Awareness','Presence'];
+
+// ══ OFFICIAL COSMERE RPG SKILLS (18) ══
+// skill_modifier = skill_ranks + attribute_score
+const SKILLS=[
+  // Physical
+  {id:'agility',    name:'Agility',       attr:'spd', group:'physical'},
+  {id:'athletics',  name:'Athletics',     attr:'str', group:'physical'},
+  {id:'heavyWeapon',name:'Heavy Weaponry',attr:'str', group:'physical'},
+  {id:'lightWeapon',name:'Light Weaponry',attr:'spd', group:'physical'},
+  {id:'stealth',    name:'Stealth',       attr:'spd', group:'physical'},
+  {id:'thievery',   name:'Thievery',      attr:'spd', group:'physical'},
+  // Mental
+  {id:'crafting',   name:'Crafting',      attr:'int', group:'mental'},
+  {id:'deduction',  name:'Deduction',     attr:'int', group:'mental'},
+  {id:'discipline', name:'Discipline',    attr:'wil', group:'mental'},
+  {id:'intimidation',name:'Intimidation', attr:'wil', group:'mental'},
+  {id:'lore',       name:'Lore',          attr:'int', group:'mental'},
+  {id:'medicine',   name:'Medicine',      attr:'int', group:'mental'},
+  // Social
+  {id:'deception',  name:'Deception',     attr:'pre', group:'social'},
+  {id:'insight',    name:'Insight',       attr:'awa', group:'social'},
+  {id:'leadership', name:'Leadership',    attr:'pre', group:'social'},
+  {id:'perception', name:'Perception',    attr:'awa', group:'social'},
+  {id:'persuasion', name:'Persuasion',    attr:'pre', group:'social'},
+  {id:'survival',   name:'Survival',      attr:'awa', group:'social'},
+];
+
+// Heroic path starting skills (official)
+const PATH_SKILLS={
+  agent:'insight', envoy:'discipline', hunter:'perception',
+  leader:'leadership', scholar:'lore', warrior:'athletics'
+};
+
+// Attribute distribution: 12 points, max 3 per attribute at creation
+const ATTR_POINTS_START=12;
+const ATTR_MAX_CREATE=3;
 const ROSHAR_P=['Urithiru','Shattered Plains','Kholinar','Kharbranth','Thaylen City','Azimir','Purelake','Hearthstone','Rathalas','Reshi Isles','Aimia (Akinah)','Frostlands','Bavland','Herdaz','Jah Keved','Alethkar','Tukar','Triax','Liafor','Emul','Marat'];
 const ROSHAR_O=['Braize (Damnation)','Ashyn — the Burning Planet','Aimian Sea','Godforge'];
 const ROSHAR_S=['Shadesmar — Sea of Regret','Shadesmar — Sea of Souls','Shadesmar — Sea of Lost Lights','Nexus of Imagination','Nexus of Truth','Nexus of Transition',"Honor's Perpendicularity","Cultivation's Perpendicularity"];
@@ -920,13 +959,13 @@ const BLADE_TIERS=['Nascent','Bonded','Ancient','Living','Divine'];
 
 // ══ HERO ROLES ══
 const HERO_ROLES=[
-  {id:'soldier',name:'Alethi Soldier',icon:'⚔',desc:'Trained in the Kings army. Disciplined, lethal, reliable.',bonus:{str:2,end:1},ideal:'Strength before weakness.',color:'#c44a28'},
-  {id:'scholar',name:'Kharbranth Scholar',icon:'📜',desc:'Healer, historian, artificer. Knowledge is the sharpest weapon.',bonus:{int:2,wis:1},ideal:'Knowledge before ignorance.',color:'#5a9e8f'},
-  {id:'merchant',name:'Thaylen Merchant',icon:'💎',desc:'Resourceful, well-connected, never without a plan.',bonus:{cha:2,int:1},ideal:'Profit before principle.',color:'#BA7517'},
-  {id:'horneater',name:'Horneater',icon:'🏔',desc:'Peaks-born. Drinks Horneater white for breakfast. Immune to most things.',bonus:{end:3},ideal:'The Peaks remember.',color:'#888'},
-  {id:'herdazian',name:'Herdazian Fighter',icon:'🗡',desc:'Street-smart guerrilla. Underestimated, always dangerous.',bonus:{dex:2,str:1},ideal:'Survive. Then win.',color:'#7a6e5a'},
-  {id:'shin',name:'Shin Farmer',icon:'🌾',desc:'Deeply out of place. Confusingly wise. Everyone underestimates them.',bonus:{wis:2,cha:1},ideal:'The stone remembers.',color:'#8fa870'},
-  {id:'worldsinger',name:'Worldsinger',icon:'🎵',desc:'Storyteller, diplomat, keeper of memory. Words reshape reality.',bonus:{cha:3},ideal:'Every story matters.',color:'#9b7bb8'},
+  {id:'soldier',name:'Alethi Soldier',icon:'⚔',desc:'Trained in the Kings army. Disciplined, lethal, reliable.',bonus:{str:2,pre:1},ideal:'Strength before weakness.',color:'#c44a28'},
+  {id:'scholar',name:'Kharbranth Scholar',icon:'📜',desc:'Healer, historian, artificer. Knowledge is the sharpest weapon.',bonus:{int:2,wil:1},ideal:'Knowledge before ignorance.',color:'#5a9e8f'},
+  {id:'merchant',name:'Thaylen Merchant',icon:'💎',desc:'Resourceful, well-connected, never without a plan.',bonus:{awa:2,int:1},ideal:'Profit before principle.',color:'#BA7517'},
+  {id:'horneater',name:'Horneater',icon:'🏔',desc:'Peaks-born. Drinks Horneater white for breakfast. Immune to most things.',bonus:{pre:3},ideal:'The Peaks remember.',color:'#888'},
+  {id:'herdazian',name:'Herdazian Fighter',icon:'🗡',desc:'Street-smart guerrilla. Underestimated, always dangerous.',bonus:{spd:2,str:1},ideal:'Survive. Then win.',color:'#7a6e5a'},
+  {id:'shin',name:'Shin Farmer',icon:'🌾',desc:'Deeply out of place. Confusingly wise. Everyone underestimates them.',bonus:{wil:2,awa:1},ideal:'The stone remembers.',color:'#8fa870'},
+  {id:'worldsinger',name:'Worldsinger',icon:'🎵',desc:'Storyteller, diplomat, keeper of memory. Words reshape reality.',bonus:{awa:3},ideal:'Every story matters.',color:'#9b7bb8'},
   {id:'custom',name:'Custom Hero',icon:'✦',desc:'Write your own path. The world bends to those who refuse its labels.',bonus:{},ideal:'My own.',color:'#a09080'},
 ];
 
@@ -980,6 +1019,42 @@ const OATH_BONUSES={
   4:{desc:'Shardplate begins forming',combat:2,heal:2,ability:'Partial Shardplate'},
   5:{desc:'Full Radiant',combat:3,heal:3,ability:'Full power — Shardplate complete'},
 };
+
+// ══ CHARACTER ADVANCEMENT (Official Cosmere RPG) ══
+const ADVANCEMENT={
+  // level: {attrPoint, hpGain formula key, maxSkillRank, skillRanks, talentNote}
+  1: {attr:false, hpBase:true,  maxSkill:2},
+  2: {attr:false, hpGain:5,     maxSkill:2},
+  3: {attr:true,  hpGain:5,     maxSkill:2},
+  4: {attr:false, hpGain:5,     maxSkill:2},
+  5: {attr:false, hpGain:5,     maxSkill:2},
+  6: {attr:true,  hpGain:'4+str',maxSkill:3},
+  7: {attr:false, hpGain:4,     maxSkill:3},
+  8: {attr:false, hpGain:4,     maxSkill:3},
+  9: {attr:true,  hpGain:4,     maxSkill:3},
+  10:{attr:false, hpGain:4,     maxSkill:3},
+};
+
+function getLevelStats(level, str){
+  const entry=ADVANCEMENT[level]||{hpGain:1,maxSkill:5};
+  let hpGain=entry.hpGain||0;
+  if(hpGain==='4+str')hpGain=4+(str||0);
+  if(entry.hpBase)hpGain=10+(str||0);
+  return{hpGain,maxSkill:entry.maxSkill||5,getsAttrPoint:entry.attr||false};
+}
+
+function levelUp(player){
+  if(!player)return player;
+  const newLevel=(player.level||1)+1;
+  const {hpGain,getsAttrPoint}=getLevelStats(newLevel,player.stats&&player.stats.str||0);
+  player.level=newLevel;
+  player.maxHp=(player.maxHp||10)+hpGain;
+  player.hp=Math.min(player.hp+(hpGain),player.maxHp);
+  // +2 skill ranks per level (player chooses which skills)
+  if(!player.skillRanksAvailable)player.skillRanksAvailable=0;
+  player.skillRanksAvailable+=2;
+  return player;
+}
 
 const ORDER_IDEALS={
   windrunner:{words:['protect','shield','guard','defend','save','sacrifice','stand'],ideal:'I will protect those who cannot protect themselves'},
@@ -1112,8 +1187,9 @@ function calcEnemyHP(baseHP, actNum, avgBladeTier){
 
 function enemyAttackRoll(enemy, target){
   const roll=Math.ceil(Math.random()*20)+Math.floor(enemy.attackBonus||2);
-  const defense=Math.floor(((target.stats&&target.stats.end||10)-10)/2)+(target.shardplate?3:0);
-  const hit=roll>10+defense;
+  // Official Physical Defense = 10 + STR + SPD
+  const pDef=10+(target.stats&&target.stats.str||0)+(target.stats&&target.stats.spd||0)+(target.shardplate?3:0);
+  const hit=roll>pDef;
   const dmg=hit?Math.ceil(Math.random()*enemy.dmg)+Math.floor(enemy.dmg/2):0;
   return{roll,hit,dmg,defense};
 }
@@ -1410,7 +1486,7 @@ function genNPC(slot){
   const name=finalPool[Math.floor(Math.random()*finalPool.length)];
   const color=NPC_COLORS[Math.floor(Math.random()*NPC_COLORS.length)];
   const stats={};STAT_KEYS.forEach(k=>stats[k]=Math.min(20,r4d6()+(cls.bonus[k]||0)));
-  const hp=12+stats.end;
+  const hp=12+stats.pre;
   const gender=isFemale?'she/her':'he/him';
   return{name,className:cls.name,classId:cls.id,color,stats,hp,maxHp:hp,abilities:cls.abilities,spren:cls.spren,slot,isNPC:true,gender};
 }
@@ -1610,25 +1686,65 @@ function renderWeapons(){
 }
 function pickWeapon(id){selWeapon=HERO_WEAPONS.find(w=>w.id===id);renderWeapons();}
 
+// Official: player distributes 12 points, max 3 per attribute at creation
+// We auto-assign a balanced spread and let them adjust
 function rollStats(){
   const bonus=isRadiant?(selClass?selClass.bonus:{}):(selRole?selRole.bonus:{});
-  const b={str:0,dex:0,int:0,wis:0,cha:0,end:0,...bonus};
+  const b={str:0,spd:0,int:0,wil:0,awa:0,pre:0,...bonus};
+  // Default spread: distribute 12 points evenly then apply class bonus
+  const base={str:2,spd:2,int:2,wil:2,awa:2,pre:2}; // 12 points, 2 each
   rolledStats={};
-  STAT_KEYS.forEach(k=>rolledStats[k]=Math.min(20,r4d6()+(b[k]||0)));
+  STAT_KEYS.forEach(k=>{
+    rolledStats[k]=Math.min(5,(base[k]||0)+(b[k]||0)); // official max 5 (3 base+class bonus)
+  });
+  if(!window._pointBuyInit){
+    window._pointBuyPool=ATTR_POINTS_START;
+    window._pointBuyAlloc={...base};
+    window._pointBuyInit=true;
+  }
   const el=document.getElementById('stats-grid');
   if(el)renderStats(rolledStats);
 }
 function r4d6(){const d=[0,0,0,0].map(()=>Math.ceil(Math.random()*6));d.sort((a,b)=>a-b);return d.slice(1).reduce((a,v)=>a+v,0);}
-function modStr(v){const m=Math.floor((v-10)/2);return(m>=0?'+':'')+m;}
+function modStr(v){return'+'+(v||0);} // Official: attribute score IS the modifier
 function renderStats(s){
-  const flavors=['Blade Strength','Swiftness','Scholar Mind','Scout Eyes','Voice of Command','Endurance'];
-  const abbrevs=['STR','DEX','INT','WIS','CHA','END'];
+  // Official: modifier = skill_ranks + attribute_score (attribute IS the modifier)
   document.getElementById('stats-grid').innerHTML=STAT_KEYS.map((k,i)=>`<div class="sbox">
-    <div class="sbox-name">${flavors[i]}</div>
-    <div style="font-family:var(--font-d);font-size:9px;letter-spacing:2px;color:var(--text5);margin-bottom:4px;">${abbrevs[i]}</div>
-    <div class="sbox-val">${s[k]}</div>
-    <div class="sbox-mod">${modStr(s[k])}</div>
+    <div class="sbox-name">${STAT_FULL[i]}</div>
+    <div style="font-family:var(--font-d);font-size:9px;letter-spacing:2px;color:var(--text5);margin-bottom:4px;">${STAT_NAMES[i]}</div>
+    <div class="sbox-val">${s[k]||0}</div>
+    <div class="sbox-mod" style="font-size:11px;color:var(--text4);">+${s[k]||0} to rolls</div>
   </div>`).join('');
+  // Show derived stats below
+  const hp=10+(s.str||0);
+  const focus=2+(s.wil||0);
+  const physDef=10+(s.str||0)+(s.spd||0);
+  const cogDef=10+(s.int||0)+(s.wil||0);
+  const spirDef=10+(s.awa||0)+(s.pre||0);
+  const derived=document.getElementById('stats-derived');
+  if(derived)derived.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;font-size:12px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
+        <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">HP</div>
+        <div style="color:var(--teal2);font-weight:600;">${hp}</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
+        <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">FOCUS</div>
+        <div style="color:var(--amber2);font-weight:600;">${focus}</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
+        <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">PHYS DEF</div>
+        <div style="color:var(--text);">${physDef}</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
+        <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">COG DEF</div>
+        <div style="color:var(--text);">${cogDef}</div>
+      </div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-top:6px;font-size:12px;">
+      <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">SPIRITUAL DEF</div>
+      <div style="color:var(--text);">${spirDef}</div>
+    </div>`;
 }
 
 async function onCreateChar(){
@@ -1655,10 +1771,11 @@ async function onCreateChar(){
     // ── Stats — always roll fresh if missing or incomplete ──
     if(!rolledStats||!rolledStats.str||!rolledStats.end)rollStats();
     const stats=rolledStats||{str:12,dex:12,int:12,wis:12,cha:12,end:12};
-    const hp=10+(stats.end||10);
+    const hp=10+(stats.str||10); // Official: HP = 10 + Strength
 
     // ── Build character ──
     const base={name,color:selColor,stats,hp,maxHp:hp,slot:mySlot,
+      physDef,cogDef,spirDef,level:1,skillRanks:{},
       isNPC:false,campaignId,gender,fragments:0,oathStage:1,
       origin:charOrigin||'',motivation:charMotivation||'',
       backstory:charBackstory,appearance:charAppearance};
@@ -1667,7 +1784,7 @@ async function onCreateChar(){
       myChar={...base,isRadiant:true,
         className:selClass.name,classId:selClass.id,
         abilities:selClass.abilities,spren:selClass.spren,
-        focus:3,maxFocus:5};
+        focus:Math.max(1,2+(stats.wil||0)),maxFocus:Math.max(1,2+(stats.wil||0))};
     } else {
       const wnEl=document.getElementById('in-weapon-name');
       const customName=wnEl?wnEl.value.trim():'';
@@ -1678,7 +1795,7 @@ async function onCreateChar(){
         abilities:[selWeapon.name],spren:null,
         weapon:weaponName,weaponId:selWeapon.id,weaponLevel:1,
         weaponData:selWeapon,
-        focus:3,maxFocus:5};
+        focus:Math.max(1,2+(stats.wil||0)),maxFocus:Math.max(1,2+(stats.wil||0))};
     }
 
     // ── Resolve slot — mySlot was already assigned by claimNextSlot() in onEnter ──
@@ -2407,7 +2524,7 @@ function renderParty(){
     return`<div class="ppip-pair">
       <div class="ppip${gState.turn===i?' active':''}${p.isNPC?' npc':''}" id="ppip-${p.name.replace(/\s/g,'_')}">
         <div class="ppip-top"><div class="ppip-dot" style="background:${p.color};"></div><span class="ppip-name">${p.name}</span></div>
-        <div class="ppip-info">${p.className} · ${p.hp}/${p.maxHp} HP${(p.focus!=null)?' · ◈ '+(p.focus||0)+'/'+(p.maxFocus||5)+' Focus':''}</div>
+        <div class="ppip-info">${p.className}${p.level?' Lv.'+p.level:''} · ${p.hp}/${p.maxHp} HP${(p.focus!=null)?' · ◈ '+(p.focus||0)+'/'+(p.maxFocus||5)+' Focus':''}</div>
         ${p.nextRollAdvantage?`<div class="ppip-tag" style="color:${p.nextRollAdvantage==='advantage'?'var(--teal2)':'var(--coral2)'};">${p.nextRollAdvantage==='advantage'?'▲ ADVANTAGE':'▼ DISADVANTAGE'}</div>`:''}
         ${bond?`<div class="ppip-tag" style="color:${bond.color};">✦ ${bond.nick} Oath ${p.oathStage||1}/5</div>`:''}
         ${p.isNPC?'<div class="ppip-tag" style="color:var(--teal2);">AI COMPANION</div>':''}
@@ -2708,7 +2825,9 @@ async function onSubmitAction(){
   const sk=getStat(action);
   const {bucket}=getActionBucket(action);
   const sv=(myChar.stats&&myChar.stats[sk])||10;
-  const bonus=Math.floor((sv-10)/2)+(myChar.bladeLevel||0);
+  // Official: modifier = skill_ranks + attribute_score
+  const skillRanks=(myChar.skillRanks&&myChar.skillRanks[sk])||0;
+  const bonus=skillRanks+(sv||0)+(myChar.bladeLevel||0);
   const beatsLeft=(gState.beatsUntilCombat||5)-(gState.beatsSinceLastCombat||0);
 
   // ── Plot Die (Official Cosmere RPG) ──
@@ -2794,12 +2913,12 @@ function getActionBucket(a){
   const t=a.toLowerCase();
   const isHeal=/\[heal\]|heal|regrow|mend|restore|tend|bandage|cure|knit|stormlight.*wound/.test(t);
   const isRevive=/revive|stabilize|pull.*back|save.*downed|rouse|wake.*up/.test(t)&&/hobber|ally|companion|downed/.test(t);
-  if(isRevive)return{bucket:'revive',stat:'wis'};
-  if(isHeal)return{bucket:'heal',stat:'wis'};
-  if(/defend|protect|shield|block|parry|stance|barrier|brace/.test(t))return{bucket:'defend',stat:'end'};
+  if(isRevive)return{bucket:'revive',stat:'wil'};
+  if(isHeal)return{bucket:'heal',stat:'wil'};
+  if(/defend|protect|shield|block|parry|stance|barrier|brace/.test(t))return{bucket:'defend',stat:'pre'};
   if(/soulcast|lash|illusion|surge|transform|summon|conjure|transmute|pattern|lightweave/.test(t))return{bucket:'surge',stat:'int'};
-  if(/search|detect|sense|notice|examine|investigate|scout|perceive/.test(t))return{bucket:'skill',stat:'wis'};
-  if(/persuade|negotiate|threaten|bluff|charm|intimidate|deceive/.test(t))return{bucket:'skill',stat:'cha'};
+  if(/search|detect|sense|notice|examine|investigate|scout|perceive/.test(t))return{bucket:'skill',stat:'wil'};
+  if(/persuade|negotiate|threaten|bluff|charm|intimidate|deceive/.test(t))return{bucket:'skill',stat:'awa'};
   if(/run|dodge|leap|sneak|dash|tumble|evade|sprint|flip|slide/.test(t))return{bucket:'attack',stat:'dex'};
   return{bucket:'attack',stat:'str'};
 }
@@ -3203,6 +3322,14 @@ function getCharContext(){
   if(myChar.backstory&&myChar.backstory.trim())parts.push('Background: '+myChar.backstory.trim());
   if(myChar.appearance&&myChar.appearance.trim())parts.push('Looks: '+myChar.appearance.trim());
   if(!myChar.isRadiant&&myChar.roleName)parts.push('Role: '+myChar.roleName);
+  // Stat summary using official names
+  const s=myChar.stats||{};
+  const topStats=Object.entries(s).sort((a,b)=>b[1]-a[1]).slice(0,3)
+    .map(([k,v])=>`${STAT_FULL[STAT_KEYS.indexOf(k)]||k} ${v}`).join(', ');
+  if(topStats)parts.push('Highest attributes: '+topStats);
+  const physDef=myChar.physDef||(10+(s.str||0)+(s.spd||0));
+  const cogDef=myChar.cogDef||(10+(s.int||0)+(s.wil||0));
+  parts.push(`Defenses — Physical:${physDef} Cognitive:${cogDef}`);
   if(!myChar.isRadiant&&myChar.weapon){
     const wd=myChar.weaponData;
     const tier=myChar.weaponLevel||1;
@@ -3283,7 +3410,13 @@ function renderSheet(){
     <div class="sheet-row"><span class="sheet-lbl">Name</span><span class="sheet-val">${myChar.name}</span></div>
     <div class="sheet-row"><span class="sheet-lbl">Order</span><span class="sheet-val">${myChar.className}</span></div>
     <div class="sheet-row"><span class="sheet-lbl">HP</span><span class="sheet-val">${myChar.hp} / ${myChar.maxHp}</span></div>
-    ${STAT_KEYS.map((k,i)=>`<div class="sheet-row"><span class="sheet-lbl">${STAT_NAMES[i]}</span><span class="sheet-val">${myChar.stats[k]} (${modStr(myChar.stats[k])})</span></div>`).join('')}
+    <div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);margin:6px 0 4px;">ATTRIBUTES</div>
+    ${STAT_KEYS.map((k,i)=>`<div class="sheet-row"><span class="sheet-lbl">${STAT_FULL[i]} (${STAT_NAMES[i]})</span><span class="sheet-val">${myChar.stats[k]||0} <span style="color:var(--text4);font-size:12px;">+${myChar.stats[k]||0} to rolls</span></span></div>`).join('')}
+    <div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);margin:10px 0 4px;">DEFENSES</div>
+    <div class="sheet-row"><span class="sheet-lbl">Physical</span><span class="sheet-val" style="color:var(--teal2);">${myChar.physDef||10+((myChar.stats.str||0)+(myChar.stats.spd||0))}</span></div>
+    <div class="sheet-row"><span class="sheet-lbl">Cognitive</span><span class="sheet-val" style="color:var(--amber2);">${myChar.cogDef||10+((myChar.stats.int||0)+(myChar.stats.wil||0))}</span></div>
+    <div class="sheet-row"><span class="sheet-lbl">Spiritual</span><span class="sheet-val" style="color:var(--gold);">${myChar.spirDef||10+((myChar.stats.awa||0)+(myChar.stats.pre||0))}</span></div>
+    <div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);margin:10px 0 4px;">COMBAT</div>
     <div class="sheet-row"><span class="sheet-lbl">Crit Dmg</span><span class="sheet-val" style="color:var(--coral2);">+${cls.dmgBonus.crit} / Hit +${cls.dmgBonus.hit}</span></div>
     ${myChar.shardblade?`<div class="sheet-row"><span class="sheet-lbl">⚔ Shardblade</span><span class="sheet-val" style="color:var(--amber2);">${myChar.shardblade} (Tier ${myChar.bladeLevel||1})</span></div>`:''}
     ${myChar.shardplate?`<div class="sheet-row"><span class="sheet-lbl">⬛ Shardplate</span><span class="sheet-val" style="color:var(--gold);">Equipped</span></div>`:''}
@@ -3876,7 +4009,9 @@ async function resolveRound(){
       if(!p||p.downed)return; // actor validation
       const pi=gState.players.findIndex(x=>x&&x.name===a.actor);
       const sv=(p.stats&&p.stats[a.stat])||10;
-      const bonus=Math.floor((sv-10)/2)+(p.bladeLevel||0);
+      // Official: modifier = skill_ranks + attribute_score
+      const skillRanks=(p.skillRanks&&p.skillRanks[a.stat])||0;
+      const bonus=skillRanks+(sv||0)+(p.bladeLevel||0);
       const roll=Math.ceil(Math.random()*20);
       const total=Math.min(20,Math.max(1,roll+bonus));
       const result=total>=18?'CRIT':total>=14?'HIT':total>=10?'PARTIAL':total>=6?'MISS':'FUMBLE';
