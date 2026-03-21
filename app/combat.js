@@ -1412,111 +1412,227 @@ One sentence each. Tag: [DISCOVERY] or [DECISION].${getGenderContext()}`;
 }
 
 
-// ══ VOICE OVER — Web Speech API ══
+// ══ VOICE OVER — Kokoro TTS ══
+// Apache-licensed 82M neural TTS. Runs 100% in-browser via WebGPU/WASM.
+// First use: ~160MB model download, then cached by browser forever.
+// Quality: comparable to ElevenLabs. Vastly better than Web Speech API.
+// Fallback: if Kokoro fails to load, silently falls back to Web Speech API.
 
 function autoSpeakStory(){}
 
-async function speakStory(){
-  if(!voiceEnabled||isMobile())return;
-  const el=document.getElementById('story-text');
-  if(!el)return;
-  const text=(el.innerText||'')
-    .replace(/\[CHOICES FOR[^\]]*\]/gi,'')
-    .replace(/\[CHOICES\]/gi,'')
-    .replace(/Option \d+/g,'')
-    .replace(/THE CHRONICLE/gi,'')
-    .replace(/DISCOVERY|COMBAT|DECISION/g,'')
-    .replace(/\n+/g,' ')
-    .replace(/\s{2,}/g,' ')
+// ── Voice catalogue ──
+const KOKORO_VOICES = {
+  'am_echo':    { label:'Echo — American Male, Warm'     },
+  'am_adam':    { label:'Adam — American Male, Deep'     },
+  'am_michael': { label:'Michael — American Male, Clear' },
+  'af_heart':   { label:'Heart — American Female, Warm'  },
+  'af_sky':     { label:'Sky — American Female, Bright'  },
+  'af_nicole':  { label:'Nicole — American Female, Calm' },
+  'bm_daniel':  { label:'Daniel — British Male, Noble'   },
+  'bm_george':  { label:'George — British Male, Gravelly'},
+  'bf_emma':    { label:'Emma — British Female, Crisp'   },
+};
+
+// ── Module-level state ──
+let _kokoroTTS      = null;
+let _kokoroLoading  = false;
+let _kokoroReady    = false;
+let _kokoroVoice    = 'bm_daniel';
+let _kokoroBusy     = false;
+let _kokoroCancel   = false;
+let _currentAudio   = null;
+
+// ── Lazy singleton model loader ──
+async function _ensureKokoro() {
+  if (_kokoroReady) return true;
+  if (_kokoroLoading) {
+    await new Promise(r => {
+      const check = setInterval(() => {
+        if (_kokoroReady || !_kokoroLoading) { clearInterval(check); r(); }
+      }, 200);
+    });
+    return _kokoroReady;
+  }
+  _kokoroLoading = true;
+  _updateVoiceStatus('loading');
+  try {
+    const { KokoroTTS } = await import('https://cdn.jsdelivr.net/npm/kokoro-js@1.2.0/dist/kokoro.web.js');
+    let device = 'wasm', dtype = 'q8';
+    try {
+      if (navigator.gpu) {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (adapter) { device = 'webgpu'; dtype = 'fp32'; }
+      }
+    } catch(e) {}
+    _kokoroTTS = await KokoroTTS.from_pretrained(
+      'onnx-community/Kokoro-82M-v1.0-ONNX',
+      { dtype, device }
+    );
+    _kokoroReady = true; _kokoroLoading = false;
+    _updateVoiceStatus('ready');
+    console.log('✓ Kokoro TTS ready — device:', device, 'dtype:', dtype);
+    return true;
+  } catch(err) {
+    _kokoroLoading = false; _kokoroReady = false;
+    console.warn('✗ Kokoro failed, falling back to Web Speech:', err.message);
+    _updateVoiceStatus('fallback');
+    return false;
+  }
+}
+
+// ── Text cleaner ──
+function _cleanForTTS(raw) {
+  return (raw || '')
+    .replace(/\[CHOICES[^\]]*\][\s\S]*/i, '')
+    .replace(/\[COMBAT\]|\[DISCOVERY\]|\[DECISION\]/gi, '')
+    .replace(/THE CHRONICLE/gi, '')
+    .replace(/\*+/g, '')
+    .replace(/\n+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
     .trim();
-  if(text.length<10)return;
-  speakWithWebSpeech(text);
 }
 
-async function speakFromElement(text){
-  if(!voiceEnabled||!text||isMobile())return;
-  stopSpeaking();
-  speakWithWebSpeech(text);
+// ── Sentence splitter — enables streaming first-sentence playback ──
+function _splitSentences(text) {
+  return text.split(/(?<=[.!?…])\s+/).map(s => s.trim()).filter(s => s.length > 3);
 }
 
-function speakWithWebSpeech(text){
-  if(!window.speechSynthesis)return;
+// ── PCM float32 → WAV blob ──
+function _float32ToWav(audioData, sampleRate) {
+  const numChannels = 1, bitsPerSample = 16;
+  const dataSize = audioData.length * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const w = (o, v, s) => s===4?view.setUint32(o,v,true):view.setUint16(o,v,true);
+  const ws = (o, s) => { for(let i=0;i<s.length;i++) view.setUint8(o+i,s.charCodeAt(i)); };
+  ws(0,'RIFF'); w(4,36+dataSize,4); ws(8,'WAVE'); ws(12,'fmt ');
+  w(16,16,4); w(20,1,2); w(22,numChannels,2); w(24,sampleRate,4);
+  w(28,sampleRate*2,4); w(30,2,2); w(34,bitsPerSample,2);
+  ws(36,'data'); w(40,dataSize,4);
+  let offset=44;
+  for(let i=0;i<audioData.length;i++){
+    const s=Math.max(-1,Math.min(1,audioData[i]));
+    view.setInt16(offset,s<0?s*0x8000:s*0x7FFF,true); offset+=2;
+  }
+  return new Blob([buffer],{type:'audio/wav'});
+}
+
+// ── Play a WAV blob, resolve when done ──
+function _playAudioBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    _currentAudio = new Audio(url);
+    const slider = document.getElementById('vol-slider');
+    _currentAudio.volume = slider ? Math.min(1, parseInt(slider.value||70)/100) : 0.92;
+    _currentAudio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+    _currentAudio.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+    _currentAudio.play().catch(reject);
+  });
+}
+
+// ── Core: Kokoro sentence-by-sentence streaming ──
+async function _speakWithKokoro(text) {
+  if(!text||text.length<4) return;
+  _kokoroCancel=false; _kokoroBusy=true; voiceActive=true; updateVoiceBtn();
+  const sentences = _splitSentences(text);
+  for(const sentence of sentences){
+    if(_kokoroCancel) break;
+    if(sentence.length<3) continue;
+    try{
+      const result = await _kokoroTTS.generate(sentence, { voice: _kokoroVoice, speed: 0.92 });
+      if(_kokoroCancel) break;
+      await _playAudioBlob(_float32ToWav(result.audio, result.sampling_rate));
+    } catch(e){ console.warn('✗ Kokoro sentence error:', e.message); }
+  }
+  _kokoroBusy=false;
+  if(!_kokoroCancel){ voiceActive=false; updateVoiceBtn(); }
+}
+
+// ── Web Speech fallback ──
+function _speakWithWebSpeech(text){
+  if(!window.speechSynthesis) return;
   stopSpeaking();
   const go=()=>{
     currentUtterance=new SpeechSynthesisUtterance(text);
-    currentUtterance.volume=0.95;
+    currentUtterance.volume=0.95; currentUtterance.rate=0.88; currentUtterance.pitch=0.9;
     const vv=window.speechSynthesis.getVoices();
-    const prefs=window._webSpeechPreference||['Daniel','Aaron','Fred','Alex','Arthur','Gordon'];
-    const all=[...prefs,'Daniel','Aaron','Fred','Alex','Arthur','Gordon','Microsoft David Desktop','Microsoft George Desktop'];
+    const prefs=['Daniel','George','Arthur','Aaron','Alex'];
     let v=null;
-    for(const n of all){v=vv.find(x=>x.name===n);if(v)break;}
-    if(!v)v=vv.find(x=>x.lang==='en-GB'&&x.localService)||vv.find(x=>x.lang.startsWith('en')&&x.localService)||vv.find(x=>x.lang.startsWith('en'))||vv[0];
-    if(v){
-      currentUtterance.voice=v;
-      const n=v.name||'';
-      const isBritish=n==='Daniel'||n.includes('George')||n.includes('Arthur');
-      currentUtterance.rate=isBritish?0.85:n==='Fred'?0.82:0.88;
-      currentUtterance.pitch=isBritish?0.88:0.92;
-    } else {
-      currentUtterance.rate=0.88;currentUtterance.pitch=0.92;
-    }
+    for(const n of prefs){v=vv.find(x=>x.name===n);if(v)break;}
+    if(!v)v=vv.find(x=>x.lang==='en-GB'&&x.localService)||vv.find(x=>x.lang.startsWith('en'))||vv[0];
+    if(v)currentUtterance.voice=v;
     currentUtterance.onend=currentUtterance.onerror=()=>{voiceActive=false;updateVoiceBtn();};
     window.speechSynthesis.speak(currentUtterance);
-    currentUtterance=currentUtterance;
-    voiceActive=true;updateVoiceBtn();
+    voiceActive=true; updateVoiceBtn();
   };
   if(window.speechSynthesis.getVoices().length>0)go();
   else{window.speechSynthesis.onvoiceschanged=()=>{window.speechSynthesis.onvoiceschanged=null;go();};}
 }
 
+// ── Public API ──
+async function speakStory(){
+  if(!voiceEnabled||isMobile()) return;
+  const el=document.getElementById('story-text'); if(!el) return;
+  const text=_cleanForTTS(el.innerText||''); if(text.length<10) return;
+  stopSpeaking();
+  const ok=await _ensureKokoro();
+  if(ok) await _speakWithKokoro(text); else _speakWithWebSpeech(text);
+}
+
+async function speakFromElement(text){
+  if(!voiceEnabled||!text||isMobile()) return;
+  stopSpeaking();
+  const ok=await _ensureKokoro();
+  if(ok) await _speakWithKokoro(_cleanForTTS(text)); else _speakWithWebSpeech(_cleanForTTS(text));
+}
+
 function stopSpeaking(){
+  _kokoroCancel=true;
+  if(_currentAudio){_currentAudio.pause();_currentAudio.src='';_currentAudio=null;}
+  _kokoroBusy=false;
   if(window.speechSynthesis)window.speechSynthesis.cancel();
-  voiceActive=false;updateVoiceBtn();
+  voiceActive=false; updateVoiceBtn();
 }
 
 function toggleVoice(){
-  if(isMobile())return;
+  if(isMobile()) return;
   if(voiceActive){stopSpeaking();return;}
-  voiceEnabled=true;
-  speakStory();
+  voiceEnabled=true; speakStory();
 }
 
 function updateVoiceBtn(){
   const label=voiceActive?'🔊':'🔈';
   const title=voiceActive?'Stop reading':'Read story aloud';
-  ['voice-btn-bar'].forEach(id=>{
-    const b=document.getElementById(id);if(b){b.textContent=label;b.title=title;}
-  });
+  const b=document.getElementById('voice-btn-bar'); if(b){b.textContent=label;b.title=title;}
 }
 
 function toggleAutoSpeak(){}
 function updateAutoSpeakBtn(){
-  const btn=document.getElementById('autospeak-btn');
-  if(!btn)return;
-  if(autoSpeak){
-    btn.textContent='AUTO ON';
-    btn.style.cssText+='color:var(--amber2);border-color:var(--amber-dim);background:rgba(191,161,90,0.1);';
-  } else {
-    btn.textContent='AUTO';
-    btn.style.cssText+='color:var(--text4);border-color:var(--border2);background:var(--bg3);';
-  }
+  const btn=document.getElementById('autospeak-btn'); if(!btn)return;
+  if(autoSpeak){btn.textContent='AUTO ON';btn.style.cssText+='color:var(--amber2);border-color:var(--amber-dim);background:rgba(191,161,90,0.1)';}
+  else{btn.textContent='AUTO';btn.style.cssText+='color:var(--text4);border-color:var(--border2);background:var(--bg3)';}
+}
+
+function _updateVoiceStatus(state){
+  const btn=document.getElementById('voice-btn-bar'); if(!btn)return;
+  if(state==='loading'){btn.title='Loading Kokoro voice model (one-time ~160MB)…';btn.textContent='⏳';}
+  else if(state==='ready'){btn.title='Kokoro TTS ready — click to read story';btn.textContent='🔈';}
+  else if(state==='fallback'){btn.title='Using browser voice (Kokoro unavailable)';btn.textContent='🔈';}
 }
 
 function setVoice(voiceVal){
   localStorage.setItem('sc_voice',voiceVal);
-  const voiceMap={
-    'male_deep':'Daniel,Aaron,Fred,Alex,Arthur',
-    'male_warm':'Alex,Aaron,Daniel,Fred',
-    'male_gravelly':'Fred,Alex,Aaron,Daniel',
-    'female_british':'Daniel,Arthur,Gordon,Kate',
-    'female_warm':'Samantha,Victoria,Karen',
-    'female_clear':'Karen,Samantha,Victoria',
+  const legacyMap={
+    'male_deep':'bm_george','male_warm':'am_echo','male_gravelly':'bm_george',
+    'female_british':'bf_emma','female_warm':'af_heart','female_clear':'af_sky',
   };
-  window._webSpeechPreference=(voiceMap[voiceVal]||'Daniel,Aaron,Alex').split(',');
+  _kokoroVoice=KOKORO_VOICES[voiceVal]?voiceVal:(legacyMap[voiceVal]||'bm_daniel');
   if(voiceActive){stopSpeaking();setTimeout(speakStory,100);}
 }
 
+function loadVoicePreference(){
+  const stored=localStorage.getItem('sc_voice'); if(stored)setVoice(stored);
+}
 
-function loadVoicePreference(){}
 function isMobile(){return/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);}
 
