@@ -14,7 +14,7 @@
 // ── ENV CONFIG ────────────────────────────────────────────────
 // These are read at startup. Override via env.js or window.STORMLIGHT_CONFIG.
 const SHEET_ID  = window.STORMLIGHT_CONFIG?.sheetId  || '1f2lS_y0e4eZHYBX68QHJHG-8mmI9680nBNf1fG3ZdEw';
-const PROXY_URL = window.STORMLIGHT_CONFIG?.apiUrl   || 'https://stormlight-proxy.goretusk55.workers.dev';
+const PROXY_URL = window.STORMLIGHT_CONFIG?.apiUrl   || 'https://stormlight-proxy.rruss7997.workers.dev';
 const WS_URL    = window.STORMLIGHT_CONFIG?.wsUrl    || 'wss://stormlight-proxy.rruss7997.workers.dev/session';
 
 

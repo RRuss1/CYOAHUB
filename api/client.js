@@ -13,7 +13,7 @@
 // ── CONFIG ────────────────────────────────────────────────────
 const DEFAULT_CONFIG = {
   // Cloudflare Worker base URL — override via env.js
-  apiUrl:  window.STORMLIGHT_CONFIG?.apiUrl  || 'https://stormlight-proxy.goretusk55.workers.dev',
+  apiUrl:  window.STORMLIGHT_CONFIG?.apiUrl  || 'https://stormlight-proxy.rruss7997.workers.dev',
   wsUrl:   window.STORMLIGHT_CONFIG?.wsUrl   || 'wss://stormlight-proxy.rruss7997.workers.dev/session',
   sheetId: window.STORMLIGHT_CONFIG?.sheetId || '1f2lS_y0e4eZHYBX68QHJHG-8mmI9680nBNf1fG3ZdEw',
 };
