@@ -71,8 +71,9 @@
   opacity: 0;
   transition: opacity 0.2s;
 }
-.btn:hover { background: rgba(36,30,19,0.9); border-color: var(--amber-dim); }
+.btn:hover  { background: rgba(36,30,19,0.9); border-color: var(--amber-dim); }
 .btn:hover::before { opacity: 1; }
+.btn:active { transform: scale(0.965) translateY(1px); transition: transform 0.08s ease; }
 
 .btn-gold {
   border-color: var(--amber);
@@ -80,10 +81,11 @@
   background: rgba(201,168,76,0.06);
 }
 .btn-gold:hover {
-  background: rgba(201,168,76,0.14);
+  background: rgba(201,168,76,0.16);
   border-color: var(--amber3);
-  box-shadow: 0 0 20px rgba(201,168,76,0.15);
+  box-shadow: 0 0 28px rgba(201,168,76,0.22), 0 0 56px rgba(201,168,76,0.08);
 }
+.btn-gold:active { transform: scale(0.965) translateY(1px); transition: transform 0.08s ease; }
 
 .btn-teal  { border-color:var(--teal); color:var(--teal2); }
 .btn-teal:hover { background:rgba(29,122,92,0.12); }
@@ -109,10 +111,12 @@
   transition: all 0.2s;
 }
 .btn-act:hover {
-  background: rgba(201,168,76,0.18);
+  background: rgba(201,168,76,0.20);
   border-color: var(--amber3);
-  box-shadow: 0 0 20px rgba(201,168,76,0.12);
+  box-shadow: 0 0 28px rgba(201,168,76,0.2), 0 0 56px rgba(201,168,76,0.07);
+  transform: translateY(-1px);
 }
+.btn-act:active { transform: scale(0.965) translateY(1px); transition: transform 0.08s ease; }
 
 .btn-continue {
   display: inline-flex;
@@ -128,7 +132,8 @@
   letter-spacing: 1px;
   transition: all 0.2s;
 }
-.btn-continue:hover { background: rgba(201,168,76,0.16); }
+.btn-continue:hover  { background: rgba(201,168,76,0.16); box-shadow: 0 0 20px rgba(201,168,76,0.12); transform: translateY(-1px); }
+.btn-continue:active { transform: scale(0.965) translateY(1px); transition: transform 0.08s ease; }
 .btn-continue:disabled { opacity:0.25; cursor:not-allowed; border-color:var(--border2); color:var(--text5); }
 
 .resolve-btn {
@@ -193,13 +198,13 @@
    COMPONENT: PANEL (side panels)
    ───────────────────────────────────────────── */
 .panel {
-  background: linear-gradient(180deg, rgba(24,20,12,0.95) 0%, rgba(20,17,9,0.98) 100%);
+  background: linear-gradient(180deg, rgba(22,18,11,0.97) 0%, rgba(18,15,9,0.99) 100%);
   border: 1px solid var(--border);
   border-radius: var(--r3);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-card), 0 0 60px rgba(0,0,0,0.2);
 }
 .panel__header {
   padding: 12px 16px;
@@ -238,8 +243,8 @@
 }
 .ppip.active {
   border-color: var(--amber);
-  background: linear-gradient(145deg, rgba(36,28,14,0.98), rgba(28,22,12,1));
-  box-shadow: 0 0 20px rgba(201,168,76,0.1);
+  background: linear-gradient(145deg, rgba(38,30,15,0.98), rgba(28,22,12,1));
+  box-shadow: 0 0 0 1px rgba(201,168,76,0.2), 0 0 24px rgba(201,168,76,0.14);
 }
 .ppip.npc { border-color: var(--teal-dim); }
 .ppip-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
@@ -306,7 +311,8 @@
 }
 .char-combat-card.active-turn {
   border-color: var(--amber);
-  box-shadow: 0 0 20px rgba(201,168,76,0.2), var(--shadow-card);
+  box-shadow: 0 0 0 1px rgba(201,168,76,0.28), 0 0 32px rgba(201,168,76,0.22), var(--shadow-card);
+  background: linear-gradient(145deg, rgba(38,30,15,0.98), rgba(28,22,12,1));
 }
 .char-combat-card.downed {
   opacity: 0.4;
@@ -316,7 +322,8 @@
 .char-combat-card.enemy-card { border-color: rgba(212,78,48,0.3); }
 .char-combat-card.enemy-card.active-turn {
   border-color: var(--coral2);
-  box-shadow: 0 0 20px rgba(212,78,48,0.25);
+  box-shadow: 0 0 0 1px rgba(212,78,48,0.3), 0 0 32px rgba(212,78,48,0.28);
+  background: linear-gradient(145deg, rgba(36,20,16,0.98), rgba(24,14,10,1));
 }
 
 /* ─────────────────────────────────────────────
@@ -349,10 +356,12 @@
 }
 .achoice:hover {
   border-color: var(--border3);
-  background: linear-gradient(145deg, rgba(36,28,16,0.98), rgba(28,22,12,1));
-  transform: translateY(-1px);
+  background: linear-gradient(145deg, rgba(40,32,18,0.98), rgba(30,24,14,1));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift), 0 0 20px rgba(201,168,76,0.06);
 }
 .achoice:hover::before { opacity: 1; }
+.achoice:active { transform: translateY(0) scale(0.98); transition: transform 0.08s ease; }
 .achoice.sel {
   border-color: var(--gold-mid);
   background: linear-gradient(145deg, rgba(50,38,18,0.98), rgba(38,28,14,1));
@@ -371,15 +380,16 @@
   max-width: 860px;
   width: 100%;
   margin: 0 auto;
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-card), 0 0 100px rgba(0,0,0,0.25);
   position: relative;
+  transform-style: preserve-3d; /* enable GSAP parallax tilt */
 }
 .chronicle-card::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.25), transparent);
+  background: linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.15) 20%, rgba(201,168,76,0.38) 50%, rgba(201,168,76,0.15) 80%, transparent 100%);
 }
 
 /* ─────────────────────────────────────────────
@@ -407,11 +417,12 @@
   transition: opacity 0.3s;
 }
 .camp-card:hover {
-  border-color: rgba(201,168,76,0.5);
+  border-color: rgba(201,168,76,0.55);
   background: linear-gradient(145deg, rgba(46,36,22,0.98) 0%, rgba(36,28,18,1) 100%);
-  transform: translateY(-3px) scale(1.01);
-  box-shadow: var(--shadow-lift), 0 0 30px rgba(201,168,76,0.08);
+  transform: translateY(-4px) scale(1.015);
+  box-shadow: var(--shadow-lift), 0 0 40px rgba(201,168,76,0.10);
 }
+.camp-card:active { transform: translateY(-1px) scale(0.99); transition: transform 0.1s ease; }
 .camp-card:hover::before { opacity: 1; }
 .camp-card:hover .camp-del { opacity: 1; }
 .camp-card.active-camp {
@@ -722,23 +733,25 @@
    ───────────────────────────────────────────── */
 .audio-bar {
   position: fixed;
-  bottom: 18px; right: 18px;
-  z-index: 100;
+  top: 9px; right: 14px;  /* ── Moved from footer to header zone ── */
+  bottom: auto;
+  z-index: 200;            /* Above game-top (z-index: 10) */
   display: none;
   align-items: center;
   gap: 9px;
-  background: rgba(20,17,10,0.92);
+  background: rgba(15,13,8,0.88);
   border: 1px solid var(--border2);
   border-radius: 24px;
-  padding: 7px 16px;
-  opacity: 0.14;
-  transition: opacity 0.3s;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  padding: 6px 14px;
+  opacity: 0.13;           /* Translucent until hovered */
+  transition: opacity 0.35s ease, box-shadow 0.35s ease;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.45);
 }
-.audio-bar:hover  { opacity: 1; }
-.audio-bar.audio-active { opacity: 0.88; }
-.vol-slider { width: 56px; accent-color: var(--amber); }
+.audio-bar:hover  { opacity: 1; box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.12); }
+.audio-bar.audio-active { opacity: 0.82; }
+.vol-slider { width: 52px; accent-color: var(--amber); }
 
 /* ─────────────────────────────────────────────
    CAMPAIGN SCREENS
@@ -833,13 +846,22 @@
   align-items: center;
   padding: 14px 28px;
   border-bottom: 1px solid var(--border);
-  background: rgba(15,13,8,0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(13,11,7,0.97);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+/* Subtle gold top-line accent */
+.game-top::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(201,168,76,0.12) 20%, rgba(201,168,76,0.28) 50%, rgba(201,168,76,0.12) 80%, transparent 100%);
+  pointer-events: none;
 }
 .party-strip {
   display: flex;
@@ -902,8 +924,20 @@
   align-items: center;
   padding: 13px 28px;
   border-bottom: 1px solid rgba(180,56,40,0.4);
-  background: rgba(12,6,4,0.95);
-  backdrop-filter: blur(12px);
+  background: rgba(10,5,3,0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 60px rgba(176,56,40,0.06);
+}
+/* Red top-line accent for combat */
+.combat-top::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(176,56,40,0.2) 20%, rgba(212,78,48,0.45) 50%, rgba(176,56,40,0.2) 80%, transparent 100%);
+  pointer-events: none;
 }
 .combat-body {
   flex: 1;
