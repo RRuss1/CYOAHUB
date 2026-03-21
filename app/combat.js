@@ -342,9 +342,6 @@ function startPolling(){
 }
 
 // ══ LOG CACHE — avoid redundant Sheets reads ══
-let _logCache=null;
-let _logCacheTs=0;
-const LOG_CACHE_TTL=3000; // 3 seconds
 async function loadLogCached(force=false){
   if(!force&&_logCache&&(Date.now()-_logCacheTs)<LOG_CACHE_TTL){
     return _logCache;
@@ -791,7 +788,6 @@ function renderCombatActions(){
   if(lang==='th')setTimeout(applyThaiToPage,100);
 }
 
-let combatSelectedAction='';
 function selectCombatAction(btn,txt){
   document.querySelectorAll('#combat-actions .achoice').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
@@ -1407,9 +1403,6 @@ One sentence each. Tag: [DISCOVERY] or [DECISION].${getGenderContext()}`;
 
 
 // ══ VOICE OVER — Web Speech API ══
-let voiceActive=false,voiceEnabled=true,currentUtterance=null;
-const autoSpeak=false; // TTS is on-demand only — use 🔈 button
-let awayMode=false;
 
 function autoSpeakStory(){}
 
