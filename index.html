@@ -460,7 +460,7 @@ select option{background:var(--bg3);color:var(--text);}
   <p class="slots-label"><span data-tr>Radiant Company</span></p>
   
   <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-    <button class="btn btn-gold" onclick="onEnter()"><span data-tr>⟁ Enter the Storm</span></button>
+    <button class="btn btn-gold" onclick="setTimeout(onEnter,0)"><span data-tr>⟁ Enter the Storm</span></button>
     <button class="btn btn-sm btn-danger" onclick="onReset()"><span data-tr>Reset Campaign</span></button>
   </div>
   <div id="title-status" style="font-size:14px;color:var(--text4);margin-top:14px;font-style:italic;min-height:22px;"></div>
@@ -559,7 +559,7 @@ select option{background:var(--bg3);color:var(--text);}
       <p class="screen-sub" data-tr>The GM will remember every word of this.</p>
       <div class="form-block">
         <label class="form-lbl" data-tr>Your Name</label>
-        <input class="form-in" id="in-name" type="text" maxlength="24" placeholder="What do they call you on the Plains?" autocomplete="off"/>
+        <input class="form-in" id="in-name" oninput="updateCreateSubmitBtn()" type="text" maxlength="24" placeholder="What do they call you on the Plains?" autocomplete="off"/>
       </div>
       <div class="form-block">
         <label class="form-lbl" data-tr>Pronouns</label>
@@ -644,7 +644,10 @@ select option{background:var(--bg3);color:var(--text);}
           <label class="form-lbl" data-tr>Your Attributes</label>
           <button class="btn btn-sm" onclick="rollStats()" data-tr>↻ Rebalance</button>
         </div>
-        <div style="font-size:12px;color:var(--text4);font-style:italic;margin-bottom:8px;">12 points distributed across 6 attributes (max 3 each at creation). Class bonuses applied on top.</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:12px;color:var(--text4);font-style:italic;">Click ＋ / ＋ to distribute 12 points (max 3 per attribute). Class bonuses shown separately.</div>
+          <div id="points-remaining" style="font-family:var(--font-d);font-size:11px;letter-spacing:1px;color:var(--amber2);white-space:nowrap;"></div>
+        </div>
         <div class="stats-grid" id="stats-grid"></div>
         <div id="stats-derived"></div>
       </div>
@@ -2268,13 +2271,30 @@ async function launchNewCampaign(num,name){
     document.getElementById('title-sub').textContent=name;
     renderPSZ();
     showScreen('title');
-    document.getElementById('camp-status').textContent='';
-  }catch(e){document.getElementById('camp-status').textContent='Error: '+e.message;}
+    if(status)status.textContent='';
+    document.querySelectorAll('.camp-card').forEach(card=>card.style.opacity='1');
+  }catch(e){
+    if(status){status.textContent='Error: '+e.message;status.style.color='var(--coral2)';}
+    document.querySelectorAll('.camp-card').forEach(card=>card.style.opacity='1');
+  }
 }
 async function selectCampaign(id){
+  // Release click handler INSTANTLY — yield to browser before all async work
   campaignId=id;
-  document.getElementById('camp-status').textContent='Loading '+id+'...';
+  const status=document.getElementById('camp-status');
+  if(status){status.textContent='';} 
+  // Instant card highlight
+  document.querySelectorAll('.camp-card').forEach(el=>{
+    const isSel=el.getAttribute('onclick')||'';
+    el.style.opacity=isSel.includes("'"+id+"'")||isSel.includes('"'+id+'"')?'1':'0.4';
+    el.style.pointerEvents=isSel.includes("'"+id+"'")||isSel.includes('"'+id+'"')?'none':'none';
+  });
+  setTimeout(()=>_doSelectCampaign(id),0);
+}
+async function _doSelectCampaign(id){
+  const status=document.getElementById('camp-status');
   try{
+    document.getElementById('camp-status').textContent='Loading '+id+'...';
     gState=await loadState();
     if(gState&&gState.locationSeed)buildActs(gState.locationSeed);
     if(gState)partySize=gState.partySize||3;
@@ -2294,8 +2314,12 @@ async function selectCampaign(id){
     if(enterBtn)enterBtn.querySelector('span').textContent=
       (gState&&gState.phase==='playing')?'⟁ Rejoin the Storm':'⟁ Create Character';
     showScreen('title');
-    document.getElementById('camp-status').textContent='';
-  }catch(e){document.getElementById('camp-status').textContent='Error: '+e.message;}
+    if(status)status.textContent='';
+    document.querySelectorAll('.camp-card').forEach(card=>card.style.opacity='1');
+  }catch(e){
+    if(status){status.textContent='Error: '+e.message;status.style.color='var(--coral2)';}
+    document.querySelectorAll('.camp-card').forEach(card=>card.style.opacity='1');
+  }
 }
 async function deleteCampaign(id){
   if(!confirm('Delete '+id+' permanently?'))return;
@@ -2340,6 +2364,9 @@ function genNPC(slot){
 // ══ ENTER / JOIN ══
 async function onEnter(){
   if(!campaignId){initCampaignPicker();showScreen('campaign');return;}
+  // Instant visual feedback before async work
+  const enterBtn=document.getElementById('enter-btn');
+  if(enterBtn){enterBtn.disabled=true;enterBtn.style.opacity='0.6';}
   setTitleStatus('Connecting...');
   try{
     await ensureSheets();
@@ -2355,7 +2382,11 @@ async function onEnter(){
     setTitleStatus('');
     showScreen('create');renderCreate();
     startCreatePolling();
-  }catch(e){setTitleStatus('Could not connect: '+e.message);}
+  }catch(e){
+    setTitleStatus('Could not connect: '+e.message);
+    const btn=document.getElementById('enter-btn');
+    if(btn){btn.disabled=false;btn.style.opacity='';}
+  }
 }
 function pickSlot(i){if(!gState||gState.players[i])return;reserveSlot(i);}
 
@@ -2427,7 +2458,7 @@ function renderCreate(){
   renderColors();renderClasses();renderRoles();renderWeapons();renderCultureGrid();renderKits();
   updateCreateSubmitBtn();
   pickCharType(true);
-  setTimeout(()=>pickCharType(true),80);
+  setTimeout(()=>{pickCharType(true);renderStatsPointBuy();},80);
 }
 
 function renderKits(){
@@ -2455,7 +2486,7 @@ function pickKit(id){
   } else {
     window._kitDeflect=0;
   }
-  renderStats(rolledStats||{str:2,spd:2,int:2,wil:2,awa:2,pre:2});
+  renderStatsPointBuy(); // refresh grid with deflect from kit
 }
 
 function pickAncestry(id){
@@ -2543,7 +2574,14 @@ function createBack(){
 function updateCreateSubmitBtn(){
   const btn=document.getElementById('create-submit-btn');
   if(!btn)return;
+  const nameEl=document.getElementById('in-name');
+  const hasName=(nameEl&&nameEl.value.trim().length>0);
+  const hasClass=!isRadiant||!!selClass;
+  const hasRole=isRadiant||!!selRole;
+  const ready=hasName&&hasClass&&hasRole&&!!selColor;
   btn.textContent=isRadiant?'Speak the First Oath →':'Enter the Storm →';
+  btn.style.opacity=ready?'1':'0.55';
+  btn.style.borderColor=ready?'var(--amber2)':'var(--border2)';
 }
 
 function pickCharType(radiant){
@@ -2579,12 +2617,12 @@ function renderColors(){
   const taken=gState?gState.players.filter(Boolean).map(p=>p.color):[];
   document.getElementById('color-row').innerHTML=COLORS.map(c=>`<div class="cswatch${selColor===c.hex?' sel':''}" style="background:${c.hex};opacity:${taken.includes(c.hex)?0.2:1};" title="${c.name}" onclick="pickColor('${c.hex}',${taken.includes(c.hex)})"></div>`).join('');
 }
-function pickColor(h,t){if(t)return;selColor=h;renderColors();}
+function pickColor(h,t){if(t)return;selColor=h;renderColors();updateCreateSubmitBtn();}
 
 function renderClasses(){
   document.getElementById('class-grid').innerHTML=CLASSES.map(c=>`<div class="ccard${selClass&&selClass.id===c.id?' sel':''}" onclick="pickClass('${c.id}')"><div class="ccard-name">${c.name}</div><div class="ccard-ideal">"${c.ideal}"</div><div class="ccard-desc">${c.desc}</div><div class="ccard-bonus">Spren: ${c.spren}</div><div class="ccard-bonus">Bonus: ${Object.entries(c.bonus).filter(e=>e[1]>0).map(e=>e[0].toUpperCase()+'+'+e[1]).join(' ')}</div></div>`).join('');
 }
-function pickClass(id){selClass=CLASSES.find(c=>c.id===id);renderClasses();rollStats();}
+function pickClass(id){selClass=CLASSES.find(c=>c.id===id);renderClasses();rollStats();renderStatsPointBuy();updateCreateSubmitBtn();}
 
 function renderRoles(){
   const grid=document.getElementById('role-grid');
@@ -2601,7 +2639,7 @@ function renderRoles(){
     <div style="font-size:11px;color:var(--text5);margin-top:4px;">Attr bonus: ${Object.entries(r.bonus||{}).filter(e=>e[1]>0).map(e=>e[0].toUpperCase()+' +'+e[1]).join(', ')||'Flexible'}</div>
   </div>`).join('');
 }
-function pickRole(id){selRole=HERO_ROLES.find(r=>r.id===id);renderRoles();rollStats();}
+function pickRole(id){selRole=HERO_ROLES.find(r=>r.id===id);renderRoles();rollStats();renderStatsPointBuy();updateCreateSubmitBtn();}
 
 function renderWeapons(){
   const grid=document.getElementById('weapon-grid');
@@ -2612,33 +2650,83 @@ function pickWeapon(id){selWeapon=HERO_WEAPONS.find(w=>w.id===id);renderWeapons(
 
 // Official: player distributes 12 points, max 3 per attribute at creation
 // We auto-assign a balanced spread and let them adjust
-function rollStats(){
+// Point-buy allocation (12 points, max 3 each at creation)
+let _pbAlloc={str:2,spd:2,int:2,wil:2,awa:2,pre:2};
+
+function getClassBonus(){
   const bonus=isRadiant?(selClass?selClass.bonus:{}):(selRole?selRole.bonus:{});
-  const b={str:0,spd:0,int:0,wil:0,awa:0,pre:0,...bonus};
-  // Default spread: distribute 12 points evenly then apply class bonus
-  const base={str:2,spd:2,int:2,wil:2,awa:2,pre:2}; // 12 points, 2 each
-  rolledStats={};
-  STAT_KEYS.forEach(k=>{
-    rolledStats[k]=Math.min(5,(base[k]||0)+(b[k]||0)); // official max 5 (3 base+class bonus)
-  });
-  if(!window._pointBuyInit){
-    window._pointBuyPool=ATTR_POINTS_START;
-    window._pointBuyAlloc={...base};
-    window._pointBuyInit=true;
+  return {str:0,spd:0,int:0,wil:0,awa:0,pre:0,...bonus};
+}
+function getTotalStats(){
+  const b=getClassBonus();
+  const out={};
+  STAT_KEYS.forEach(k=>out[k]=Math.min(5,(_pbAlloc[k]||0)+(b[k]||0)));
+  return out;
+}
+function getPointsSpent(){return Object.values(_pbAlloc).reduce((a,v)=>a+v,0);}
+function getPointsLeft(){return ATTR_POINTS_START-getPointsSpent();}
+
+function rollStats(){
+  // "Rebalance" — reset to an even 2/2/2/2/2/2 spread
+  _pbAlloc={str:2,spd:2,int:2,wil:2,awa:2,pre:2};
+  rolledStats=getTotalStats();
+  renderStatsPointBuy();
+  const btn=document.querySelector('[onclick="rollStats()"]');
+  if(btn){btn.textContent='↻ Reset!';setTimeout(()=>{btn.textContent='↻ Rebalance';},800);}
+}
+
+function adjustStat(k, delta){
+  const b=getClassBonus();
+  const cur=_pbAlloc[k]||0;
+  const newVal=cur+delta;
+  // Bounds: base alloc 0–3, total (base+bonus) capped at 5
+  if(newVal<0||newVal>3)return;
+  if(delta>0&&getPointsLeft()<=0)return;
+  _pbAlloc[k]=newVal;
+  rolledStats=getTotalStats();
+  renderStatsPointBuy();
+  updateCreateSubmitBtn();
+}
+
+function renderStatsPointBuy(){
+  const s=getTotalStats();
+  const b=getClassBonus();
+  const left=getPointsLeft();
+  const grid=document.getElementById('stats-grid');
+  if(!grid)return;
+  grid.innerHTML=STAT_KEYS.map((k,i)=>{
+    const base=_pbAlloc[k]||0;
+    const bonus=b[k]||0;
+    const total=s[k];
+    const canInc=base<3&&left>0;
+    const canDec=base>0;
+    return`<div class="sbox" style="position:relative;">
+      <div class="sbox-name">${STAT_FULL[i]}</div>
+      <div style="font-family:var(--font-d);font-size:9px;letter-spacing:2px;color:var(--text5);margin-bottom:2px;">${STAT_NAMES[i]}</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0;">
+        <button onclick="adjustStat('${k}',-1)" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border2);background:${canDec?'var(--bg3)':'var(--bg2)'};color:${canDec?'var(--text2)':'var(--text5)'};cursor:${canDec?'pointer':'default'};font-size:14px;line-height:1;transition:all 0.15s;" ${canDec?'':'disabled'}>−</button>
+        <div class="sbox-val">${total}</div>
+        <button onclick="adjustStat('${k}',1)" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border2);background:${canInc?'var(--bg3)':'var(--bg2)'};color:${canInc?'var(--amber2)':'var(--text5)'};cursor:${canInc?'pointer':'default'};font-size:14px;line-height:1;transition:all 0.15s;" ${canInc?'':'disabled'}>+</button>
+      </div>
+      ${bonus>0?`<div style="font-size:10px;color:var(--teal2);font-family:var(--font-d);">base ${base} +${bonus} class</div>`:`<div style="font-size:10px;color:var(--text5);">base ${base}/3</div>`}
+    </div>`;
+  }).join('');
+
+  // Points remaining indicator
+  const pointsEl=document.getElementById('points-remaining');
+  if(pointsEl){
+    pointsEl.textContent=left>0?`${left} point${left!==1?'s':''} remaining`:`All 12 points allocated`;
+    pointsEl.style.color=left===0?'var(--teal2)':'var(--amber2)';
   }
-  const el=document.getElementById('stats-grid');
-  if(el)renderStats(rolledStats);
+
+  // Update derived stats panel
+  renderStats(s);
 }
 function r4d6(){const d=[0,0,0,0].map(()=>Math.ceil(Math.random()*6));d.sort((a,b)=>a-b);return d.slice(1).reduce((a,v)=>a+v,0);}
 function modStr(v){return'+'+(v||0);} // Official: attribute score IS the modifier
 function renderStats(s){
-  // Official: modifier = skill_ranks + attribute_score (attribute IS the modifier)
-  document.getElementById('stats-grid').innerHTML=STAT_KEYS.map((k,i)=>`<div class="sbox">
-    <div class="sbox-name">${STAT_FULL[i]}</div>
-    <div style="font-family:var(--font-d);font-size:9px;letter-spacing:2px;color:var(--text5);margin-bottom:4px;">${STAT_NAMES[i]}</div>
-    <div class="sbox-val">${s[k]||0}</div>
-    <div class="sbox-mod" style="font-size:11px;color:var(--text4);">+${s[k]||0} to rolls</div>
-  </div>`).join('');
+  // renderStats now handles ONLY the derived stats panel (not the grid)
+  // Grid is managed by renderStatsPointBuy
   // Show derived stats below
   const hp=10+(s.str||0);
   const focus=2+(s.wil||0);
@@ -2682,7 +2770,7 @@ function renderStats(s){
       </div>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
         <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">DEFLECT</div>
-        <div style="color:var(--text);">0 (no armor)</div>
+        <div style="color:var(--text);">${window._kitDeflect>0?window._kitDeflect+' ('+(selKit&&selKit.armor&&ARMORS[selKit.armor]?ARMORS[selKit.armor].name:'armor')+')':'0 (no armor)'}</div>
       </div>
     </div>`;
 }
@@ -2708,9 +2796,23 @@ async function onCreateChar(){
     if(!selColor){err.textContent='Choose a color.';err.style.display='block';return;}
     err.style.display='none';
 
-    // ── Stats — always roll fresh if missing or incomplete ──
-    if(!rolledStats||!rolledStats.str||!rolledStats.end)rollStats();
-    const stats=rolledStats||{str:12,dex:12,int:12,wis:12,cha:12,end:12};
+    // ── Stats — validate all 12 points allocated ──
+    rollStats(); // ensure class bonuses applied
+    const stats=getTotalStats();
+    const pLeft=getPointsLeft();
+    if(pLeft>0){
+      const pe=document.getElementById('points-remaining');
+      if(pe){pe.style.color='var(--coral2)';pe.textContent=`Allocate ${pLeft} more point${pLeft!==1?'s':''} first`;}
+      err.textContent=`Distribute all 12 attribute points before continuing (${pLeft} remaining).`;
+      err.style.display='block';return;
+    }
+    // ── Compute all derived stats locally (official Ch.1-3 formulas) ──
+    const physDef=10+(stats.str||0)+(stats.spd||0);
+    const cogDef=10+(stats.int||0)+(stats.wil||0);
+    const spirDef=10+(stats.awa||0)+(stats.pre||0);
+    const maxInv=getMaxInvestiture(stats);
+    const recovDie=getRecoveryDie(stats.wil||0);
+    const deflect=window._kitDeflect||0;
     const hp=Math.max(1, 10+(stats.str||0)); // Official: HP = 10 + Strength
 
     // ── Build character ──
@@ -2953,7 +3055,7 @@ function renderLobby(){
   actions.innerHTML='';
   const allHandled=gState.players.slice(0,sz).every(p=>p&&!p.isPlaceholder);
   if(allHandled&&hasHuman&&gState.phase==='pregame'&&isHost()){
-    actions.innerHTML+=`<button class="btn btn-gold" onclick="startNow()"><span data-tr>⟁ Begin the Saga →</span></button>`;
+    actions.innerHTML+=`<button class="btn btn-gold" onclick="setTimeout(startNow,0)"><span data-tr>⟁ Begin the Saga →</span></button>`;
   } else if(gState.phase==='pregame'&&!isHost()){
     actions.innerHTML+=`<div style="font-family:var(--font-d);font-size:11px;letter-spacing:2px;color:var(--text4);padding:10px 0;">WAITING FOR HOST TO START...</div>`;
   }
@@ -5008,7 +5110,7 @@ function renderCombatActions(){
   const isSoloHuman=humanPlayers.length===1;
   const showResolve=allSubmitted&&(isHost()||isSoloHuman);
   if(showResolve){
-    html+=`<button class="resolve-btn" onclick="resolveRound()">⚔ Resolve Round →</button>`;
+    html+=`<button class="resolve-btn" onclick="setTimeout(resolveRound,0)">⚔ Resolve Round →</button>`;
   } else if(allSubmitted&&!isHost()&&!isSoloHuman){
     // Non-host sees a waiting message instead
     html+=`<div style="text-align:center;padding:14px;font-family:var(--font-d);font-size:11px;letter-spacing:2px;color:var(--teal2);">✓ READY — waiting for host to resolve</div>`;
