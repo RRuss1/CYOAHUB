@@ -2717,6 +2717,15 @@ function initParallax(){
   },{passive:true});
 }
 
+// Guard: ui.js loads before combat.js. Install a stub so the boot IIFE
+// never throws ReferenceError. combat.js overwrites this with the real impl.
+if(typeof loadVoicePreference==='undefined'){
+  window.loadVoicePreference=function(){
+    const stored=localStorage.getItem('sc_voice');
+    if(stored&&typeof setVoice==='function')setVoice(stored);
+  };
+}
+
 (async()=>{
   applyLang();
   loadVoicePreference();
