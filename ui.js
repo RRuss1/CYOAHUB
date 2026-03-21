@@ -903,9 +903,6 @@ async function removeSlot(slot){
   renderLobby();
 }
 let lobbyTimer=null;
-// Safety timer shared between onSubmitAction and handleNPC — must be module-scope
-// so both functions can clearTimeout() it correctly.
-let _loadingTimer=null;
 
 function startLobbyPolling(){
   if(lobbyTimer)clearInterval(lobbyTimer);
@@ -1901,7 +1898,7 @@ async function onSubmitAction(){
   if(isLoading)return;
   isLoading=true;
   // Safety: auto-reset isLoading after 30s to prevent UI freeze
-  _loadingTimer=setTimeout(()=>{isLoading=false;setBottomFromState();},30000);
+  const _loadingTimer=setTimeout(()=>{isLoading=false;setBottomFromState();},30000);
   stopSpeaking(); // stop voice when player acts
   // Immediate visual feedback — don't wait for Sheets
   setBottomLoading();
@@ -2715,6 +2712,17 @@ function initParallax(){
     const px=50+y*0.015;const py=50-y*0.008;
     card.style.backgroundPosition=`${px}% ${py}%`;
   },{passive:true});
+}
+
+// ── VOICE PREFERENCE BOOTSTRAP GUARD ─────────────────────────
+// ui.js loads before combat.js. This stub ensures loadVoicePreference()
+// never throws a ReferenceError at boot. combat.js overwrites it with
+// the real implementation once it loads.
+if(typeof loadVoicePreference==='undefined'){
+  window.loadVoicePreference=function(){
+    const stored=localStorage.getItem('sc_voice');
+    if(stored&&typeof setVoice==='function')setVoice(stored);
+  };
 }
 
 (async()=>{

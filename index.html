@@ -253,7 +253,7 @@
           <span data-tr>Cultural Expertises</span>
           <span class="normal-case text-xs ml-2" style="color:var(--text5)">(choose up to 2)</span>
         </label>
-        <div id="culture-grid" class="grid grid-cols-2 gap-2 overflow-y-auto pr-1" style="max-height:280px;overscroll-behavior:contain"></div>
+        <div id="culture-grid" class="grid grid-cols-2 gap-2 overflow-y-auto pr-1" style="max-height:280px"></div>
       </div>
 
       <div class="flex justify-end mt-2">
@@ -732,8 +732,21 @@
   <span class="audio-label font-display text-xs tracking-widest" id="audio-label" style="color:var(--text5)">OFF</span>
   <input type="range" class="vol-slider" id="vol-slider" min="0" max="100" value="30" oninput="setVolume(this.value)"/>
   <div style="width:1px;height:16px;background:var(--border2);margin:0 2px"></div>
+  <!-- Kokoro TTS voice selector -->
+  <select id="voice-select" onchange="setVoice(this.value)" title="Narrator voice"
+    style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;padding:3px 6px;cursor:pointer;max-width:130px;">
+    <option value="bm_daniel">Daniel · British M</option>
+    <option value="bm_george">George · British M</option>
+    <option value="am_echo">Echo · American M</option>
+    <option value="am_adam">Adam · American M</option>
+    <option value="am_michael">Michael · American M</option>
+    <option value="af_heart">Heart · American F</option>
+    <option value="af_sky">Sky · American F</option>
+    <option value="af_nicole">Nicole · American F</option>
+    <option value="bf_emma">Emma · British F</option>
+  </select>
   <button id="voice-btn-bar" onclick="toggleVoice()"
-    class="text-sm cursor-pointer p-0.5" style="background:none;border:none" title="Read aloud">🔈</button>
+    class="text-sm cursor-pointer p-0.5" style="background:none;border:none" title="Read story aloud (Kokoro TTS)">🔈</button>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
@@ -744,6 +757,18 @@
 <script src="app/ui.js"></script>
 <script src="app/combat.js"></script>
 <script src="app/main.js"></script>
+
+<script>
+// Sync voice selector to stored preference after all scripts load
+window.addEventListener('load', () => {
+  const sel = document.getElementById('voice-select');
+  if (!sel) return;
+  const stored = localStorage.getItem('sc_voice');
+  if (stored && sel.querySelector(`option[value="${stored}"]`)) {
+    sel.value = stored;
+  }
+});
+</script>
 
 </body>
 </html>
