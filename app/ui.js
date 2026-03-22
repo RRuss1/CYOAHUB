@@ -1302,7 +1302,7 @@ STORYTELLING RULES — follow every turn without exception:
 5. LOCATION SPECIFIC. ${a1.location} has unique features — smells, sounds, architecture, spren behavior.
 6. USE assigned pronouns consistently — never switch mid-scene.
 
-Open Act I in ${a1.location}. Immediate crisis — specific, sensory, urgent. Not a generic camp scene.
+Open Act I in ${a1.location} with EXACTLY two short paragraphs (2-3 sentences each, separated by a blank line). Immediate crisis — specific, sensory, urgent. Not a generic camp scene.
 [CHOICES]
 1. (option specific to ${gState.players[0].className} and ${a1.location})
 2. (different approach)
@@ -1936,9 +1936,10 @@ Party: ${party}${gctx}${mctx}${wmctx}
 
 NPC ${npc.name} (${npc.className}) randomly chose: "${action}"
 
-Write two paragraphs (no labels, just continuous prose):
-First: What ${npc.name} did and its immediate consequence. 2-3 vivid sentences.
-Second: Where things stand now and what demands attention next.
+Write EXACTLY two short paragraphs (no labels, just continuous prose, separated by a blank line):
+First paragraph: What ${npc.name} did and its immediate consequence. 2-3 sentences max.
+Second paragraph: Where things stand now and what demands attention next. 2-3 sentences max.
+Do NOT write anything else before or after these two paragraphs except the [CHOICES] section.
 
 It is now ${next?next.name+"'s turn ("+next.className+(next.isNPC?' NPC':' human')+')':'next turn'}.
 [CHOICES]
@@ -2132,8 +2133,8 @@ function getActionBucket(a){
   if(/elsecall|cognitive realm|shadesmar|transportation surge/.test(t))
     return{bucket:'surge',stat:'int',skill:'transportation'};
   // ── Official 18 skills (physical group) ──
-  const isRevive=/revive|stabilize|pull.*back|save.*downed|rouse|wake.*up/.test(t)&&/hobber|ally|companion|downed/.test(t);
-  const isHeal=/\[heal\]|heal|regrow|mend|restore|tend|bandage|cure|knit|medicine/.test(t);
+  const isRevive=/revive|stabilize|pull.*back|save.*downed|rouse|wake.*up|bring.*back|resuscitate/.test(t)&&/ally|companion|downed|fallen|hobber|friend|party/.test(t);
+  const isHeal=/\[heal\]|heal|regrow|mend|restore|tend|bandage|cure|knit|medicine|patch.*wound|stitch|treat.*injur|fix.*wound|channel.*stormlight.*into|mend.*bone/.test(t);
   if(isRevive)return{bucket:'revive',stat:'wil',skill:'medicine'};
   if(isHeal)return{bucket:'heal',stat:'wil',skill:'medicine'};
   if(/sneak|stealth|hide|conceal|shadow.*move/.test(t))return{bucket:'skill',stat:'spd',skill:'stealth'};
@@ -2141,7 +2142,7 @@ function getActionBucket(a){
   if(/dodge|tumble|evade|flip|acrobat|agile move/.test(t))return{bucket:'attack',stat:'spd',skill:'agility'};
   if(/heavy.*weapon|warhammer|greataxe|maul/.test(t))return{bucket:'attack',stat:'str',skill:'heavyWeapon'};
   if(/light.*weapon|dagger|knife|shortsword|bow shot/.test(t))return{bucket:'attack',stat:'spd',skill:'lightWeapon'};
-  if(/defend|protect|shield|block|parry|stance|barrier|brace/.test(t))return{bucket:'defend',stat:'pre',skill:'athletics'};
+  if(/defend|protect|shield|block|parry|stance|barrier|brace|guard|hunker|cover.*allie|hold.*line|take.*position|hold.*ground/.test(t))return{bucket:'defend',stat:'pre',skill:'athletics'};
   // ── Cognitive skills ──
   if(/craft|build|forge|construct|fabricate|fabrial/.test(t))return{bucket:'skill',stat:'int',skill:'crafting'};
   if(/deduce|analyze|figure|logic|reason through/.test(t))return{bucket:'skill',stat:'int',skill:'deduction'};
@@ -2358,7 +2359,7 @@ Fresh ground. Build ${loc} with sensory specificity — what makes this place un
   if(m===119)generateActConsequence(2).catch(()=>{});
   const actHint=m===59?`\n\nACT TRANSITION: Close out ${loc} emotionally. One sensory detail foreshadowing ${ACTS[1]?ACTS[1].location:'what comes next'}.`:m===119?`\n\nACT TRANSITION: Final Act II beat. The weight of everything before should be felt. One image of ${ACTS[2]?ACTS[2].location:'the final act'}.`:'';
 
-  const beatLen=preCombatNow||roll<=5||roll>=18?'3 sentences':'2-3 sentences';
+  const beatLen='2 short paragraphs (2-3 sentences each, no more)';
 
 // Plot effect injection for GM
   const pe=gState.lastPlotEffect;
@@ -2376,7 +2377,7 @@ CURRENT ACTION:
 ${who.name} (${who.className}) — "${action}"
 Roll: d20 vs ${sk.toUpperCase()} = ${roll} → ${rollDesc}${plotInstr}
 
-WRITE THE CONSEQUENCE (${beatLen}) following ALL of these craft rules:
+WRITE THE CONSEQUENCE as exactly ${beatLen}. Separate paragraphs with a blank line. Follow ALL of these craft rules:
 
 WHAT TO DO:
 • Begin with what the WORLD does — not what ${who.name} does. The action already happened.

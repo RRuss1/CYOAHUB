@@ -843,19 +843,19 @@ async function submitCombatAction(){
   if(!action||!myChar)return;
   if(custom&&custom.value.trim()&&!/\[(HEAL|ATTACK|DEFEND|SURGE|SKILL|REVIVE)\]/.test(action)){
     const lower=action.toLowerCase();
-    // Explicit keyword shortcuts (case insensitive)
-    if(/^heal\b/.test(lower))action='[HEAL] '+action.replace(/^heal\s*/i,'');
-    else if(/^revive\b/.test(lower))action='[HEAL] revive — '+action.replace(/^revive\s*/i,'');
-    else if(/^defend\b/.test(lower))action='[DEFEND] '+action.replace(/^defend\s*/i,'');
-    else if(/^surge\b/.test(lower))action='[SURGE] '+action.replace(/^surge\s*/i,'');
-    else if(/^skill\b/.test(lower))action='[SKILL] '+action.replace(/^skill\s*/i,'');
-    else if(/^attack\b/.test(lower))action='[ATTACK] '+action.replace(/^attack\s*/i,'');
-    // Fallback keyword detection from action text
-    else if(/heal|mend|regrow|restore|tend|bandage|cure|knit/.test(lower))action='[HEAL] '+action;
-    else if(/revive|stabilize|pull.*back|rouse/.test(lower))action='[HEAL] '+action;
-    else if(/defend|block|shield|protect|brace|guard|parry|stance/.test(lower))action='[DEFEND] '+action;
-    else if(/soulcast|lash|illusion|surge|transmute|conjure|lightweave/.test(lower))action='[SURGE] '+action;
-    else if(/search|scout|perceive|persuade|negotiate|bluff|charm/.test(lower))action='[SKILL] '+action;
+    // ── Explicit keyword shortcuts (verb at start of input) ──
+    if(/^(heal|mend|cure|restore|patch|bandage)\b/.test(lower))action='[HEAL] '+action;
+    else if(/^(revive|stabilize|resuscitate|wake)\b/.test(lower))action='[HEAL] '+action;
+    else if(/^(defend|block|shield|protect|guard|brace|parry|stance|hunker)\b/.test(lower))action='[DEFEND] '+action;
+    else if(/^(surge|lash|soulcast|lightweave|elsecall|abrasion|adhesion|cohesion|division|gravitation|illumination|progression|tension|transformation|transportation)\b/.test(lower))action='[SURGE] '+action;
+    else if(/^(scout|search|perceive|persuade|negotiate|bluff|charm|sneak|hide|stealth|inspect|investigate|examine)\b/.test(lower))action='[SKILL] '+action;
+    else if(/^(attack|strike|slash|stab|smash|swing|charge|rush|shoot|throw|hit|punch|kick|cleave)\b/.test(lower))action='[ATTACK] '+action;
+    // ── Fallback: scan full text for intent keywords ──
+    else if(/heal|mend|regrow|restore|tend|bandage|cure|knit|patch.*wound|stitch|treat.*injur|fix.*wound|channel.*stormlight.*into/i.test(lower))action='[HEAL] '+action;
+    else if(/revive|stabilize|pull.*back|rouse|bring.*back|wake.*up|save.*downed/i.test(lower))action='[HEAL] '+action;
+    else if(/defend|block|shield|protect|brace|guard|parry|stance|hunker|cover.*allie|hold.*line|take.*position/i.test(lower))action='[DEFEND] '+action;
+    else if(/soulcast|lash|illusion|surge|transmute|conjure|lightweave|elsecall|infuse|stormlight.*power|invoke|channel.*surge/i.test(lower))action='[SURGE] '+action;
+    else if(/search|scout|perceive|persuade|negotiate|bluff|charm|sneak|hide|stealth|inspect|investigate|examine|look.*around|check.*surround|sense.*danger/i.test(lower))action='[SKILL] '+action;
     else action='[ATTACK] '+action;
   }
   if(!action||!myChar)return;
@@ -1280,6 +1280,7 @@ async function callGM(prompt){
       const reader=res.body.getReader();
       const dec=new TextDecoder();
       let raw='';
+      let ttsKilled=false; // stop TTS once choices/metadata section starts
       if(stEl)stEl.innerHTML='<span class="gm-cursor">|</span>';
       while(true){
         const {done,value}=await reader.read();
@@ -1292,7 +1293,9 @@ async function callGM(prompt){
               const tok=(d.delta&&(d.delta.text||d.delta.value))||'';
               if(tok){
                 raw+=tok;
-                ttsPushToken(tok); // stream token directly to TTS engine
+                // Stop feeding TTS once we hit choices/options/numbered lists
+                if(!ttsKilled&&/\[CHOICES|\bOptions?\b.*:/i.test(raw)) ttsKilled=true;
+                if(!ttsKilled) ttsPushToken(tok);
                 // Throttle DOM updates — only update every 4 tokens for performance
                 if(raw.length%4===0||tok.includes(' ')||tok.includes('.')){
                   if(stEl)stEl.innerHTML=renderText(cleanScene(raw))+'<span class="gm-cursor">|</span>';
@@ -1303,7 +1306,7 @@ async function callGM(prompt){
         });
       }
       if(stEl)stEl.innerHTML=renderText(cleanScene(raw));
-      ttsFlush(); // emit any remaining partial chunk and drain the pipeline
+      ttsFlush(); // emit any remaining narrative text in the chunker
       const scene=cleanScene(raw);
       const choices=parseChoices(raw);
       if(gState){gState.lastGM={text:scene,choices,ts:new Date().toISOString()};await saveAndBroadcast(gState);}
@@ -1319,6 +1322,7 @@ async function callGM(prompt){
     const scene2=cleanScene(raw2);
     const choices2=parseChoices(raw2);
     if(stEl)stEl.innerHTML=renderText(scene2);
+    autoSpeakStory(); // read non-streamed response if TTS is on
     if(gState){gState.lastGM={text:scene2,choices:choices2,ts:new Date().toISOString()};await saveAndBroadcast(gState);}
     await addLog({type:'gm',who:'',text:scene2,choices:choices2});
     maybeSpawnHoid(scene2,gState&&gState.totalMoves||0);
@@ -1522,8 +1526,7 @@ async function exitCombat(won){
   gState.preCombatTriggered=false;
   gState.pendingActions={};
   await saveAndBroadcast(gState);
-  showScreen('game');
-  showGameScreen();
+  showGameScreen(); // single call — showGameScreen already calls showScreen('game')
   setBottomLoading();
   await callGM(combatAftermathPrompt(won));
   const freshLog=await loadLog(true);
@@ -1531,7 +1534,7 @@ async function exitCombat(won){
   setTimeout(()=>{setBottomFromState(freshLog);maybeTranslateStory();if(gState&&gState.lastGM&&gState.lastGM.text)generateTLDR(gState.lastGM.text);},150);
   }catch(e){
     console.error('exitCombat failed:',e);
-    showScreen('game');showGameScreen();
+    showGameScreen();
   }
 }
 
@@ -1560,7 +1563,11 @@ One sentence each. Tag: [DISCOVERY] or [DECISION].${getGenderContext()}`;
 // → queued in WebSpeechEngine → spoken in sequence with no gaps.
 // Pitch / rate / volume controlled by sliders in the audio bar.
 
-function autoSpeakStory(){}
+// Called after every GM response renders — auto-reads if TTS is toggled on
+function autoSpeakStory(){
+  if(!voiceEnabled||isMobile()) return;
+  speakStory();
+}
 
 // ── Text cleaner ──
 function _cleanForTTS(raw){
@@ -1711,17 +1718,25 @@ function ttsFlush(){
 
 function toggleVoice(){
   if(isMobile()) return;
-  if(voiceActive){ stopSpeaking(); return; }
-  voiceEnabled=true;
+  voiceEnabled=!voiceEnabled;
+  localStorage.setItem('sc_tts_on',voiceEnabled?'true':'false');
+  if(!voiceEnabled){ stopSpeaking(); updateVoiceBtn(); return; }
+  updateVoiceBtn();
+  // Speak current story immediately when toggled on
   const vv=window.speechSynthesis.getVoices();
   if(vv.length) speakStory();
   else{ window.speechSynthesis.onvoiceschanged=()=>{ window.speechSynthesis.onvoiceschanged=null; populateVoiceSelect(); speakStory(); }; }
 }
 
 function updateVoiceBtn(){
-  const label=voiceActive?'🔊':'🔈';
-  const title=voiceActive?'Stop narration':'Read story aloud';
-  const b=document.getElementById('voice-btn-bar'); if(b){b.textContent=label;b.title=title;}
+  // Show persistent ON/OFF state, not just active speaking
+  const speaking=voiceActive;
+  const on=voiceEnabled;
+  const label=on?(speaking?'🔊':'🔉'):'🔇';
+  const title=on?(speaking?'TTS ON (speaking — click to turn off)':'TTS ON (click to turn off)'):'TTS OFF (click to turn on)';
+  ['voice-btn-bar','voice-btn-combat'].forEach(id=>{
+    const b=document.getElementById(id); if(b){b.textContent=label;b.title=title;}
+  });
 }
 
 function toggleAutoSpeak(){}
@@ -1736,7 +1751,7 @@ function setVoice(voiceVal){
   if(voiceActive){stopSpeaking();setTimeout(speakStory,100);}
 }
 
-function loadVoicePreference(){
+function loadVoicePreference(){ updateVoiceBtn(); // sync button icon to persisted state on load
   const stored=localStorage.getItem('sc_voice');
   const sel=document.getElementById('voice-select');
   if(stored&&sel){sel.value=stored;}

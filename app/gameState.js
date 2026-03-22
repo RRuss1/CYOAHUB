@@ -1239,8 +1239,9 @@ let charObstacle    = '';
 let _pbAlloc = { str:2, spd:2, int:2, wil:2, awa:2, pre:2 };
 
 // Speech synthesis
-let voiceActive = false, voiceEnabled = true, currentUtterance = null;
-const autoSpeak = false;
+let voiceActive = false, currentUtterance = null;
+// voiceEnabled persists — when ON, every new story beat is read aloud automatically
+let voiceEnabled = localStorage.getItem('sc_tts_on') === 'true';
 
 // Audio
 let audioCtx = null, audioNodes = {}, audioOn = false, masterGain = null;

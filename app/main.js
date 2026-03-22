@@ -166,7 +166,9 @@ function _animateLobbyScreen() {
 }
 
 function _animateGameScreen() {
-  const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+  // Kill any stale tweens on game elements before re-animating
+  gsap.killTweensOf('.game-top, .party-strip, .chronicle-card, .side-panel');
+  const tl = gsap.timeline({ defaults: { ease: 'power2.out', clearProps: 'all' } });
   tl.from('.game-top',       { opacity: 0, y: -10, filter: 'blur(4px)', duration: 0.38, delay: 0.05 })
     .from('.party-strip',    { opacity: 0, y: -8,  duration: 0.32 }, '-=0.18')
     .from('.chronicle-card', { opacity: 0, y: 18,  filter: 'blur(5px)', duration: 0.52 }, '-=0.16')
