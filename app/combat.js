@@ -565,9 +565,17 @@ async function enterCombat(){
   const shuffled=[...fullPool].sort(()=>Math.random()-0.5);
   const pool=shuffled.slice(0,2);
   const count=Math.min(sz,2);
+  // Scale enemy damage to party avg HP — prevent one-shots
+  const livePlayers=gState.players.slice(0,sz).filter(p=>p&&!p.isNPC&&!p.isPlaceholder);
+  const avgPartyHP=livePlayers.length
+    ? livePlayers.reduce((s,p)=>s+(p.maxHp||p.hp||10),0)/livePlayers.length
+    : 12;
+  // Max-roll hit (dmg + dmg/2) should not exceed 35% of avg party HP
+  const dmgCap=Math.max(3,Math.floor(avgPartyHP*0.35/(1.5)));
   gState.combatEnemies=pool.slice(0,count).map((e,i)=>({
     ...e,
     id:'enemy_'+i,
+    dmg:Math.min(e.dmg,dmgCap),
     hp:calcEnemyHP(e.baseHP,actNum,avgBlade),
     maxHp:calcEnemyHP(e.baseHP,actNum,avgBlade),
     downed:false
@@ -769,8 +777,8 @@ function renderCombatActions(){
         const tag=m?m[1]:'';
         const tagCol=tag==='HEAL'?'var(--teal2)':tag==='DEFEND'?'var(--amber2)':tag==='SURGE'?'var(--amber)':tag==='SKILL'?'var(--text3)':'var(--coral2)';
         const tagBadge=tag?'<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:'+tagCol+'22;color:'+tagCol+';">'+tag+'</span>':'';
-        const safeOrig=ch.replace(/`/g,"'").replace(/"/g,'&quot;');
-        return'<button class="achoice" onclick="selectCombatAction(this,`'+safeOrig+'`)"><span class="achoice-num">Option '+(i+1)+' '+tagBadge+'</span>'+display+'</button>';
+        const safeDisplay=display.replace(/`/g,"'").replace(/"/g,'&quot;');
+        return'<button class="achoice" onclick="selectCombatAction(this,`'+safeDisplay+'`,`'+tag+'`)"><span class="achoice-num">Option '+(i+1)+' '+tagBadge+'</span>'+display+'</button>';
       }).join('');
       html+=`<div class="action-choices" style="margin-bottom:12px;">${choiceHTML}</div>`;
     }
@@ -821,10 +829,11 @@ function renderCombatActions(){
   if(lang==='th')setTimeout(applyThaiToPage,100);
 }
 
-function selectCombatAction(btn,txt){
+function selectCombatAction(btn,txt,tag=''){
   document.querySelectorAll('#combat-actions .achoice').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
-  combatSelectedAction=txt;
+  // Preserve the action tag so getActionBucket resolves the correct phase
+  combatSelectedAction=tag?`[${tag}] ${txt}`:txt;
   document.getElementById('combat-custom-in')&&(document.getElementById('combat-custom-in').value='');
 }
 
