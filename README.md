@@ -61,7 +61,7 @@ Once all slots are filled (or assigned to AI companions), the host clicks **Begi
 ### How Exploration Works
 Each turn you choose an action — from 4 AI-generated options or your own description. A d20 rolls. Your stats shape the outcome. The GM narrates the consequence.
 
-The GM is not a neutral narrator. It has opinions about your character. It remembers what happened two turns ago and treats it as immediate. It builds tension organically — danger doesn't arrive on a schedule, it arrives when the story demands it. Some exploration sequences are long stretches of discovery with no violence. Others escalate fast.
+The GM is not a neutral narrator. It has opinions about your character. It remembers what happened two turns ago and treats it as immediate. It builds tension organically — danger doesn't arrive on a schedule, it arrives when the story demands it.
 
 ### Combat Triggers
 Combat doesn't start on a timer. The GM watches what you discover and builds toward confrontation naturally. An ambush grows from something you found. A misunderstanding escalates. A creature claims territory. When the GM narrates the moment of confrontation, the fight begins.
@@ -75,40 +75,46 @@ Every story turn, all living party members absorb ambient Stormlight and recover
 
 When combat starts, everyone acts simultaneously. No waiting for your turn in the initiative order — you and your allies all submit actions, then everything resolves in a structured order.
 
+### The Rules Engine
+Combat is resolved by a full **Cosmere RPG rules engine** running in the browser:
+
+- Every attack is a **d20 + modifier vs. Defense** (Physical / Cognitive / Spiritual depending on weapon and surge)
+- Outcomes: **MISS / GRAZE / HIT / CRIT** — damage scales accordingly with deflect reduction applied
+- A **plot die** rolls on every attack. Roll a 6 → **Opportunity** (gain +1 Focus). Roll 1–2 → **Complication** (chip yourself)
+- **Focus** is your surge resource. It accumulates through Opportunities and resets between encounters
+- **Conditions** (stunned, bleeding, burning, poisoned, prone) are applied and removed mechanically by the GM based on narrative outcomes
+
 ### Phase Order (every round)
 1. **Offense** — all attacks and surges resolve simultaneously
 2. **Defense** — guard stances apply their protection to the *next* incoming hit
 3. **Healing** — Stormlight mending and revives happen after all damage
-4. **End of turn** — environmental hazards tick, effects wear off
+4. **End of turn** — environmental hazards tick, conditions wear off
 
 ### Rolling
-Every action is a d20 + your relevant stat:
 
 | Roll | Result | What it means |
 |------|--------|---------------|
-| 18–20 | **CRIT** | Something unexpected and good happens — maximum effect |
+| 18–20 | **CRIT** | Maximum effect + plot die Opportunity |
 | 14–17 | **HIT** | Clean success |
-| 10–13 | **PARTIAL** | You get part of what you wanted, but something complicates it |
-| 6–9 | **MISS** | The world resists |
-| 1–5 | **FUMBLE** | Something goes wrong immediately |
+| 10–13 | **GRAZE** | Partial — reduced damage, something complicates it |
+| 1–9 | **MISS** | The world resists |
 
 ### Action Types
-You can always describe your own action, or use these keywords to guide how it's resolved:
-- `attack` — offensive strike (STR or DEX)
-- `defend` — guard stance, reduces damage next hit (END)
-- `heal` — Stormlight recovery (WIS) — **not guaranteed**, fumbles can backlash
-- `revive` — bring back a downed ally (WIS)
-- `surge` — Surgebinding ability (INT)
-- `skill` — social or perception action (CHA or WIS)
+You can always describe your own action, or use these keywords:
+- `[ATTACK]` — offensive strike (STR or weapon skill)
+- `[DEFEND]` — guard stance, reduces damage on the next hit (END)
+- `[HEAL]` — Stormlight recovery (WIS) — not guaranteed; fumbles can backlash
+- `[SURGE]` — Surgebinding ability (targets Cognitive or Spiritual Defense)
+- `[SKILL]` — social or perception action (CHA or WIS)
 
 ### Healing
-Heals roll like everything else. A critical heal restores 150% of the base amount. A fumble causes Stormlight backlash — a negative. Plan accordingly.
+Heals roll like everything else. A critical heal restores maximum Stormlight. A fumble causes backlash — a negative. Plan accordingly.
 
 ### Reviving
-If a party member is downed (0 HP), use a revive action. A partial success brings them back at half HP. A crit brings them back at full revive HP. A miss means they stay down.
+If a party member is downed (0 HP), use a heal action targeting them. Partial success brings them back at reduced HP. A crit brings them back full. A miss means they stay down this round.
 
 ### Combat Persistence
-If you have to close the game mid-combat, the enemies wait for you. Same HP, same round, same pending actions when you return.
+If you have to close the game mid-combat, the enemies wait. Same HP, same round, same pending actions when you return.
 
 ---
 
@@ -122,6 +128,18 @@ Knight Radiants grow stronger as they speak their Oaths. There are 5 per order, 
 
 ---
 
+## Voice Narration
+
+Click **🔈** in the game bar to have the chronicle read aloud by **Kokoro TTS** — an 82MB neural voice model that runs entirely in your browser, no server required.
+
+- **First use:** the model downloads once (~82MB) and is cached permanently in your browser — subsequent sessions load instantly
+- **Download progress** is shown live on the button (e.g. `47%`)
+- **Voices available:** Daniel (British Male), George (British Male Gravelly), Emma (British Female), Echo, Adam, Michael, Heart, Sky, Nicole
+- **Streaming pipeline:** narration begins speaking before the AI finishes writing — the engine chunks text at sentence and phrase boundaries and pipelines generation 4 sentences ahead so playback is continuous with no gaps
+- **Fallback:** if Kokoro fails to load, the browser's built-in speech synthesis takes over automatically
+
+---
+
 ## Sound
 
 Click **🌩** in the audio bar to start the storm. The sound design is fully procedural — no audio files, everything synthesized in real time:
@@ -131,8 +149,6 @@ Click **🌩** in the audio bar to start the storm. The sound design is fully pr
 - **Thunder** — preceded by a lightning crackle, rumbles every 9–25 seconds
 - **Stormlight hum** — a subtle, beating ethereal tone underneath everything
 - **Combat intensification** — the storm ramps up when you enter combat, fades back when you return
-
-The **🔈** button reads the current chronicle text aloud on demand using your device's speech synthesis.
 
 ---
 
@@ -144,7 +160,7 @@ The **🔈** button reads the current chronicle text aloud on demand using your 
 
 **For async play:** Enable **Step Away** before closing the tab. Your combat turn auto-resolves with a defend action so your party isn't waiting.
 
-**For combat:** Defend when you're at low HP and your healer is ready. Defense applies *next round*, so plan a turn ahead. The GM narrates accordingly.
+**For combat:** Defend when you're at low HP and your healer is ready. Defense applies *next round*, so plan a turn ahead. The plot die fires every attack — chasing Focus through Opportunities is a real strategy.
 
 **For hosts:** Fill empty slots with AI companions before starting — they fight competently and add to the story. You can always replace them if a late player joins.
 
@@ -153,6 +169,17 @@ The **🔈** button reads the current chronicle text aloud on demand using your 
 ## Locations
 
 Your saga unfolds across 34 locations including Hearthstone, the Shattered Plains, Urithiru, Kharbranth, Kholinar, Thaylenah, the Purelake, the Reshi Isles, Braize, Shinovar, the Horneater Peaks, Shadesmar, Aimia, and more — randomized each campaign with a different path through all three acts.
+
+---
+
+## Technical
+
+- **AI:** Claude Sonnet via Anthropic API — streaming narration, structured JSON combat output, 12-responsibility DM system prompt
+- **Rules engine:** Custom Cosmere RPG implementation — resolveAttack(), applyCondition(), plot die, Focus economy
+- **Voice:** Kokoro 82M ONNX (q8 quantized, WASM backend) via kokoro-js — 4-sentence lookahead pipeline, Web Audio API scheduling, 12ms crossfade
+- **Audio:** Procedural Web Audio API — no samples, everything synthesized
+- **State:** Cloudflare KV via Workers proxy — multiplayer sync, persistent campaign state
+- **No framework:** Vanilla JS / HTML / CSS + GSAP for animation
 
 ---
 
