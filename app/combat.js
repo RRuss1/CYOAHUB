@@ -1263,7 +1263,7 @@ async function callGM(prompt){
     const res=await fetch(PROXY_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,stream:true,
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1800,stream:true,
         system:AI_DM_SYSTEM_PROMPT,
         messages:[{role:'user',content:prompt}]})
     });

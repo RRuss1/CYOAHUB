@@ -1218,6 +1218,7 @@ let selClass  = null;   // Selected class during creation
 let selColor  = null;   // Selected color during creation
 let rolledStats = null; // Stats from character creation
 let selActionText = '';
+let selActionTag  = ''; // tag from the last clicked choice button (COMBAT/DISCOVERY/etc.)
 let sheetOpen = false;
 let isLoading = false;
 let pollTimer = null;

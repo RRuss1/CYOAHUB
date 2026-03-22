@@ -1838,7 +1838,7 @@ function onContinue(){
         const tagCol=TAG_COLORS[tag]||'var(--text4)';
         const tagBadge=tag?`<span style="font-size:9px;padding:1px 7px;border-radius:8px;background:${tagCol}22;color:${tagCol};letter-spacing:.5px;margin-right:5px;">${tag}</span>`:'';
         const safeDisplay=display.replace(/`/g,"'");
-        return`<button class="achoice" onclick="selAct(this,\`${safeDisplay}\`)"><span class="achoice-num">Option ${i+1} ${tagBadge}</span>${display}</button>`;
+        return`<button class="achoice" onclick="selAct(this,\`${safeDisplay}\`,\`${tag}\`)"><span class="achoice-num">Option ${i+1} ${tagBadge}</span>${display}</button>`;
       });
       ch.innerHTML=choiceItems.join('');
       // Staggered entrance — choices drift up into view
@@ -1952,7 +1952,7 @@ One sentence each. No ** markers. Tag at end: [COMBAT], [DISCOVERY], or [DECISIO
 }
 
 // ══ HUMAN TURN ══
-function selAct(btn,txt){document.querySelectorAll('.achoice').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');selActionText=txt;document.getElementById('custom-in').value='';}
+function selAct(btn,txt,tag=''){document.querySelectorAll('.achoice').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');selActionText=txt;selActionTag=tag.toUpperCase();document.getElementById('custom-in').value='';}
 
 async function onSubmitAction(){
   const custom=document.getElementById('custom-in').value.trim();
@@ -1961,6 +1961,12 @@ async function onSubmitAction(){
   if(!action){errEl.textContent='Choose or describe an action first.';errEl.style.display='block';return;}
   errEl.style.display='none';
   if(isLoading)return;
+  // If the player chose a [COMBAT] tagged option, enter combat immediately
+  if(selActionTag==='COMBAT'||/^\[COMBAT\]/i.test(action)){
+    gState.combatMode=true;
+    gState.preCombatTriggered=true;
+  }
+  selActionTag=''; // clear after use
   isLoading=true;
   // Safety: auto-reset isLoading after 30s to prevent UI freeze
   _loadingTimer=setTimeout(()=>{isLoading=false;setBottomFromState();},30000);
@@ -2075,6 +2081,10 @@ async function onSubmitAction(){
   await callGM(turnPrompt(action,total,sk,from));
   clearTimeout(_loadingTimer);
   isLoading=false;
+  // If combat was triggered (by [COMBAT] tag or beat counter), transition now
+  if(gState&&gState.combatMode&&!document.getElementById('s-combat').classList.contains('active')){
+    enterCombat(); return;
+  }
   const freshLog=await loadLog(true);
   renderAll(freshLog);
   setTimeout(()=>{setBottomFromState(freshLog);maybeTranslateStory();if(gState&&gState.lastGM&&gState.lastGM.text)generateTLDR(gState.lastGM.text);},150);
