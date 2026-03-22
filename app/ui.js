@@ -173,7 +173,7 @@ async function listCampaigns(){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   // Clear any inline display styles left on create sub-steps
-  ['create-s1','create-s2r','create-s2h','create-s3','create-s4','create-s4-weapon'].forEach(eid=>{
+  ['create-s1','create-s2r','create-s2h','create-s3','create-s4','create-s4-weapon','create-s4-blade'].forEach(eid=>{
     const el=document.getElementById(eid);
     if(el)el.style.display='none';
   });
@@ -540,6 +540,7 @@ function showCreateStep(step){
   else if(step===4){
     document.getElementById('create-s4').style.display='block';
     document.getElementById('create-s4-weapon').style.display=isRadiant?'none':'block';
+    document.getElementById('create-s4-blade').style.display=isRadiant?'block':'none';
     updateCreateSubmitBtn();
     rollStats();
     renderKits();
@@ -840,6 +841,10 @@ async function onCreateChar(){
       const cls=CLASSES.find(cl=>cl.id===selClass.id)||selClass;
       const surgeSkills={};
       (ORDER_SURGES[cls.id]||[]).forEach(sid=>{surgeSkills[sid]=0;});
+      const bnEl=document.getElementById('in-blade-name');
+      const bdEl=document.getElementById('in-blade-desc');
+      const bladeName=(bnEl?bnEl.value.trim():'')||'';
+      const bladeDesc=(bdEl?bdEl.value.trim():'')||'';
       myChar={...base,isRadiant:true,
         className:cls.name,classId:cls.id,
         philosophy:cls.philosophy,
@@ -848,6 +853,7 @@ async function onCreateChar(){
         surges:ORDER_SURGES[cls.id]||[],surgeSkills,
         weaponExpertises:[],armorExpertises:[],
         abilities:cls.abilities,
+        bladeName,bladeDesc,
         investiture:maxInv,maxInvestiture:maxInv, // Radiants start with full Investiture
         focus:Math.max(1,2+(stats.wil||0)),maxFocus:Math.max(1,2+(stats.wil||0))};
     } else {
