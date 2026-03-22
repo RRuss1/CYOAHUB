@@ -607,7 +607,13 @@ window.showToastGSAP = function(message) {
       gsap.to(_weatherEl, { opacity: s.opacity || 0, duration: 1.5, ease: 'power2.inOut' });
     },
     detectFromText(text) { this.setWeather(_detect(text)); },
-    clear() { this.setWeather('clear'); },
+    clear() {
+      if (!_weatherEl) return;
+      _current = 'clear';
+      gsap.to(_weatherEl, { opacity: 0, duration: 0.3, ease: 'power2.out', onComplete: () => {
+        if (_weatherEl) { _weatherEl.style.background = ''; _weatherEl.style.animation = 'none'; }
+      }});
+    },
   };
 })();
 
@@ -947,6 +953,8 @@ window.addEventListener('load', () => {
         stormlightParticles.activate();
       } else if (id === 'game') {
         AmbientAudio.endCombat();
+        stormlightParticles.deactivate();
+        WeatherSystem.clear();
       } else if (id === 'title' || id === 'campaign') {
         AmbientAudio.stop();
         stormlightParticles.deactivate();
@@ -955,12 +963,15 @@ window.addEventListener('load', () => {
     });
   }
 
-  // ── Story text update → weather detection ──
-  // Poll the story-text element for changes; detect weather keywords
+  // ── Story text update → weather detection (combat screen only) ──
+  // Weather overlay only runs during combat — exploration text is too full of
+  // Stormlight-world weather words to use for detection without false positives.
   const storyEl = document.getElementById('story-text');
   if (storyEl) {
     const storyObserver = new MutationObserver(() => {
-      WeatherSystem.detectFromText(storyEl.textContent);
+      const onCombat = document.getElementById('s-combat')?.classList.contains('active');
+      if (onCombat) WeatherSystem.detectFromText(storyEl.textContent);
+      else WeatherSystem.clear();
     });
     storyObserver.observe(storyEl, { childList: true, subtree: true, characterData: true });
   }
