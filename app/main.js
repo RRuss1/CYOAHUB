@@ -54,6 +54,8 @@ window.addEventListener('load', () => {
 
     // Kill any in-progress animation on this element
     gsap.killTweensOf(el);
+    // Force-clear residual inline styles from interrupted animations
+    el.style.filter = ''; el.style.opacity = ''; el.style.transform = '';
 
     // Entrance animation — blur + fade + lift (cinematic depth reveal)
     gsap.fromTo(el,
@@ -168,6 +170,10 @@ function _animateLobbyScreen() {
 function _animateGameScreen() {
   // Kill any stale tweens on game elements before re-animating
   gsap.killTweensOf('.game-top, .party-strip, .chronicle-card, .side-panel');
+  // Force-clear any residual blur/opacity from interrupted animations
+  document.querySelectorAll('.game-top, .party-strip, .chronicle-card, .side-panel').forEach(el => {
+    el.style.filter = ''; el.style.opacity = ''; el.style.transform = '';
+  });
   const tl = gsap.timeline({ defaults: { ease: 'power2.out', clearProps: 'all' } });
   tl.from('.game-top',       { opacity: 0, y: -10, filter: 'blur(4px)', duration: 0.38, delay: 0.05 })
     .from('.party-strip',    { opacity: 0, y: -8,  duration: 0.32 }, '-=0.18')

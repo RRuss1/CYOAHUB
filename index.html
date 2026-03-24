@@ -532,9 +532,9 @@
         class="rounded-full px-3.5 py-1.5 cursor-pointer font-display text-xs tracking-widest"
         style="background:var(--bg3);border:1px solid var(--border2);color:var(--text3);white-space:nowrap">🌐 EN</button>
       <span class="turn-pill" id="turn-pill">Loading...</span>
-      <button id="skip-top-btn" onclick="handleSkipTop()" style="display:none"
+      <button id="skip-top-btn" onclick="handleSkipTop()" style="display:none;background:transparent;border:1px solid var(--border2);color:var(--text5)"
         class="rounded-full px-3 py-1 cursor-pointer font-display text-xs tracking-widest transition-all"
-        style="background:transparent;border:1px solid var(--border2);color:var(--text5)" title="Skip current turn">⏭</button>
+        title="Skip current turn">⏭</button>
     </div>
   </div>
 
@@ -582,11 +582,11 @@
       </div>
 
       <!-- Enemy / Initiative panels -->
-      <div id="enemy-panel" style="display:none" class="combat-panel px-5 py-3 border-b" style="border-color:var(--border);background:rgba(16,13,8,0.6)">
+      <div id="enemy-panel" style="display:none;border-color:var(--border);background:rgba(16,13,8,0.6)" class="combat-panel px-5 py-3 border-b">
         <div class="combat-label font-display text-xs tracking-widest uppercase mb-2" style="color:var(--coral2)">⚔ Enemies</div>
         <div class="flex flex-wrap gap-2.5" id="enemy-list"></div>
       </div>
-      <div id="initiative-panel" style="display:none" class="px-5 py-3 border-b" style="border-color:var(--border);background:rgba(16,13,8,0.6)">
+      <div id="initiative-panel" style="display:none;border-color:var(--border);background:rgba(16,13,8,0.6)" class="px-5 py-3 border-b">
         <div class="font-display text-xs tracking-widest uppercase mb-2" id="init-round-label" style="color:var(--coral2)">⚔ Initiative</div>
         <div class="flex flex-wrap gap-1.5" id="init-row"></div>
       </div>

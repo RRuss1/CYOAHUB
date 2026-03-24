@@ -41,7 +41,7 @@ function handleSessionMessage(msg){
       if(playersChanged||phaseChanged){
         const isOnCombat=document.getElementById('s-combat').classList.contains('active');
         if(isOnCombat){renderCombatScreen();renderCombatActions();}
-        else if(phaseChanged){renderAll();setBottomFromState();}
+        else if(phaseChanged){loadLog(false).then(l=>{renderAll(l);setBottomFromState(l);});}
         else{renderPartyStrip();setBottomFromState();} // fast path: only HP/focus changed
       }
       break;
@@ -235,7 +235,8 @@ async function launchNewCampaign(num,name){
   const suffix=Math.random().toString(36).substring(2,6);
   campaignId='Campaign_'+slug+'_'+suffix;
   document.getElementById('new-camp-modal').style.display='none';
-  document.getElementById('camp-status').textContent='Creating "'+name+'"...';
+  const status=document.getElementById('camp-status');
+  if(status)status.textContent='Creating "'+name+'"...';
   try{
     await ensureSheets();gState=await loadState();
     partySize=3;gState.partySize=3;gState.campaignName=name;
@@ -1147,7 +1148,7 @@ function renderConsequenceBoard(){
   const el=document.getElementById('consequence-board');
   if(!el||!gState)return;
   const wm=gState.worldMemory;
-  const condPanel=condHtml?`<div style="margin-bottom:8px;"><div style="font-family:var(--font-d);font-size:9px;letter-spacing:2px;color:var(--text4);margin-bottom:4px;">CONDITIONS & INJURIES</div>${condHtml}</div><hr style="border-color:var(--border);margin:8px 0;">`:'';
+  const condPanel='';
   if(!wm){el.innerHTML=condPanel+'<div style="color:var(--text5);font-size:12px;font-style:italic;text-align:center;padding:12px;">No discoveries yet.</div>';return;}
   let html=condPanel;
 
@@ -1224,15 +1225,16 @@ function getWorldMemoryContext(){
 }
 
 function getRecentBeats(){
-  // Returns the last 3 GM story beats as short-term narrative memory
-  // This is what happened JUST NOW — the GM must treat it as immediate
-  if(!gState||!gState.actionLog)return'';
-  const recent=gState.actionLog.slice(-6); // last 6 entries = ~3 full turns
-  const beats=[];
-  recent.forEach(entry=>{
-    if(entry.type==='player')beats.push(`${entry.who} acted: "${entry.text}"`);
-    if(entry.type==='gm'&&entry.text)beats.push(`→ ${entry.text.substring(0,120)}${entry.text.length>120?'...':''}`);
-  });
+  // Returns the last few action log entries as short-term narrative memory
+  // actionLog entries have: {name, verb, noun, success, roll, total, ts, hpMsg}
+  if(!gState||!gState.actionLog||!gState.actionLog.length)return'';
+  const recent=gState.actionLog.slice(0,6); // actionLog is unshift'd, so [0] is newest
+  const beats=recent.map(e=>`${e.name}: ${e.verb} ${e.noun} → ${e.success}${e.hpMsg?' ('+e.hpMsg+')':''}`);
+  // Also pull last GM story text if available
+  if(gState.lastGM&&gState.lastGM.text){
+    const gmSnip=gState.lastGM.text.substring(0,150)+(gState.lastGM.text.length>150?'...':'');
+    beats.unshift(`→ ${gmSnip}`);
+  }
   if(!beats.length)return'';
   return'\n\nIMMEDIATE HISTORY (these events just happened — treat as seconds ago, not ancient history):\n'+beats.join('\n');
 }
@@ -1302,14 +1304,10 @@ STORYTELLING RULES — follow every turn without exception:
 5. LOCATION SPECIFIC. ${a1.location} has unique features — smells, sounds, architecture, spren behavior.
 6. USE assigned pronouns consistently — never switch mid-scene.
 
-Open Act I in ${a1.location} with EXACTLY two short paragraphs (2-3 sentences each, separated by a blank line). Immediate crisis — specific, sensory, urgent. Not a generic camp scene.
-[CHOICES]
-1. (option specific to ${gState.players[0].className} and ${a1.location})
-2. (different approach)
-3. (different approach)
-4. (different approach)
+Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between). Immediate crisis in ${a1.location} — specific, sensory, urgent. Not a generic camp scene.
 
-One sentence each. Mark: [COMBAT], [DISCOVERY], or [DECISION]. Under 250 words.${getLangInstruction()}`;
+[CHOICES]
+4 first-person choices ("I [verb]..."), one sentence each, tagged [COMBAT], [DISCOVERY], or [DECISION]. Specific to ${a1.location} and ${gState.players[0].className}. Four distinct approaches.${getLangInstruction()}`;
 }
 
 
@@ -1530,7 +1528,7 @@ async function doRestAction(){
   // Log the rest
   const detail=`${myChar.name} takes a short rest — recovers ${result.hpRecovered} HP and ${result.focusRecovered} Focus (rolled ${result.die}: ${result.roll})`;
   addLog({type:'system',who:'',text:detail,choices:[]});
-  renderAll();
+  loadLog(false).then(l=>renderAll(l));
   saveAndBroadcast(gState).catch(()=>{});
   showToast(`Short rest: +${result.hpRecovered} HP, +${result.focusRecovered} Focus`);
 }
@@ -1725,7 +1723,7 @@ function setBottomFromState(log){
   if(!cur)return;
   const mine=!cur.isNPC&&cur.name===myChar.name;
   const npc=cur.isNPC;
-  const lastGM=(gState.lastGM)||[...log].reverse().find(e=>e.type==='gm');
+  const lastGM=(gState.lastGM)||(log?[...log].reverse().find(e=>e.type==='gm'):null);
   const choices=lastGM&&lastGM.choices&&lastGM.choices.length?lastGM.choices:[];
 
   if(mine){
@@ -1931,25 +1929,22 @@ function npcPrompt(action,npc,from){
   const gctx=getGenderContext();
   const mctx=getSprenMemoryContext();
   const wmctx=getWorldMemoryContext();
+  const isNPCNext=next&&next.isNPC;
+  const choiceBlock=isNPCNext?'':
+`
+It is now ${next?next.name+"'s turn ("+next.className+' human)':'next turn'}.
+[CHOICES]
+4 first-person choices for ${next?next.name:'the next player'} (${next?next.className:'?'}) ONLY. Tagged [COMBAT], [DISCOVERY], or [DECISION]. One sentence each. Four distinct approaches.`;
+
   return`Cosmere RPG GM. Turn ${m}/180. ${act.tag}: ${loc}.
 Party: ${party}${gctx}${mctx}${wmctx}
 
-NPC ${npc.name} (${npc.className}) randomly chose: "${action}"
+NPC ${npc.name} (${npc.className}) chose: "${action}"
 
-Write EXACTLY two short paragraphs (no labels, just continuous prose, separated by a blank line):
-First paragraph: What ${npc.name} did and its immediate consequence. 2-3 sentences max.
-Second paragraph: Where things stand now and what demands attention next. 2-3 sentences max.
-Do NOT write anything else before or after these two paragraphs except the [CHOICES] section.
-
-It is now ${next?next.name+"'s turn ("+next.className+(next.isNPC?' NPC':' human')+')':'next turn'}.
-[CHOICES]
-Write exactly 4 options FOR ${next?next.name:'the next player'} (${next?next.className:'?'}) ONLY.
-CRITICAL: Every option must have ${next?next.name:'the player'} as the actor. Never name other party members as the subject of a choice.
-1. (${next?next.className:'class'}-specific action)
-2. (different approach using their abilities)
-3. (tactical option)
-4. (bold option)
-One sentence each. No ** markers. Tag at end: [COMBAT], [DISCOVERY], or [DECISION]. Under 220 words.${getLangInstruction()}`;
+Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between). NOTHING else.
+P1: What ${npc.name} did and its immediate consequence.
+P2: What shifts — where things stand now, what demands attention.${choiceBlock}
+${getLangInstruction()}`;
 }
 
 // ══ HUMAN TURN ══
@@ -2101,6 +2096,13 @@ async function onSubmitAction(){
 function getActionBucket(a){
   // Returns {bucket, stat, skill} — 18 official skills + 10 surges + Stormlight actions
   const t=a.toLowerCase();
+  // ── PRIORITY: Explicit action tags override all keyword matching ──
+  if(/^\[heal\]/.test(t))return{bucket:'heal',stat:'wil',skill:'medicine'};
+  if(/^\[defend\]/.test(t))return{bucket:'defend',stat:'pre',skill:'athletics'};
+  if(/^\[attack\]/.test(t))return{bucket:'attack',stat:'str',skill:'athletics'};
+  if(/^\[surge\]/.test(t))return{bucket:'surge',stat:'int',skill:'transformation'};
+  if(/^\[skill\]/.test(t))return{bucket:'skill',stat:'int',skill:'perception'};
+  if(/^\[revive\]/.test(t))return{bucket:'revive',stat:'wil',skill:'medicine'};
   // ── Short rest (Ch.9) — triggers doShortRest ──
   if(/\[rest\]|short rest|take a rest|rest and recover|catch.*breath|bind.*wound|tend.*wound/.test(t))
     return{bucket:'heal',stat:'wil',skill:'medicine',restAction:true};
@@ -2134,7 +2136,7 @@ function getActionBucket(a){
     return{bucket:'surge',stat:'int',skill:'transportation'};
   // ── Official 18 skills (physical group) ──
   const isRevive=/revive|stabilize|pull.*back|save.*downed|rouse|wake.*up|bring.*back|resuscitate/.test(t)&&/ally|companion|downed|fallen|hobber|friend|party/.test(t);
-  const isHeal=/\[heal\]|heal|regrow|mend|restore|tend|bandage|cure|knit|medicine|patch.*wound|stitch|treat.*injur|fix.*wound|channel.*stormlight.*into|mend.*bone/.test(t);
+  const isHeal=/\[heal\]|heal|regrow|mend|restore|tend|bandage|cure|knit|medicine|patch.*wound|stitch|treat.*injur|fix.*wound|channel.*stormlight.*into|mend.*bone|check.*breathing|check.*wound|check.*on|pull.*behind.*shelter|drag.*to.*safety|yank.*behind|nurse|aid.*allie|triage|infuse.*with.*light|pour.*stormlight|ease.*pain|soothe/.test(t);
   if(isRevive)return{bucket:'revive',stat:'wil',skill:'medicine'};
   if(isHeal)return{bucket:'heal',stat:'wil',skill:'medicine'};
   if(/sneak|stealth|hide|conceal|shadow.*move/.test(t))return{bucket:'skill',stat:'spd',skill:'stealth'};
@@ -2142,7 +2144,7 @@ function getActionBucket(a){
   if(/dodge|tumble|evade|flip|acrobat|agile move/.test(t))return{bucket:'attack',stat:'spd',skill:'agility'};
   if(/heavy.*weapon|warhammer|greataxe|maul/.test(t))return{bucket:'attack',stat:'str',skill:'heavyWeapon'};
   if(/light.*weapon|dagger|knife|shortsword|bow shot/.test(t))return{bucket:'attack',stat:'spd',skill:'lightWeapon'};
-  if(/defend|protect|shield|block|parry|stance|barrier|brace|guard|hunker|cover.*allie|hold.*line|take.*position|hold.*ground/.test(t))return{bucket:'defend',stat:'pre',skill:'athletics'};
+  if(/defend|protect|shield|block|parry|stance|barrier|brace|guard|hunker|cover.*allie|hold.*line|take.*position|hold.*ground|fortif|entrench|dig.*in|plant.*feet|stand.*firm|sentinel|interpose|screen|ward/.test(t))return{bucket:'defend',stat:'pre',skill:'athletics'};
   // ── Cognitive skills ──
   if(/craft|build|forge|construct|fabricate|fabrial/.test(t))return{bucket:'skill',stat:'int',skill:'crafting'};
   if(/deduce|analyze|figure|logic|reason through/.test(t))return{bucket:'skill',stat:'int',skill:'deduction'};
@@ -2310,10 +2312,11 @@ function turnPrompt(action,roll,sk,from){
   const cctx=getCharContext();
   const recentBeats=getRecentBeats();
   // Recent player choices — inject to prevent repetition
+  // actionLog entries: {name, verb, noun, success, ...} — unshift'd so [0]=newest
   const recentPlayerChoices=(gState.actionLog||[])
-    .filter(e=>e.type==='player'&&e.who===next?.name)
-    .slice(-3)
-    .map(e=>e.text||e.action||'')
+    .filter(e=>e.name===next?.name)
+    .slice(0,3)
+    .map(e=>`${e.verb} ${e.noun}`.trim())
     .filter(Boolean);
   const choiceHistory=recentPlayerChoices.length?
     `
@@ -2367,45 +2370,32 @@ Fresh ground. Build ${loc} with sensory specificity — what makes this place un
 
 PLOT DIE — ${pe.type.toUpperCase()}: ${pe.effect}. Weave this naturally into the consequence — do not label it as an Opportunity or Complication, just let it shape the narrative.`:'';
 
-  return`You are the GM of a Cosmere RPG — an expert fantasy author writing cinematic, character-driven narrative. Your prose should read like Brandon Sanderson crossed with Joe Abercrombie: epic but grounded, mythic but specific.
+  const isNPCNext=next&&next.isNPC;
+  const choiceBlock=isNPCNext?'':
+`
 
-Turn ${m}/180. Location: ${loc}. ${act.tag}.
+[CHOICES FOR ${next?next.name.toUpperCase():'NEXT PLAYER'}]
+4 choices for ${next?next.name:'the player'} (${next?next.className:'?'}, Oath ${next?next.oathStage||1:'?'}/5, ${next?next.hp:0}/${next?next.maxHp:10}HP).
+Rules: first-person ("I [verb]..."), one vivid sentence each, tagged [ATTACK]/[DEFEND]/[HEAL]/[SURGE]/[COMBAT]/[DISCOVERY]/[DECISION], four distinct types (ability, physical, investigative, bold). Reference ${loc}. No repetition from recent history. ONLY for ${next?next.name:'this player'} — never write choices for other characters.`;
+
+  return`You are the GM of a Cosmere RPG on Roshar. Turn ${m}/180. Location: ${loc}. ${act.tag}.
 Party: ${party}${gctx}
 ${wmctx}${recentBeats}${choiceHistory}${mctx}${cctx}
 
-CURRENT ACTION:
-${who.name} (${who.className}) — "${action}"
+ACTION: ${who.name} (${who.className}) — "${action}"
 Roll: d20 vs ${sk.toUpperCase()} = ${roll} → ${rollDesc}${plotInstr}
 
-WRITE THE CONSEQUENCE as exactly ${beatLen}. Separate paragraphs with a blank line. Follow ALL of these craft rules:
+Write EXACTLY 2 short paragraphs (2-3 sentences each, separated by a blank line). NOTHING ELSE before [CHOICES].
 
-WHAT TO DO:
-• Begin with what the WORLD does — not what ${who.name} does. The action already happened.
-• The roll outcome must be FELT as story — ${roll>=18?'give them something they did not expect, and make it good in a way that costs something or opens something new':roll>=14?'clean outcome, the world yields, but leave one detail unresolved':roll>=10?'they get part of what they wanted — show what slipped through or changed':roll>=6?'the world pushes back — show the specific thing that went wrong':'something breaks. Show it immediately. Do not soften it.'}
-• CONTINUITY: The immediate history above happened SECONDS ago — those people, objects, and threats are still present. Reference them. Do not reset the scene.
-• SENSORY SPECIFICITY: Use ${loc} concretely — a smell, a sound, a texture that could only exist here
-• SENTENCE VARIATION: Mix long atmospheric sentences with short punchy ones. Never open with "${who.name}", "As ${who.name}", or a gerund phrase.
-• EMOTION THROUGH ACTION: Show fear, exhaustion, desperation through what characters DO — never state it directly
-• INJURIES PERSIST: If someone was hurt recently, they are still hurt
+PARAGRAPH 1 — CONSEQUENCE: What the WORLD does in response. The action already happened — show the result. ${roll>=18?'Something unexpected and wonderful happens.':roll>=14?'Clean outcome, the world yields, one detail unresolved.':roll>=10?'Partial success — show what slipped through or changed.':roll>=6?'The world pushes back — show the specific thing that went wrong.':'Something breaks. Show it immediately.'}
+PARAGRAPH 2 — SHIFT: New tension, new information, or setup for what comes next. End with the world in a different state.
 
-WHAT NOT TO DO:
-• Never summarize the action that was just taken
-• Never write "suddenly" or "quickly" or "immediately"
-• Never use game terminology (HP, rolls, stats, turns)
-• Never explain what is about to happen — show what IS happening
-• Never repeat a sentence opening structure used in the last 3 beats${actHint}${phaseInstr}
-
-[CHOICES FOR ${next?next.name.toUpperCase():'NEXT PLAYER'}]
-Write 4 action choices for ${next?next.name:'the player'} (${next?next.className:'?'}, Oath ${next?next.oathStage||1:'?'}/5, ${next?next.hp:0}/${next?next.maxHp:10}HP).
-${next?next.name:'They'} is the ONLY actor. NEVER write choices for ${gState.players.slice(0,sz).filter(p=>p&&(!next||p.name!==next.name)&&!p.isNPC).map(p=>p.name).join(', ')||'anyone else'}.
-
-CRITICAL RULES:
-• FIRST PERSON: Every choice MUST start with "I " or an action verb implying "I". NEVER "Strike", "${next?next.name:''} does", or any third-person phrasing.
-• ONE SENTENCE: Specific, vivid, concrete. Show the physical action.
-• UNIQUE TO THIS BEAT: Reference ${loc} directly. No generic RPG phrases.
-• NO REPETITION: Do NOT reuse approaches or verbs from the recent action history above.
-• FOUR DISTINCT TYPES: one using ${next?next.className:'class'} ability/surges, one physical/environmental, one investigative/social, one bold/escalating.
-• GENRE VOICE: Sound like a Stormlight Archive character — determined, grounded, stakes-aware.
+CRAFT RULES:
+• Begin with what the WORLD does, not ${who.name}. Never summarize the action taken.
+• Use ${loc} concretely — a smell, a sound, a texture unique to this place.
+• Mix sentence lengths. Never open with "${who.name}" or a gerund.
+• Show emotion through action. Injuries persist. No game jargon. Present tense.
+• No "suddenly", "quickly", or "immediately".${actHint}${phaseInstr}${choiceBlock}
 
 ${getLangInstruction()}`;
 }

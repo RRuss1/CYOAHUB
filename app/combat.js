@@ -16,37 +16,35 @@
  */
 
 // ══ AI DUNGEON MASTER — SYSTEM PROMPT ══
-const AI_DM_SYSTEM_PROMPT = `You are the AI Dungeon Master for Stormlight Chronicles, a digital RPG set on Roshar in Brandon Sanderson's Cosmere.
+const AI_DM_SYSTEM_PROMPT = `You are the AI Dungeon Master for Stormlight Chronicles — a digital RPG set on Roshar in Brandon Sanderson's Cosmere. You are optimized for FAST, responsive, cinematic storytelling.
 
-PRIMARY OBJECTIVE: Create an immersive, narratively rich tabletop experience. You are simultaneously a storyteller, referee, and dramatic architect.
+TWO-PARAGRAPH RULE (CRITICAL — NEVER BREAK THIS):
+Every response is EXACTLY two short paragraphs (2-3 sentences each, separated by a blank line).
+- Paragraph 1: What the world does in response — consequence, environment, sensory detail.
+- Paragraph 2: What shifts — new tension, new information, or the setup for what comes next.
+NEVER write more than 2 paragraphs. NEVER include action choices in narrative text. Choices go ONLY in the [CHOICES] block.
 
-CORE RESPONSIBILITIES:
-1. NARRATIVE CONTROL — Write in present tense, visceral and specific. Every action has a physical consequence. No abstract summaries.
-2. RULE INTERPRETATION — Translate mechanical outcomes into story. Never use HP numbers, damage values, or game jargon in narrative text.
-3. CHOICE GENERATION — Each choice must feel meaningfully different, true to the character's abilities, and specific to this exact moment.
-4. DYNAMIC WORLD REACTION — Roshar reacts. Spren appear near strong emotion. Stormlight wisps when expended. Terrain shifts under battle.
-5. GAME STATE AWARENESS — Track who is hurt, who has momentum, whose Stormlight is depleted. Let this shape tone and pacing.
-6. PACING CONTROL — Short sentences in fast action. Longer ones for aftermath and revelation. Know when to breathe.
-7. DRAMA AND TENSION — Every scene has stakes. Victory should taste of copper and shaking hands.
-8. FAILURE/SUCCESS HANDLING — Failure is not the end. It is the story. Shape failure into consequence, never a dead end.
-9. MEMORY AND CONTINUITY — Honor what happened before. Injuries persist. Oaths echo. Previous actions have weight.
-10. COSMERE FIDELITY — Stormlight, Shards, spren, Radiants, the Everstorm are real and carry weight in every sentence.
-11. CHARACTER VOICE — A Windrunner fights to protect. A Lightweaver seeks truth through illusion. Honor each order's philosophy.
-12. TONE — Heroic but never naive. Dark but never hopeless. Ideals matter and cost something real.
-
-NARRATIVE RULES — apply always:
-- No raw numbers (HP, damage values, roll totals) in narrative text
-- No game jargon ("you take damage", "roll athletics", "your turn", "modifier")
+NARRATIVE RULES:
+- Present tense. Visceral, specific prose. Show, never tell.
+- No HP numbers, damage values, roll totals, or game jargon in narrative.
 - Translate mechanics to fiction: "The blow staggers you backward" not "you lose 4 HP"
-- Present tense throughout combat and story scenes
-- Mechanical outcomes must be physically grounded — a crit is devastating, a miss is a near thing, a graze draws blood
+- Short sentences in action. Longer atmospheric ones for aftermath.
+- Injuries persist. Oaths echo. Previous actions have weight.
 
-CHOICES FORMAT (when generating player action choices):
-- Always first-person: "I [verb]..." or an action verb implying "I"
-- One vivid sentence — specific, concrete, physically grounded to this exact scene
-- Always mechanically tagged: [ATTACK], [DEFEND], [HEAL], or [SURGE]
-- Four distinct approaches: aggressive, defensive, ability-based, situational
-- Reference specific enemies, terrain details, or current character state`;
+WORLD CONSISTENCY:
+- Roshar reacts: spren appear near strong emotion, Stormlight wisps when expended, terrain shifts.
+- Honor each Radiant order's philosophy. A Windrunner protects. A Lightweaver reveals truth.
+- Never invent lore that contradicts the Cosmere. Never allow actions that break world logic.
+- Tone: heroic but not naive. Dark but not hopeless. Ideals cost something real.
+
+CHOICES FORMAT (when choices are requested):
+[CHOICES]
+- Exactly 4 choices, each on its own numbered line
+- First-person: "I [verb]..." — one vivid sentence per choice
+- Tagged: [ATTACK], [DEFEND], [HEAL], [SURGE], [COMBAT], [DISCOVERY], or [DECISION]
+- Four distinct types: aggressive, defensive, ability-based, situational
+- Reference specific enemies, terrain, or character state
+- NEVER write choices for NPCs. Only for the named human player.`;
 
 // ══ COMBAT SYSTEMS ══
 
@@ -146,7 +144,7 @@ function getSprenMemoryContext(){
     const bond=SPREN_BONDS[p.classId];
     if(mems&&mems.length&&bond)lines.push(`${bond.nick} (bonded to ${p.name}) remembers: ${mems.slice(-2).join(' | ')}`);
   });
-  return lines.length?'\n\nSPREN MEMORIES (weave naturally into narration):\n'+lines.join('\\n'):'';
+  return lines.length?'\n\nSPREN MEMORIES (weave naturally into narration):\n'+lines.join('\n'):'';
 }
 function getCharContext(){
   if(!myChar)return'';
@@ -245,7 +243,7 @@ function getGenderContext(){
     else if(p.gender==='she/her'){subj='she';obj='her';poss='her';}
     lines.push(`${p.name}: ${p.gender} (${subj}/${obj}/${poss})`);
   });
-  return lines.length?'\n\nCHARACTER PRONOUNS — use consistently, never switch mid-scene:\n'+lines.join('\\n'):'';
+  return lines.length?'\n\nCHARACTER PRONOUNS — use consistently, never switch mid-scene:\n'+lines.join('\n'):'';
 }
 
 // ══ RENDER PROGRESS ══
@@ -505,7 +503,7 @@ Write a vivid 3-sentence highstorm scene: the wall of wind and lightning hitting
 3. (use Stormlight surge to survive)
 4. (bold exposure — ride the storm for power)
 
-Tag: [COMBAT]. Under 200 words.${getGenderContext()}`;
+Tag: [COMBAT]. Under 200 words.`;
   setBottomLoading();
   await callGM(prompt);
   gState.players.slice(0,sz).filter(Boolean).forEach(p=>{
@@ -844,16 +842,16 @@ async function submitCombatAction(){
   if(custom&&custom.value.trim()&&!/\[(HEAL|ATTACK|DEFEND|SURGE|SKILL|REVIVE)\]/.test(action)){
     const lower=action.toLowerCase();
     // ── Explicit keyword shortcuts (verb at start of input) ──
-    if(/^(heal|mend|cure|restore|patch|bandage)\b/.test(lower))action='[HEAL] '+action;
+    if(/^(heal|mend|cure|restore|patch|bandage|nurse|tend|triage|soothe)\b/.test(lower))action='[HEAL] '+action;
     else if(/^(revive|stabilize|resuscitate|wake)\b/.test(lower))action='[HEAL] '+action;
-    else if(/^(defend|block|shield|protect|guard|brace|parry|stance|hunker)\b/.test(lower))action='[DEFEND] '+action;
+    else if(/^(defend|block|shield|protect|guard|brace|parry|stance|hunker|fortify|entrench)\b/.test(lower))action='[DEFEND] '+action;
     else if(/^(surge|lash|soulcast|lightweave|elsecall|abrasion|adhesion|cohesion|division|gravitation|illumination|progression|tension|transformation|transportation)\b/.test(lower))action='[SURGE] '+action;
     else if(/^(scout|search|perceive|persuade|negotiate|bluff|charm|sneak|hide|stealth|inspect|investigate|examine)\b/.test(lower))action='[SKILL] '+action;
     else if(/^(attack|strike|slash|stab|smash|swing|charge|rush|shoot|throw|hit|punch|kick|cleave)\b/.test(lower))action='[ATTACK] '+action;
     // ── Fallback: scan full text for intent keywords ──
-    else if(/heal|mend|regrow|restore|tend|bandage|cure|knit|patch.*wound|stitch|treat.*injur|fix.*wound|channel.*stormlight.*into/i.test(lower))action='[HEAL] '+action;
-    else if(/revive|stabilize|pull.*back|rouse|bring.*back|wake.*up|save.*downed/i.test(lower))action='[HEAL] '+action;
-    else if(/defend|block|shield|protect|brace|guard|parry|stance|hunker|cover.*allie|hold.*line|take.*position/i.test(lower))action='[DEFEND] '+action;
+    else if(/heal|mend|regrow|restore|tend|bandage|cure|knit|patch.*wound|stitch|treat.*injur|fix.*wound|channel.*stormlight.*into|check.*breathing|check.*wound|check.*on|pull.*behind.*shelter|drag.*to.*safety|yank.*behind|nurse|triage|aid.*allie|infuse.*with.*light|pour.*stormlight|ease.*pain|soothe/i.test(lower))action='[HEAL] '+action;
+    else if(/revive|stabilize|pull.*back|rouse|bring.*back|wake.*up|save.*downed|resuscitate/i.test(lower))action='[HEAL] '+action;
+    else if(/defend|block|shield|protect|brace|guard|parry|stance|hunker|cover.*allie|hold.*line|take.*position|hold.*ground|fortif|entrench|sentinel|interpose|stand.*firm|plant.*feet|ward/i.test(lower))action='[DEFEND] '+action;
     else if(/soulcast|lash|illusion|surge|transmute|conjure|lightweave|elsecall|infuse|stormlight.*power|invoke|channel.*surge/i.test(lower))action='[SURGE] '+action;
     else if(/search|scout|perceive|persuade|negotiate|bluff|charm|sneak|hide|stealth|inspect|investigate|examine|look.*around|check.*surround|sense.*danger/i.test(lower))action='[SKILL] '+action;
     else action='[ATTACK] '+action;
@@ -891,13 +889,13 @@ async function resolveRound(){
   Object.entries(gState.pendingActions||{}).forEach(([name,action])=>{
     const p=gState.players.find(x=>x&&x.name===name);
     if(!p||p.downed)return;
-    const {bucket,stat}=getActionBucket(action);
+    const {bucket,stat,skill}=getActionBucket(action);
     // Map bucket to phase
     const phase=bucket==='defend'?'DEFENSE':
                 bucket==='heal'||bucket==='revive'?'HEAL':
                 bucket==='surge'?'OFFENSE': // surges resolve with attacks
                 'OFFENSE';
-    allActions.push({actor:name,action,bucket,stat,phase,isEnemy:false,player:p});
+    allActions.push({actor:name,action,bucket,stat,skill,phase,isEnemy:false,player:p});
   });
 
   // Enemy actions — AI decides targets now, locked before resolution
@@ -1361,24 +1359,14 @@ async function callCombatGM(type, playerActions, enemyResults){
   let prompt='';
   if(type==='opening'){
     const thread=getCombatThread();
-    prompt=`You are a combat GM — an expert at cinematic, visceral action writing. Write in the style of a blend of high fantasy (epic tone), cinematic action (clear visual movement), and character-focused drama.
-
-Location: ${loc}. Round 1.
+    prompt=`Combat GM. Location: ${loc}. Round 1.
 Party: ${party}
 Enemies: ${enemies}${gctx}${mctx}${thread}
 
-Write EXACTLY 3 sentences opening this combat. Craft rules:
-• Sentence 1: The threat arrives — not approaches, ARRIVES. Use a detail from NARRATIVE THREAD above if present — connect this fight to what was discovered
-• Sentence 2: ${loc} becomes part of the danger. Specific environmental detail. Tactile and present.
-• Sentence 3: The moment before first contact. One image. Held breath. End here.
-
-STYLE RULES — apply all:
-• Fast, visceral, clear — easy to visualize who is where doing what
-• Short sharp sentences during action. Longer atmospheric ones for environment.
-• Environmental interaction — terrain, objects, the specific chaos of this place
-• Show fear, rage, desperation through physical action — never state it
-• No "suddenly". No "quickly". No game terminology.
-• Do NOT summarize how the party got here`;
+Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between).
+P1: The threat ARRIVES. Connect to the narrative thread if present. Environmental danger.
+P2: The moment before first contact. One image. Held breath. End here.
+Fast, visceral, present tense. No game jargon. No "suddenly". Show emotion through action.`;
 
   } else if(type==='round'){
     // Inject spren emotion flavor into combat round
@@ -1389,25 +1377,18 @@ STYLE RULES — apply all:
     const prevRoundText=(gState.combatLog||[]).slice(-2).map(e=>e.text||'').filter(Boolean).join(' ');
     const prevHint=prevRoundText?`
 PREVIOUS ROUND (do NOT repeat sentence structures, imagery, or outcomes from here): "${prevRoundText.slice(0,200)}"`:'';
-    prompt=`You are a combat GM. Round ${round}. ${loc}. ${roundContext}.
+    prompt=`Combat GM. Round ${round}. ${loc}. ${roundContext}.
 Party: ${party}
 Enemies: ${enemies}
-WHAT HAPPENED THIS ROUND — weave ALL of this in:
+ROUND OUTCOMES — weave ALL in:
 Player actions: ${playerActions}
 Enemy attacks: ${(enemyResults||[]).join(' | ')}${gctx}${prevHint}
+Spren: ${sprenFlavor}
 
-SPREN PRESENT: ${sprenFlavor}
-
-Write EXACTLY 3 sentences. Every rule must be followed:
-• INCLUDE ALL OUTCOMES — every hit, miss, heal, and surge above must appear as a physical consequence
-• ONE SCENE — not a list; a single fluid moment with all outcomes woven together
-• MOMENTUM SHIFT — make clear who has advantage NOW; end on something uncertain
-• SPREN FLAVOR — mention the spren above naturally; they appear near strong emotions
-• INJURIES ACCUMULATE — characters hurt in previous rounds are still hurting
-• SENTENCE VARIATION — one long sentence, two short ones (or vice versa); never three of the same length
-• ROSHAR SPECIFIC — Stormlight glows and wisps; Shardblades shriek in the mind; ground-eating creatures scatter
-• No "suddenly", no "quickly", no game jargon, no narrating intent — only what IS happening
-• Present tense throughout`;
+Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between).
+P1: Weave ALL outcomes above into one fluid combat moment — every hit, miss, heal, surge must appear as physical consequence.
+P2: Momentum shift — who has advantage now. End on something uncertain.
+All injuries accumulate. Present tense. No game jargon. No "suddenly". Vary sentence lengths.`;
 
   } else if(type==='victory'){
     const injuries=gState.players.slice(0,sz).filter(p=>p&&p.injuries&&p.injuries.length).map(p=>`${p.name}:${p.injuries[0].effect}`).join(', ');
@@ -1545,12 +1526,12 @@ function combatAftermathPrompt(won){
   const gctx=getGenderContext();const mctx=getSprenMemoryContext();const wmctx=getWorldMemoryContext();const cctx=getCharContext();
   return`Cosmere RPG GM. Post-combat scene. Location: ${loc}.
 Party: ${party}
-Combat result: ${won?'VICTORY — enemies defeated':'DEFEAT — party was downed but survived'}${gctx}${mctx}
+Combat result: ${won?'VICTORY — enemies defeated':'DEFEAT — party was downed but survived'}${gctx}${mctx}${wmctx}${cctx}
 
 Write a VERBOSE aftermath scene (4-6 sentences): the immediate aftermath of combat, wounds tended, what was discovered, how the environment has changed, what the victory/defeat means for the story going forward. Be specific to ${loc} and the characters involved.
 
 [CHOICES] 4 numbered options for ${gState.players[0]?gState.players[0].name:'the party'} (${gState.players[0]?gState.players[0].className:'?'}) — exploration and recovery focused.
-One sentence each. Tag: [DISCOVERY] or [DECISION].${getGenderContext()}`;
+One sentence each. Tag: [DISCOVERY] or [DECISION].`;
 }
 
 
@@ -1569,16 +1550,26 @@ function autoSpeakStory(){
   speakStory();
 }
 
-// ── Text cleaner ──
+// ── Text cleaner — extracts ONLY the 2 narrative paragraphs for TTS ──
 function _cleanForTTS(raw){
-  return (raw||'')
-    .replace(/\[CHOICES[^\]]*\][\s\S]*/i,'')
-    .replace(/\[COMBAT\]|\[DISCOVERY\]|\[DECISION\]/gi,'')
-    .replace(/THE CHRONICLE/gi,'')
-    .replace(/\*+/g,'')
-    .replace(/\n+/g,' ')
-    .replace(/\s{2,}/g,' ')
-    .trim();
+  let text=(raw||'');
+  // Strip [CHOICES...] block and everything after
+  text=text.replace(/\[CHOICES[^\]]*\][\s\S]*/i,'');
+  // Strip "Name's Options:" or "Options for Name:" blocks
+  text=text.replace(/^[\w '\-]+'s\s+Options?:\s*[\s\S]*/im,'');
+  text=text.replace(/^Options?\s+for\s+[\w\s]+:\s*[\s\S]*/im,'');
+  // Strip trailing numbered lists (leaked choices)
+  text=text.replace(/(\n\s*\d+[.)]\s+[^\n]+){2,}\s*$/s,'');
+  // Strip action tags
+  text=text.replace(/\[(COMBAT|DISCOVERY|DECISION|ATTACK|DEFEND|HEAL|SURGE|SKILL)\]/gi,'');
+  // Strip markdown bold
+  text=text.replace(/\*+/g,'');
+  // Strip "THE CHRONICLE" header
+  text=text.replace(/THE CHRONICLE/gi,'');
+  // Keep only first 2 paragraphs (split on double newline)
+  const paras=text.split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean);
+  text=paras.slice(0,2).join('. ');
+  return text.replace(/\s{2,}/g,' ').trim();
 }
 
 // ── Slider helpers ──
@@ -1740,11 +1731,7 @@ function updateVoiceBtn(){
 }
 
 function toggleAutoSpeak(){}
-function updateAutoSpeakBtn(){
-  const btn=document.getElementById('autospeak-btn'); if(!btn)return;
-  if(autoSpeak){btn.textContent='AUTO ON';btn.style.cssText+='color:var(--amber2);border-color:var(--amber-dim);background:rgba(191,161,90,0.1)';}
-  else{btn.textContent='AUTO';btn.style.cssText+='color:var(--text4);border-color:var(--border2);background:var(--bg3)';}
-}
+function updateAutoSpeakBtn(){}
 
 function setVoice(voiceVal){
   localStorage.setItem('sc_voice',voiceVal);
