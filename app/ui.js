@@ -2539,6 +2539,11 @@ function startAudio(){
   audioOn=true;
   document.getElementById('audio-toggle').textContent='🌩';
   document.getElementById('audio-label').textContent='STORM';
+  // Sync AmbientAudio chord — start tense if in combat, calm otherwise
+  if(typeof AmbientAudio!=='undefined'){
+    const onCombat=document.getElementById('s-combat')&&document.getElementById('s-combat').classList.contains('active');
+    if(onCombat) AmbientAudio.startCombat(); else AmbientAudio.start();
+  }
 }
 function stopAudio(){
   if(!audioCtx)return;
@@ -2554,6 +2559,8 @@ function stopAudio(){
   audioNodes={};audioOn=false;_noiseBuf=null;
   document.getElementById('audio-toggle').textContent='🔇';
   document.getElementById('audio-label').textContent='OFF';
+  // Stop AmbientAudio chord — it has its own AudioContext, must be stopped explicitly
+  if(typeof AmbientAudio!=='undefined') AmbientAudio.stop();
 }
 function toggleAudio(){
   if(!audioOn)startAudio();else stopAudio();
