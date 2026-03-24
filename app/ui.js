@@ -1957,11 +1957,38 @@ async function onSubmitAction(){
   if(!action){errEl.textContent='Choose or describe an action first.';errEl.style.display='block';return;}
   errEl.style.display='none';
   if(isLoading)return;
-  // If the player chose a [COMBAT] tagged option, enter combat immediately
+
+  // ── [COMBAT] choice = instant combat entry — no GM narration needed ──
+  // The player has explicitly chosen to engage. Skip callGM entirely.
+  // Log the action, advance the turn counter, then enter combat immediately.
+  // The combat GM's opening narration will describe what happens next.
   if(selActionTag==='COMBAT'||/^\[COMBAT\]/i.test(action)){
+    selActionTag='';
     gState.combatMode=true;
     gState.preCombatTriggered=true;
+    isLoading=true;
+    stopSpeaking();
+    setBottomLoading();
+    requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'smooth'}));
+    // Roll for the action (affects opening combat GM context)
+    const _cbRoll=Math.ceil(Math.random()*20);
+    const _cbSk=getStat(action);
+    const _cbBonus=(myChar.skillRanks&&myChar.skillRanks[_cbSk]||0)+((myChar.stats&&myChar.stats[_cbSk])||10)+(myChar.bladeLevel||0);
+    const _cbTotal=Math.min(20,Math.max(1,_cbRoll+_cbBonus));
+    document.getElementById('dice-flash').textContent=`d20:${_cbRoll} + ${_cbSk.toUpperCase()}(${_cbBonus>=0?'+':''}${_cbBonus}) = ${_cbTotal}`;
+    addActionLog(myChar.name, action, _cbRoll, '', _cbTotal);
+    await addLog({type:'player',who:myChar.name,text:action,choices:[]});
+    const _cbSz=gState.partySize||partySize;
+    gState.turn=(gState.turn+1)%_cbSz;
+    gState.totalMoves=(gState.totalMoves||0)+1;
+    await saveAndBroadcast(gState);
+    selActionText='';document.getElementById('custom-in').value='';
+    document.querySelectorAll('.achoice').forEach(b=>b.classList.remove('sel'));
+    isLoading=false;
+    enterCombat();
+    return;
   }
+
   selActionTag=''; // clear after use
   isLoading=true;
   // Safety: auto-reset isLoading after 30s to prevent UI freeze
@@ -2539,11 +2566,6 @@ function startAudio(){
   audioOn=true;
   document.getElementById('audio-toggle').textContent='🌩';
   document.getElementById('audio-label').textContent='STORM';
-  // Sync AmbientAudio chord — start tense if in combat, calm otherwise
-  if(typeof AmbientAudio!=='undefined'){
-    const onCombat=document.getElementById('s-combat')&&document.getElementById('s-combat').classList.contains('active');
-    if(onCombat) AmbientAudio.startCombat(); else AmbientAudio.start();
-  }
 }
 function stopAudio(){
   if(!audioCtx)return;
@@ -2559,8 +2581,6 @@ function stopAudio(){
   audioNodes={};audioOn=false;_noiseBuf=null;
   document.getElementById('audio-toggle').textContent='🔇';
   document.getElementById('audio-label').textContent='OFF';
-  // Stop AmbientAudio chord — it has its own AudioContext, must be stopped explicitly
-  if(typeof AmbientAudio!=='undefined') AmbientAudio.stop();
 }
 function toggleAudio(){
   if(!audioOn)startAudio();else stopAudio();
