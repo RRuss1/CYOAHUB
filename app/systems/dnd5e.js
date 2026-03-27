@@ -17,12 +17,21 @@ window.DnD5eSystem = {
 
   // ── Theme tokens ──────────────────────────────────────────────────────
   theme: {
-    primary: '#9B2335',      // Crimson
-    secondary: '#C0C0C0',    // Silver
-    danger: '#6B2737',       // Blood red
+    primary: '#9B2335',
+    secondary: '#C0C0C0',
+    danger: '#6B2737',
     bgTone: 'dark',
     titleFont: 'Cinzel',
     bodyFont: 'Crimson Pro',
+  },
+
+  themeVars: {
+    bg: '#0A0A0E', bg2: '#12121A', bg3: '#1A1A24', bg4: '#222230',
+    border: '#2A2A3A', border2: '#3A3A4A', border3: '#5A5A6A',
+    primary: '#9B2335', goldMid: '#C0C0C0', goldBright: '#E0E0E0', goldDim: '#4A2030',
+    secondary: '#C0C0C0', teal: '#808890', teal2: '#C0C0C0',
+    danger: '#6B2737', coral2: '#8B3747',
+    text: '#E8E4E0', text2: '#D0CCC8', text3: '#A0A0A8', text4: '#707078', text5: '#404048',
   },
 
   // ── GM Context (AI prompt injection) ──────────────────────────────────

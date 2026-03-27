@@ -61,7 +61,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-#s-wizard.active { overflow: hidden; }
+#s-wizard.active { overflow: hidden; } /* outer frame fixed, wiz-box scrolls */
 /* Prevent flex children from shrinking — lets landing page scroll */
 #s-landing.active > * { flex-shrink: 0; }
 /* Hide Stormlight glyph watermark on hub screens */
@@ -556,6 +556,9 @@
   width: 100%;
   max-width: 580px;
   margin: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* progress dots */

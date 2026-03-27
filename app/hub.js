@@ -11,10 +11,15 @@ const goTo = (id) => showScreen(id);
 const CARD_IMAGES = [
   'GameCardImgs/DnD.png',
   'GameCardImgs/Dragons.png',
+  'GameCardImgs/Dank.jpg',
+  'GameCardImgs/Evening Fields.jpg',
   'GameCardImgs/FACE1.png',
+  'GameCardImgs/Midday Mountians.jpg',
   'GameCardImgs/Monk.png',
+  'GameCardImgs/OIG1.png',
   'GameCardImgs/Palace.png',
   'GameCardImgs/RedHorse.png',
+  'GameCardImgs/Star fields.jpg',
   'GameCardImgs/Stormlight.png',
   'GameCardImgs/Unicorns.png',
   'GameCardImgs/cosmic face.png',
@@ -596,7 +601,7 @@ function prefetchWorldLibrary() {
   _fetchCommunityWorlds().catch(() => {});
 }
 
-function _renderWorldCard(w, isOwned, grid, createTile) {
+function _renderWorldCard(w, isOwned, grid) {
   const color = (w.theme && w.theme.primary) || (w.config && w.config.theme && w.config.theme.primary) || '#C9A84C';
   const tier = isOwned ? (w.published ? 'community' : 'mine') : 'community';
   const name = w.name || 'Custom World';
@@ -641,7 +646,7 @@ function renderWorldsGrid() {
   // 1. Render local worlds (yours — private + published)
   const myWorlds = _getSavedWorlds();
   const myIds = new Set(myWorlds.map(w => w.id));
-  myWorlds.forEach(w => _renderWorldCard(w, true, grid, createTile));
+  myWorlds.forEach(w => _renderWorldCard(w, true, grid));
 
   // 2. Render community worlds from sheet (skip duplicates with your local worlds)
   _communityWorldsCache.forEach(cw => {
@@ -652,7 +657,7 @@ function renderWorldsGrid() {
     worldData.name = cw.name;
     worldData.tagline = cw.tagline;
     worldData.author = cw.author;
-    _renderWorldCard(worldData, false, grid, createTile);
+    _renderWorldCard(worldData, false, grid);
   });
 
   // Re-init tilt for new cards

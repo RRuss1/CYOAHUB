@@ -26,6 +26,15 @@ window.StormlightSystem = {
     bodyFont: 'Crimson Pro',
   },
 
+  themeVars: {
+    bg: '#0f0d08', bg2: '#141109', bg3: '#1c1710', bg4: '#241e13',
+    border: '#2d2419', border2: '#3d3020', border3: '#5a4020',
+    primary: '#C9A84C', goldMid: '#DFC080', goldBright: '#EFE4C8', goldDim: '#624e1f',
+    secondary: '#28A87A', teal: '#1d7a5c', teal2: '#28a87a',
+    danger: '#B03828', coral2: '#d44e30',
+    text: '#F8F3E8', text2: '#F0E6CC', text3: '#DFC080', text4: '#A07830', text5: '#624e1f',
+  },
+
   // ── GM Context (AI prompt injection) ──────────────────────────────────
   gmContext: {
     worldName: 'Roshar',

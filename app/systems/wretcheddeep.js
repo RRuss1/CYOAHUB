@@ -19,12 +19,21 @@ window.WretchedDeepSystem = {
 
   // ── Theme tokens ──────────────────────────────────────────────────────
   theme: {
-    primary: '#7B3F8E',      // Deep corrupt purple
-    secondary: '#3A8E5C',    // Sickly green
-    danger: '#8E2020',       // Blood dark
+    primary: '#7B3F8E',
+    secondary: '#3A8E5C',
+    danger: '#8E2020',
     bgTone: 'dark',
     titleFont: 'Cinzel',
     bodyFont: 'Crimson Pro',
+  },
+
+  themeVars: {
+    bg: '#08060A', bg2: '#100E14', bg3: '#181420', bg4: '#201A2A',
+    border: '#2A1E30', border2: '#3A2E40', border3: '#4A3E50',
+    primary: '#7B3F8E', goldMid: '#A070B0', goldBright: '#C8A0D8', goldDim: '#3A1E48',
+    secondary: '#3A8E5C', teal: '#2A6E4C', teal2: '#3A8E5C',
+    danger: '#8E2020', coral2: '#A83030',
+    text: '#E0D8E8', text2: '#C8C0D0', text3: '#9888A8', text4: '#685878', text5: '#3A2E48',
   },
 
   // ── GM Context (AI prompt injection) ──────────────────────────────────

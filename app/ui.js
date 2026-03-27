@@ -211,37 +211,93 @@ function showScreen(id){
     audioBar.style.display = isGame ? '' : 'none';
   }
 
-  // Apply world theme to game screens (campaign, title, lobby, game, combat)
+  // Apply full world theme to game screens
   const isGameScreen = ['campaign','title','create','lobby','game','combat'].includes(id);
-  if (isGameScreen && window.SystemData && window.SystemData.theme) {
-    const t = window.SystemData.theme;
-    const r = document.documentElement.style;
-    if (t.primary)   r.setProperty('--gold', t.primary);
-    if (t.secondary) r.setProperty('--teal2', t.secondary);
-    if (t.danger)    r.setProperty('--coral', t.danger);
-    if (t.bg)        r.setProperty('--bg', t.bg);
-    if (t.surface)   r.setProperty('--bg2', t.surface);
-    if (t.text)      r.setProperty('--text', t.text);
-    if (t.muted)     r.setProperty('--text4', t.muted);
-    if (t.glow)      r.setProperty('--glow-gold', t.glow + '25');
-    // Load world-specific fonts on demand
-    if (t.titleFont && t.titleFont !== 'Cinzel' && t.titleFont !== 'Crimson Pro') {
-      const fontId = 'font-' + t.titleFont.replace(/\s+/g, '-').toLowerCase();
-      if (!document.getElementById(fontId)) {
-        const link = document.createElement('link');
-        link.id = fontId;
-        link.rel = 'stylesheet';
-        link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(t.titleFont)}:wght@400;600;700&display=swap`;
-        document.head.appendChild(link);
-      }
-      r.setProperty('--font-d', `'${t.titleFont}', serif`);
-    }
-    // UI Style presets
-    if (t.uiStyle) document.body.setAttribute('data-ui-style', t.uiStyle.toLowerCase().replace(/\s+/g,'-'));
-    if (t.buttonStyle) document.body.setAttribute('data-btn-style', t.buttonStyle.toLowerCase().replace(/\s+/g,'-'));
-    if (t.cardStyle) document.body.setAttribute('data-card-style', t.cardStyle.toLowerCase().replace(/\s+/g,'-'));
-    if (t.bgEffect) document.body.setAttribute('data-bg-effect', t.bgEffect.toLowerCase().replace(/[\s\/]+/g,'-'));
+  if (isGameScreen && window.SystemData) {
+    _applyFullTheme(window.SystemData);
   }
+
+// ══ FULL THEME INJECTION ══
+// Each system defines a complete color palette. This function maps it
+// to every CSS variable so the entire UI recolors instantly.
+const _THEME_DEFAULTS = {
+  primary:'#C9A84C', secondary:'#28A87A', danger:'#B03828',
+  bg:'#0f0d08', bg2:'#141109', bg3:'#1c1710', bg4:'#241e13',
+  border:'#2d2419', border2:'#3d3020', border3:'#5a4020',
+  text:'#F8F3E8', text2:'#F0E6CC', text3:'#DFC080', text4:'#A07830', text5:'#624e1f',
+  gold:'#C9A84C', goldMid:'#DFC080', goldBright:'#EFE4C8', goldDim:'#624e1f',
+  teal:'#1d7a5c', teal2:'#28a87a',
+  coral:'#b03828', coral2:'#d44e30',
+  glow:'rgba(201,168,76,0.15)',
+};
+
+function _applyFullTheme(sys) {
+  const t = sys.theme || {};
+  const tv = sys.themeVars || {}; // full palette override
+  const r = document.documentElement.style;
+
+  // Build merged palette: themeVars > theme > defaults
+  const p = (key, fallback) => tv[key] || t[key] || fallback;
+
+  // Backgrounds
+  r.setProperty('--bg',      p('bg', _THEME_DEFAULTS.bg));
+  r.setProperty('--bg2',     p('bg2', _THEME_DEFAULTS.bg2));
+  r.setProperty('--bg3',     p('bg3', _THEME_DEFAULTS.bg3));
+  r.setProperty('--bg4',     p('bg4', _THEME_DEFAULTS.bg4));
+
+  // Borders
+  r.setProperty('--border',  p('border', _THEME_DEFAULTS.border));
+  r.setProperty('--border2', p('border2', _THEME_DEFAULTS.border2));
+  r.setProperty('--border3', p('border3', _THEME_DEFAULTS.border3));
+
+  // Primary accent (maps to --gold which is used everywhere)
+  r.setProperty('--gold',       p('primary', _THEME_DEFAULTS.gold));
+  r.setProperty('--gold-mid',   p('goldMid', _THEME_DEFAULTS.goldMid));
+  r.setProperty('--gold-bright',p('goldBright', _THEME_DEFAULTS.goldBright));
+  r.setProperty('--gold-dim',   p('goldDim', _THEME_DEFAULTS.goldDim));
+  r.setProperty('--amber',      p('primary', _THEME_DEFAULTS.gold));
+  r.setProperty('--amber2',     p('goldMid', _THEME_DEFAULTS.goldMid));
+  r.setProperty('--amber-dim',  p('goldDim', _THEME_DEFAULTS.goldDim));
+
+  // Secondary accent
+  r.setProperty('--teal',  p('teal', p('secondary', _THEME_DEFAULTS.teal)));
+  r.setProperty('--teal2', p('secondary', _THEME_DEFAULTS.teal2));
+
+  // Danger
+  r.setProperty('--coral',  p('danger', _THEME_DEFAULTS.coral));
+  r.setProperty('--coral2', p('coral2', _THEME_DEFAULTS.coral2));
+
+  // Text
+  r.setProperty('--text',  p('text', _THEME_DEFAULTS.text));
+  r.setProperty('--text2', p('text2', _THEME_DEFAULTS.text2));
+  r.setProperty('--text3', p('text3', _THEME_DEFAULTS.text3));
+  r.setProperty('--text4', p('text4', _THEME_DEFAULTS.text4));
+  r.setProperty('--text5', p('text5', _THEME_DEFAULTS.text5));
+
+  // Glow
+  const glowColor = p('primary', _THEME_DEFAULTS.gold);
+  r.setProperty('--glow-gold', glowColor + '25');
+  r.setProperty('--shadow-glow', `0 0 60px ${glowColor}20`);
+
+  // Font
+  const titleFont = t.titleFont || 'Cinzel';
+  if (titleFont !== 'Cinzel' && titleFont !== 'Crimson Pro') {
+    const fontId = 'font-' + titleFont.replace(/\s+/g, '-').toLowerCase();
+    if (!document.getElementById(fontId)) {
+      const link = document.createElement('link');
+      link.id = fontId; link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(titleFont)}:wght@400;600;700&display=swap`;
+      document.head.appendChild(link);
+    }
+  }
+  r.setProperty('--font-d', `'${titleFont}', serif`);
+
+  // UI Style presets
+  if (t.uiStyle) document.body.setAttribute('data-ui-style', t.uiStyle.toLowerCase().replace(/\s+/g,'-'));
+  if (t.buttonStyle) document.body.setAttribute('data-btn-style', t.buttonStyle.toLowerCase().replace(/\s+/g,'-'));
+  if (t.cardStyle) document.body.setAttribute('data-card-style', t.cardStyle.toLowerCase().replace(/\s+/g,'-'));
+  if (t.bgEffect) document.body.setAttribute('data-bg-effect', t.bgEffect.toLowerCase().replace(/[\s\/]+/g,'-'));
+}
 
   // GSAP transition for hub screens
   if (isHub && typeof gsap !== 'undefined') {
