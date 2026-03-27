@@ -52,7 +52,8 @@ CHOICES FORMAT (when choices are requested):
 - Reference specific enemies, terrain, or character state
 - NEVER write choices for NPCs. Only for the named human player.`;
 }
-const AI_DM_SYSTEM_PROMPT = getAiDmSystemPrompt();
+// Rebuilt dynamically on each GM call — not cached at module load
+function _currentSystemPrompt() { return getAiDmSystemPrompt(); }
 
 // ══ COMBAT SYSTEMS ══
 
@@ -434,25 +435,31 @@ async function onReset(){
 // ══════════════════════════════════════
 // ══════════════════════════════════════
 
-// ══ ENVIRONMENTAL HAZARDS ══
-const ENV_HAZARDS={
-  shattered_plains:{name:'Plateau Collapse',desc:'The plateau beneath you groans and tilts — footing is treacherous.',effect:'15% chance each round: random combatant takes 2 fall damage.',mechanic:'plateauCollapse'},
-  aimian_sea:{name:'Cognitive Drift',desc:'The water whispers old memories — concentration wavers.',effect:'Spell-like abilities cost 1 extra fragment to use.',mechanic:'cognitiveDrift'},
-  shadesmar:{name:'Cognitive Shadows',desc:'Half-real spren-shapes claw at your mind from the darkness.',effect:'Each round players lose 1 Stormlight fragment unless they spend an action resisting.',mechanic:'cognitiveDrain'},
-  urithiru:{name:'Ancient Wards',desc:'The tower Sibling-wrought defenses still hum faintly.',effect:'Party gains +1 defense rating while inside the tower.',mechanic:'ancientWards'},
-  braize:{name:'Void Whispers',desc:'The Everstorm howls across Damnation wastes.',effect:'Players must roll will or their action is disrupted this round.',mechanic:'voidWhispers'},
-  kholinar:{name:'Unmade Influence',desc:'Re-Shephir remnants press against sanity.',effect:'10% chance per round player acts against party.',mechanic:'unmaAdeMadness'},
+// ══ ENVIRONMENTAL HAZARDS — System-aware ══
+// Each system can define envHazards in its data. Fallback to generic.
+const _GENERIC_HAZARDS={
   default:{name:'Unknown Danger',desc:'Something is wrong with this place.',effect:'Combat is harder here.',mechanic:'none'},
+  dungeon:{name:'Collapsing Ceiling',desc:'Stones crumble from above.',effect:'15% chance each round: random combatant takes 2 damage.',mechanic:'plateauCollapse'},
+  cave:{name:'Toxic Fumes',desc:'Noxious gas seeps from cracks in the rock.',effect:'Players must resist or lose 1 resource.',mechanic:'cognitiveDrain'},
+};
+
+// Stormlight-specific hazards (loaded from system data or fallback)
+const _STORMLIGHT_HAZARDS={
+  shattered_plains:{name:'Plateau Collapse',desc:'The plateau beneath you groans and tilts — footing is treacherous.',effect:'15% chance each round: random combatant takes 2 fall damage.',mechanic:'plateauCollapse'},
+  aimian_sea:{name:'Cognitive Drift',desc:'The water whispers old memories — concentration wavers.',effect:'Spell-like abilities cost 1 extra resource.',mechanic:'cognitiveDrift'},
+  shadesmar:{name:'Cognitive Shadows',desc:'Half-real shapes claw at your mind from the darkness.',effect:'Each round players lose 1 resource unless they spend an action resisting.',mechanic:'cognitiveDrain'},
+  urithiru:{name:'Ancient Wards',desc:'Ancient defenses still hum faintly.',effect:'Party gains +1 defense rating.',mechanic:'ancientWards'},
+  braize:{name:'Void Whispers',desc:'The Everstorm howls across the wastes.',effect:'Players must roll will or their action is disrupted.',mechanic:'voidWhispers'},
 };
 
 function getHazardForLocation(loc){
   const l=(loc||'').toLowerCase();
-  if(l.includes('shattered')||l.includes('plains'))return ENV_HAZARDS.shattered_plains;
-  if(l.includes('aimian'))return ENV_HAZARDS.aimian_sea;
-  if(l.includes('shadesmar'))return ENV_HAZARDS.shadesmar;
-  if(l.includes('urithiru'))return ENV_HAZARDS.urithiru;
-  if(l.includes('braize')||l.includes('damnation'))return ENV_HAZARDS.braize;
-  if(l.includes('kholinar'))return ENV_HAZARDS.kholinar;
+  const sys = (gState && gState.system) || 'stormlight';
+  // System-specific hazards
+  const sysHazards = sys === 'stormlight' ? _STORMLIGHT_HAZARDS : _GENERIC_HAZARDS;
+  for (const [key, hazard] of Object.entries(sysHazards)) {
+    if (key !== 'default' && l.includes(key)) return hazard;
+  }
   return null; // no hazard for generic locations
 }
 
@@ -475,12 +482,28 @@ function applyHazardEffect(hazard, gState){
   return msgs;
 }
 
-// ══ BOSS ENCOUNTERS ══
-const BOSS_TEMPLATES=[
-  {name:'The Blackthorns Shadow',type:'Alethi Traitor',phases:[{hp:40,dmg:8,atk:7,desc:'Aggressive, twin Shardblades gleaming'},{hp:25,dmg:11,atk:9,desc:'Shardplate cracking, fighting with desperate fury'},{hp:12,dmg:14,atk:12,desc:'Barely standing, Stormlight erupting wildly'}],drop:'Obsidian Shardblade'},
-  {name:'Yelig-nars Vessel',type:'Unmade Host',phases:[{hp:35,dmg:7,atk:6,desc:'Human form, dark tendrils coiling'},{hp:20,dmg:10,atk:9,desc:'Half-transformed, grotesque power'},{hp:10,dmg:15,atk:13,desc:'Full transformation — barely recognizable'}],drop:'Voidlight Crystal'},
-  {name:'The Heralds Echo',type:'Cognitive Shadow',phases:[{hp:45,dmg:9,atk:8,desc:'Calm, ancient, measuring'},{hp:28,dmg:12,atk:11,desc:'Revealing true divine fury'},{hp:14,dmg:16,atk:14,desc:'Burning with Taln fire'}],drop:'Heralds Remnant Plate'},
-];
+// ══ BOSS ENCOUNTERS — System-aware ══
+const _BOSS_BY_SYSTEM = {
+  stormlight: [
+    {name:'The Blackthorns Shadow',type:'Alethi Traitor',phases:[{hp:40,dmg:8,atk:7,desc:'Aggressive, twin Shardblades gleaming'},{hp:25,dmg:11,atk:9,desc:'Shardplate cracking, fighting with desperate fury'},{hp:12,dmg:14,atk:12,desc:'Barely standing, Stormlight erupting wildly'}],drop:'Obsidian Shardblade'},
+    {name:'Yelig-nars Vessel',type:'Unmade Host',phases:[{hp:35,dmg:7,atk:6,desc:'Human form, dark tendrils coiling'},{hp:20,dmg:10,atk:9,desc:'Half-transformed, grotesque power'},{hp:10,dmg:15,atk:13,desc:'Full transformation — barely recognizable'}],drop:'Voidlight Crystal'},
+    {name:'The Heralds Echo',type:'Cognitive Shadow',phases:[{hp:45,dmg:9,atk:8,desc:'Calm, ancient, measuring'},{hp:28,dmg:12,atk:11,desc:'Revealing true divine fury'},{hp:14,dmg:16,atk:14,desc:'Burning with divine fire'}],drop:'Heralds Remnant Plate'},
+  ],
+  dnd5e: [
+    {name:'The Necromancer Lord',type:'Undead Lich',phases:[{hp:35,dmg:7,atk:7,desc:'Surrounded by swirling necrotic energy'},{hp:22,dmg:10,atk:9,desc:'Phylactery pulsing, summoning undead reinforcements'},{hp:10,dmg:14,atk:12,desc:'Desperate, unleashing raw death magic'}],drop:'Staff of the Magi'},
+    {name:'Ancient Red Dragon',type:'Dragon',phases:[{hp:45,dmg:9,atk:8,desc:'Wings spread, fire licking between teeth'},{hp:28,dmg:12,atk:10,desc:'Airborne, strafing with flame breath'},{hp:14,dmg:16,atk:13,desc:'Wounded, raging, the lair itself burns'}],drop:'Dragon Scale Shield'},
+    {name:'The Drow Matron',type:'Dark Elf Elite',phases:[{hp:38,dmg:8,atk:8,desc:'Calm, commanding drow soldiers from the shadows'},{hp:24,dmg:11,atk:10,desc:'Drawing on Lolths power, darkness spreading'},{hp:12,dmg:15,atk:12,desc:'Spider form manifesting, poison dripping'}],drop:'Cloak of Invisibility'},
+  ],
+  _default: [
+    {name:'The Dark Overlord',type:'Boss',phases:[{hp:40,dmg:8,atk:7,desc:'Radiating malevolent power'},{hp:25,dmg:11,atk:9,desc:'Unleashing devastating attacks'},{hp:12,dmg:14,atk:12,desc:'Final desperate onslaught'}],drop:'Legendary Weapon'},
+    {name:'The Ancient Guardian',type:'Construct',phases:[{hp:45,dmg:7,atk:6,desc:'Stone eyes flickering to life'},{hp:28,dmg:10,atk:9,desc:'Full power, shaking the ground'},{hp:14,dmg:13,atk:11,desc:'Overloading, energy crackling'}],drop:'Ancient Relic'},
+  ],
+};
+function _getBossTemplates() {
+  const sys = (gState && gState.system) || 'stormlight';
+  return _BOSS_BY_SYSTEM[sys] || _BOSS_BY_SYSTEM._default;
+}
+const BOSS_TEMPLATES = null; // replaced by _getBossTemplates()
 
 function shouldSpawnBoss(gState){
   const actNum=getAct(gState.totalMoves||0).num||1;
@@ -637,7 +660,7 @@ async function enterCombat(){
   const combatActNum=getAct(gState.totalMoves||0).num||1;
   gState[`actCombats_${combatActNum}`]=(gState[`actCombats_${combatActNum}`]||0)+1;
   if(shouldSpawnBoss(gState)){
-    const boss=BOSS_TEMPLATES[combatActNum-1]||BOSS_TEMPLATES[0];
+    const _bt=_getBossTemplates(); const boss=_bt[combatActNum-1]||_bt[0];
     const phase=boss.phases[0];
     gState.combatEnemies=[{
       ...boss,id:'boss_'+actNum,
@@ -1320,7 +1343,7 @@ async function callGM(prompt){
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1800,stream:true,
-        system:AI_DM_SYSTEM_PROMPT,
+        system:_currentSystemPrompt(),
         messages:[{role:'user',content:prompt}]})
     });
     if(res.ok&&res.body){
@@ -1418,10 +1441,19 @@ P2: The moment before first contact. One image. Held breath. End here.
 Fast, visceral, present tense. No game jargon. No "suddenly". Show emotion through action.`;
 
   } else if(type==='round'){
-    // Inject spren emotion flavor into combat round
-    const sprenFlavor=round<=2?'Painspren (orange hands) grasp upward near anyone who was hit.':
-      round<=4?'Fearspren (violet blobs) crawl up a wall somewhere in the fight.':
-      'Anticipationspren (red streamers) drift from someone about to break.';
+    // Inject world-specific atmospheric flavor into combat round
+    const _sys = (gState && gState.system) || 'stormlight';
+    const sprenFlavor = _sys === 'stormlight'
+      ? (round<=2?'Painspren (orange hands) grasp upward near anyone who was hit.':
+         round<=4?'Fearspren (violet blobs) crawl up a wall somewhere in the fight.':
+         'Anticipationspren (red streamers) drift from someone about to break.')
+      : _sys === 'dnd5e'
+      ? (round<=2?'Torchlight flickers across drawn weapons and grim faces.':
+         round<=4?'The smell of blood and ozone fills the air. Dust motes swirl.':
+         'Sweat and desperation — someone is about to break.')
+      : (round<=2?'The air crackles with tension.':
+         round<=4?'The battle takes its toll — exhaustion creeping in.':
+         'This ends soon — someone or something will break.');
     // Get previous round text to avoid repetition
     const prevRoundText=(gState.combatLog||[]).slice(-2).map(e=>e.text||'').filter(Boolean).join(' ');
     const prevHint=prevRoundText?`
@@ -1432,7 +1464,7 @@ Enemies: ${enemies}
 ROUND OUTCOMES — weave ALL in:
 Player actions: ${playerActions}
 Enemy attacks: ${(enemyResults||[]).join(' | ')}${gctx}${prevHint}
-Spren: ${sprenFlavor}
+Atmosphere: ${sprenFlavor}
 
 Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between).
 P1: Weave ALL outcomes above into one fluid combat moment — every hit, miss, heal, surge must appear as physical consequence.
@@ -1466,7 +1498,7 @@ Write 2 sentences: the moment the last party member falls, and what the enemy do
   try{
     const res=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:450,
-        system:AI_DM_SYSTEM_PROMPT,
+        system:_currentSystemPrompt(),
         messages:[{role:'user',content:prompt+jsonInstr}]})});
     const data=await res.json();
     const rawText=(data.content&&data.content[0]?data.content[0].text.trim():'')||'The battle continues...';

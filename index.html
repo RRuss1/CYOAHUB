@@ -226,16 +226,39 @@
       </div>
       <div class="wfield">
         <label class="wlabel">One-Line Description</label>
-        <input class="winput" type="text" placeholder="e.g. A dying empire held together by blood magic...">
+        <input class="winput" type="text" id="wiz-desc" placeholder="e.g. A dying empire held together by blood magic...">
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Setting Era</label>
+        <div class="wopts" data-field="era">
+          <div class="wopt" onclick="selOpt(this)">Medieval</div>
+          <div class="wopt" onclick="selOpt(this)">Ancient</div>
+          <div class="wopt" onclick="selOpt(this)">Renaissance</div>
+          <div class="wopt" onclick="selOpt(this)">Post-Apocalyptic</div>
+          <div class="wopt" onclick="selOpt(this)">Futuristic</div>
+          <div class="wopt" onclick="selOpt(this)">Timeless</div>
+        </div>
       </div>
       <div class="wfield">
         <label class="wlabel">Tone</label>
-        <div class="wopts">
+        <div class="wopts" data-field="tone">
           <div class="wopt" onclick="selOpt(this)">Epic Heroic</div>
           <div class="wopt" onclick="selOpt(this)">Dark &amp; Gritty</div>
           <div class="wopt" onclick="selOpt(this)">Cosmic Horror</div>
           <div class="wopt" onclick="selOpt(this)">Political Intrigue</div>
           <div class="wopt" onclick="selOpt(this)">Whimsical</div>
+          <div class="wopt" onclick="selOpt(this)">Survival</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Technology Level</label>
+        <div class="wopts" data-field="tech">
+          <div class="wopt" onclick="selOpt(this)">Stone Age</div>
+          <div class="wopt" onclick="selOpt(this)">Swords &amp; Shields</div>
+          <div class="wopt" onclick="selOpt(this)">Clockwork / Steam</div>
+          <div class="wopt" onclick="selOpt(this)">Gunpowder</div>
+          <div class="wopt" onclick="selOpt(this)">Magitech</div>
+          <div class="wopt" onclick="selOpt(this)">Sci-Fantasy</div>
         </div>
       </div>
     </div>
@@ -246,24 +269,40 @@
       <div class="wstep-title">Define Your Magic</div>
       <div class="wfield">
         <label class="wlabel">Does magic exist?</label>
-        <div class="wopts">
-          <div class="wopt on" onclick="selOpt(this)">Yes</div>
-          <div class="wopt" onclick="selOpt(this)">No</div>
-          <div class="wopt" onclick="selOpt(this)">Rare &amp; Feared</div>
+        <div class="wopts" data-field="magicExists">
+          <div class="wopt on" onclick="selOpt(this)">Yes — Common</div>
+          <div class="wopt" onclick="selOpt(this)">Yes — Rare &amp; Feared</div>
+          <div class="wopt" onclick="selOpt(this)">Yes — Hidden / Secret</div>
+          <div class="wopt" onclick="selOpt(this)">No — Mundane World</div>
         </div>
       </div>
       <div class="wfield">
-        <label class="wlabel">What is it called?</label>
-        <input class="winput" type="text" placeholder="e.g. The Weave, Soul Binding, Void Energy...">
+        <label class="wlabel">What is magic called?</label>
+        <input class="winput" type="text" id="wiz-magic-name" placeholder="e.g. The Weave, Soul Binding, Void Energy...">
       </div>
       <div class="wfield">
-        <label class="wlabel">Powered by</label>
-        <div class="wopts">
-          <div class="wopt" onclick="selOpt(this)">Willpower</div>
-          <div class="wopt" onclick="selOpt(this)">Blood Cost</div>
+        <label class="wlabel">What fuels magic?</label>
+        <input class="winput" type="text" id="wiz-magic-resource" placeholder="e.g. Mana, Soul Fragments, Blood, Spell Slots...">
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Magic Source</label>
+        <div class="wopts" data-field="magicSource">
+          <div class="wopt" onclick="selOpt(this)">Willpower / Inner Force</div>
+          <div class="wopt" onclick="selOpt(this)">Blood &amp; Sacrifice</div>
           <div class="wopt" onclick="selOpt(this)">Study &amp; Ritual</div>
           <div class="wopt" onclick="selOpt(this)">Divine Gift</div>
-          <div class="wopt" onclick="selOpt(this)">Emotion</div>
+          <div class="wopt" onclick="selOpt(this)">Emotion / Passion</div>
+          <div class="wopt" onclick="selOpt(this)">Nature / Elements</div>
+          <div class="wopt" onclick="selOpt(this)">Technology / Artifice</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Magic Risk</label>
+        <div class="wopts" data-field="magicRisk">
+          <div class="wopt" onclick="selOpt(this)">Safe — Predictable</div>
+          <div class="wopt" onclick="selOpt(this)">Moderate — Mishaps</div>
+          <div class="wopt" onclick="selOpt(this)">Dangerous — Costs</div>
+          <div class="wopt" onclick="selOpt(this)">Corrupting — Changes You</div>
         </div>
       </div>
     </div>
@@ -274,19 +313,28 @@
       <div class="wstep-title">How Are Heroes Measured?</div>
       <div class="wfield">
         <label class="wlabel">Choose a stat system</label>
-        <div class="wopts" style="flex-direction:column;gap:10px;">
-          <div class="wopt" onclick="selOpt(this)" style="text-align:left;border-radius:10px;padding:12px 15px;">
+        <div class="wopts" data-field="statSystem" style="flex-direction:column;gap:10px;">
+          <div class="wopt" onclick="selOpt(this)" data-val="cosmere" style="text-align:left;border-radius:10px;padding:12px 15px;">
             <strong style="display:block;font-size:10px;margin-bottom:2px;">Cosmere Stats</strong>
             <span style="font-size:9px;opacity:0.55;">STR · SPD · INT · WIL · AWA · PRE</span>
           </div>
-          <div class="wopt" onclick="selOpt(this)" style="text-align:left;border-radius:10px;padding:12px 15px;">
+          <div class="wopt" onclick="selOpt(this)" data-val="dnd" style="text-align:left;border-radius:10px;padding:12px 15px;">
             <strong style="display:block;font-size:10px;margin-bottom:2px;">D&amp;D Stats</strong>
             <span style="font-size:9px;opacity:0.55;">STR · DEX · CON · INT · WIS · CHA</span>
           </div>
-          <div class="wopt" onclick="selOpt(this)" style="text-align:left;border-radius:10px;padding:12px 15px;">
+          <div class="wopt" onclick="selOpt(this)" data-val="simple" style="text-align:left;border-radius:10px;padding:12px 15px;">
             <strong style="display:block;font-size:10px;margin-bottom:2px;">Simplified</strong>
             <span style="font-size:9px;opacity:0.55;">Body · Mind · Spirit</span>
           </div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Progression Style</label>
+        <div class="wopts" data-field="progression">
+          <div class="wopt" onclick="selOpt(this)">Level-Based (XP)</div>
+          <div class="wopt" onclick="selOpt(this)">Milestone</div>
+          <div class="wopt" onclick="selOpt(this)">Oath / Ideal Based</div>
+          <div class="wopt" onclick="selOpt(this)">Freeform</div>
         </div>
       </div>
     </div>
@@ -296,16 +344,31 @@
       <div class="wstep-eyebrow">Step 4 of 7 — World Facts</div>
       <div class="wstep-title">Shape Your World</div>
       <div class="wfield">
-        <label class="wlabel">Major Factions</label>
-        <input class="winput" type="text" placeholder="e.g. The Iron Throne, The Wandering Court...">
+        <label class="wlabel">Major Factions (comma separated)</label>
+        <input class="winput" type="text" id="wiz-factions" placeholder="e.g. The Iron Throne, The Wandering Court, The Silent Order...">
       </div>
       <div class="wfield">
-        <label class="wlabel">Key Locations (up to 3)</label>
-        <input class="winput" type="text" placeholder="e.g. The Ashen Wastes, Port Mourne...">
+        <label class="wlabel">Key Locations (comma separated)</label>
+        <input class="winput" type="text" id="wiz-locations" placeholder="e.g. The Ashen Wastes, Port Mourne, The Crystal Spire...">
       </div>
       <div class="wfield">
         <label class="wlabel">The Central Conflict</label>
-        <textarea class="winput" rows="3" placeholder="What drives the story? Who wants what, and why can't they have it..."></textarea>
+        <textarea class="winput" rows="3" id="wiz-conflict" placeholder="What drives the story? Who wants what, and why can't they have it..."></textarea>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">World Lore (optional — the AI GM will use this)</label>
+        <textarea class="winput" rows="3" id="wiz-lore" placeholder="Describe the history, myths, and feel of your world. The more you give, the richer the AI narration..."></textarea>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Naming Style</label>
+        <div class="wopts" data-field="namingStyle">
+          <div class="wopt" onclick="selOpt(this)">Western Fantasy</div>
+          <div class="wopt" onclick="selOpt(this)">Eastern / Asian</div>
+          <div class="wopt" onclick="selOpt(this)">Arabic / Desert</div>
+          <div class="wopt" onclick="selOpt(this)">Norse / Celtic</div>
+          <div class="wopt" onclick="selOpt(this)">Alien / Invented</div>
+          <div class="wopt" onclick="selOpt(this)">Mixed / Cosmopolitan</div>
+        </div>
       </div>
     </div>
 
@@ -337,29 +400,50 @@
       <div class="wstep-title">Voice of Your World</div>
       <div class="wfield">
         <label class="wlabel">Narrator Style</label>
-        <div class="wopts">
+        <div class="wopts" data-field="narratorStyle">
           <div class="wopt" onclick="selOpt(this)">Epic &amp; Mythic</div>
           <div class="wopt" onclick="selOpt(this)">Gritty &amp; Realistic</div>
           <div class="wopt" onclick="selOpt(this)">Mysterious &amp; Eerie</div>
           <div class="wopt" onclick="selOpt(this)">Playful &amp; Witty</div>
+          <div class="wopt" onclick="selOpt(this)">Poetic &amp; Lyrical</div>
+          <div class="wopt" onclick="selOpt(this)">Terse &amp; Brutal</div>
         </div>
       </div>
       <div class="wfield">
         <label class="wlabel">Combat Frequency</label>
-        <div class="wopts">
+        <div class="wopts" data-field="combatFrequency">
           <div class="wopt" onclick="selOpt(this)">Rare &amp; Meaningful</div>
           <div class="wopt" onclick="selOpt(this)">Moderate</div>
           <div class="wopt" onclick="selOpt(this)">Action-Heavy</div>
+          <div class="wopt" onclick="selOpt(this)">Constant Danger</div>
         </div>
       </div>
       <div class="wfield">
         <label class="wlabel">Story Focus</label>
-        <div class="wopts">
-          <div class="wopt" onclick="selOpt(this)">Political</div>
-          <div class="wopt" onclick="selOpt(this)">Exploration</div>
-          <div class="wopt" onclick="selOpt(this)">Combat</div>
+        <div class="wopts" data-field="storyFocus">
+          <div class="wopt" onclick="selOpt(this)">Political Intrigue</div>
+          <div class="wopt" onclick="selOpt(this)">Exploration &amp; Discovery</div>
+          <div class="wopt" onclick="selOpt(this)">Combat &amp; Tactics</div>
           <div class="wopt" onclick="selOpt(this)">Character Drama</div>
+          <div class="wopt" onclick="selOpt(this)">Mystery &amp; Investigation</div>
+          <div class="wopt" onclick="selOpt(this)">Survival</div>
           <div class="wopt" onclick="selOpt(this)">Mixed</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Lethality</label>
+        <div class="wopts" data-field="lethality">
+          <div class="wopt" onclick="selOpt(this)">Forgiving — Heroes rarely die</div>
+          <div class="wopt" onclick="selOpt(this)">Balanced — Death is possible</div>
+          <div class="wopt" onclick="selOpt(this)">Deadly — No plot armor</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">NPC Depth</label>
+        <div class="wopts" data-field="npcDepth">
+          <div class="wopt" onclick="selOpt(this)">Simple — Quest givers &amp; enemies</div>
+          <div class="wopt" onclick="selOpt(this)">Moderate — Personalities &amp; motives</div>
+          <div class="wopt" onclick="selOpt(this)">Deep — Relationships, secrets, arcs</div>
         </div>
       </div>
     </div>
@@ -383,7 +467,7 @@
       </div>
       <div class="wfield">
         <label class="wlabel">Title Font</label>
-        <div class="wopts">
+        <div class="wopts" data-field="titleFont">
           <div class="wopt on" onclick="selOpt(this)" style="font-family:'Cinzel'">Cinzel</div>
           <div class="wopt" onclick="selOpt(this)" style="font-family:'Crimson Pro'">Crimson Pro</div>
           <div class="wopt" onclick="selOpt(this)">Oswald</div>

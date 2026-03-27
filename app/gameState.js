@@ -55,61 +55,70 @@ function loadSystem(systemId) {
   return sys;
 }
 
-// Re-bind all data aliases when system changes
-function _reloadAliases(sys) {
-  // These are module-scoped — reassigning won't propagate to `const` bindings
-  // but code that reads window.SystemData directly will pick up the change.
-  // For hot-swap support, game code should prefer window.SystemData.X over aliases.
-  window.SystemData = sys;
-}
+// ── LIVE DATA ALIASES ──────────────────────────────────────
+// These read from window.SystemData dynamically so they auto-swap
+// when loadSystem() changes the active world. Every reference to
+// CLASSES, NPC_M, etc. now reads from the CURRENT system, not the
+// one loaded at startup.
+// Usage: CLASSES (getter) — no code changes needed downstream.
+function _SD() { return window.SystemData || window.StormlightSystem; }
 
-const CLASSES       = _sys.classes;
-const SPREN_BONDS   = _sys.sprenBonds;
-const NPC_M         = _sys.npcMale;
-const NPC_F         = _sys.npcFemale;
-const NPC_ALL       = [..._sys.npcMale, ..._sys.npcFemale];
-const COLORS        = _sys.colors;
-const NPC_COLORS    = _sys.npcColors;
-const STAT_KEYS     = _sys.statKeys;
-const STAT_NAMES    = _sys.statNames;
-const STAT_FULL     = _sys.statFull;
-const SKILLS        = _sys.skills;
-const PATH_SKILLS   = _sys.pathSkills;
-const SURGES        = _sys.surges;
-const SURGE_SCALE   = _sys.surgeScale;
-const ORDER_SURGES  = _sys.orderSurges;
-const CONDITIONS    = _sys.conditions;
-const INJURY_EFFECTS= _sys.injuryEffects;
-const WEAPONS       = _sys.weapons;
-const ARMORS        = _sys.armors;
-const STARTING_KITS = _sys.startingKits;
-const GEMSTONES     = _sys.gemstones;
-const SPREN_APPEARANCES = _sys.sprenAppearances;
-const ADVERSARY_ROLES   = _sys.adversaryRoles;
-const COMBAT_OPPS   = _sys.combatOpps;
-const COMBAT_COMPS  = _sys.combatComps;
-const PURPOSES      = _sys.purposes;
-const OBSTACLES     = _sys.obstacles;
-const ROSHAR_P      = _sys.locations;
-const ROSHAR_O      = _sys.offworldLocations;
-const ROSHAR_S      = _sys.shadesmarLocations;
-const ROSHAR_L      = _sys.legendaryLocations;
-const ALL_LOCS      = [...ROSHAR_P, ...ROSHAR_O, ...ROSHAR_S, ...ROSHAR_L];
-const BASE_ACTS     = _sys.baseActs;
-const BLADE_TIERS   = _sys.bladeTiers;
-const ANCESTRIES    = _sys.ancestries;
-const CULTURES      = _sys.cultures;
-const SINGER_FORMS  = _sys.singerForms;
-const HERO_ROLES    = _sys.heroRoles;
-const HERO_WEAPONS  = _sys.heroWeapons;
-const WEAPON_PREFIXES = _sys.weaponPrefixes;
-const WEAPON_SUFFIXES = _sys.weaponSuffixes;
-const ORDER_OATHS   = _sys.orderOaths;
-const OATH_BONUSES  = _sys.oathBonuses;
-const ADVANCEMENT   = _sys.advancement;
-const ORDER_IDEALS  = _sys.orderIdeals;
-const HOID_LINES    = _sys.hoidLines;
-const BLADE_NAMES   = _sys.bladeNames;
+Object.defineProperties(window, {
+  // Character data
+  CLASSES:       { get(){ return _SD().classes       || []; }},
+  SPREN_BONDS:   { get(){ return _SD().sprenBonds    || {}; }},
+  HERO_ROLES:    { get(){ return _SD().heroRoles     || []; }},
+  HERO_WEAPONS:  { get(){ return _SD().heroWeapons   || []; }},
+  ANCESTRIES:    { get(){ return _SD().ancestries    || []; }},
+  CULTURES:      { get(){ return _SD().cultures      || []; }},
+  SINGER_FORMS:  { get(){ return _SD().singerForms   || {}; }},
+  STARTING_KITS: { get(){ return _SD().startingKits  || []; }},
+  // Stats & skills
+  STAT_KEYS:     { get(){ return _SD().statKeys      || []; }},
+  STAT_NAMES:    { get(){ return _SD().statNames     || []; }},
+  STAT_FULL:     { get(){ return _SD().statFull      || []; }},
+  SKILLS:        { get(){ return _SD().skills        || []; }},
+  PATH_SKILLS:   { get(){ return _SD().pathSkills    || {}; }},
+  // Combat
+  SURGES:        { get(){ return _SD().surges        || []; }},
+  SURGE_SCALE:   { get(){ return _SD().surgeScale    || []; }},
+  ORDER_SURGES:  { get(){ return _SD().orderSurges   || {}; }},
+  CONDITIONS:    { get(){ return _SD().conditions    || {}; }},
+  INJURY_EFFECTS:{ get(){ return _SD().injuryEffects || []; }},
+  WEAPONS:       { get(){ return _SD().weapons       || {}; }},
+  ARMORS:        { get(){ return _SD().armors        || {}; }},
+  ADVERSARY_ROLES:{ get(){ return _SD().adversaryRoles|| {}; }},
+  COMBAT_OPPS:   { get(){ return _SD().combatOpps    || []; }},
+  COMBAT_COMPS:  { get(){ return _SD().combatComps   || []; }},
+  // NPC
+  NPC_M:         { get(){ return _SD().npcMale       || []; }},
+  NPC_F:         { get(){ return _SD().npcFemale     || []; }},
+  NPC_ALL:       { get(){ return [...(_SD().npcMale||[]), ...(_SD().npcFemale||[])]; }},
+  COLORS:        { get(){ return _SD().colors        || []; }},
+  NPC_COLORS:    { get(){ return _SD().npcColors     || []; }},
+  // Lore & flavor
+  SPREN_APPEARANCES:{ get(){ return _SD().sprenAppearances || {}; }},
+  PURPOSES:      { get(){ return _SD().purposes      || []; }},
+  OBSTACLES:     { get(){ return _SD().obstacles     || []; }},
+  GEMSTONES:     { get(){ return _SD().gemstones     || {}; }},
+  HOID_LINES:    { get(){ return _SD().hoidLines     || []; }},
+  // World
+  ROSHAR_P:      { get(){ return _SD().locations             || []; }},
+  ROSHAR_O:      { get(){ return _SD().offworldLocations     || []; }},
+  ROSHAR_S:      { get(){ return _SD().shadesmarLocations    || []; }},
+  ROSHAR_L:      { get(){ return _SD().legendaryLocations    || []; }},
+  ALL_LOCS:      { get(){ return [...(_SD().locations||[]), ...(_SD().offworldLocations||[]), ...(_SD().shadesmarLocations||[]), ...(_SD().legendaryLocations||[])]; }},
+  BASE_ACTS:     { get(){ return _SD().baseActs      || []; }},
+  BLADE_TIERS:   { get(){ return _SD().bladeTiers    || []; }},
+  BLADE_NAMES:   { get(){ return _SD().bladeNames    || {}; }},
+  WEAPON_PREFIXES:{ get(){ return _SD().weaponPrefixes|| []; }},
+  WEAPON_SUFFIXES:{ get(){ return _SD().weaponSuffixes|| []; }},
+  // Progression
+  ORDER_OATHS:   { get(){ return _SD().orderOaths    || {}; }},
+  OATH_BONUSES:  { get(){ return _SD().oathBonuses   || {}; }},
+  ADVANCEMENT:   { get(){ return _SD().advancement   || {}; }},
+  ORDER_IDEALS:  { get(){ return _SD().orderIdeals   || {}; }},
+});
 
 // ══ NON-DATA CONSTANTS (game engine config) ══
 const ATTR_POINTS_START=12;
@@ -330,10 +339,13 @@ async function progressOath(player){
   if(idx>=0)gState.players[idx]=player;
   if(myChar&&myChar.name===player.name){myChar=player;saveMyChar(player);}
   await saveAndBroadcast(gState);
-  const oathPrompt=`Cosmere RPG GM. OATH MOMENT for ${player.name} the ${player.className}.
+  const ctx = window.SystemData?.gmContext || {};
+  const sysName = ctx.systemName || 'RPG';
+  const magicName = ctx.magicName || 'power';
+  const oathPrompt=`${sysName} GM. OATH MOMENT for ${player.name} the ${player.className}.
 Oath ${newStage} of 5: "${oath}"
 ${getGenderContext()}
-Write 2-3 vivid sentences: ${player.name} speaks this Oath aloud — the Stormlight surging, the spren's reaction, the world responding. Make it feel earned and dramatic.
+Write 2-3 vivid sentences: ${player.name} speaks this Oath aloud — the ${magicName} surging, the world responding. Make it feel earned and dramatic.
 After, write: "NEW ABILITY UNLOCKED: ${bonus.desc}"`;
   setBottomLoading();
   try{
@@ -485,10 +497,12 @@ async function generateCombatChoices(player){
   const woundNote=player.hp<(player.maxHp||10)*0.4?`\n${player.name} is badly wounded (${player.hp}/${player.maxHp}HP) — this must show in at least one option.`:'';
   const injuryNote=(player.injuries&&player.injuries.length)?`\nActive injuries: ${player.injuries.map(i=>i.effect).join(', ')} — let this shape the choices.`:'';
 
-  const prompt=`You are writing 4 combat action choices for a Stormlight Archive RPG. These appear as buttons the player clicks.
+  const _ctx = window.SystemData?.gmContext || {};
+  const _sysLabel = _ctx.combatFlavor || _ctx.systemName || 'RPG';
+  const prompt=`You are writing 4 combat action choices for a ${_sysLabel} game. These appear as buttons the player clicks.
 
 ROUND ${round}. LOCATION: ${loc}.
-ACTING CHARACTER: ${player.name}, ${cls.name} (Oath ${player.oathStage||1}/5)${woundNote}${injuryNote}
+ACTING CHARACTER: ${player.name}, ${cls.name}${player.oathStage?' (Oath '+player.oathStage+'/5)':''}${woundNote}${injuryNote}
 ENEMIES: ${enemyDesc}
 ALLIES: ${partyDesc}
 RECENT CONTEXT: ${contextSnippet||'Combat just began.'}${surgesText}${abilitiesText}

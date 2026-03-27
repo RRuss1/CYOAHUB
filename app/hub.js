@@ -242,11 +242,18 @@ function renderCardImagePicker(){
   });
 }
 
+// Track all wopt selections by data-field
+const _wizSelections = {};
 function selOpt(el){
-  el.closest('.wopts').querySelectorAll('.wopt').forEach(o=>o.classList.remove('on'));
+  const group = el.closest('.wopts');
+  group.querySelectorAll('.wopt').forEach(o=>o.classList.remove('on'));
   el.classList.add('on');
+  // Store the selection by field name
+  const field = group.dataset.field;
+  if (field) _wizSelections[field] = el.dataset.val || el.textContent.trim();
   if(_ws===WS_MAX) updatePreview();
 }
+function _getWizSel(field, fallback) { return _wizSelections[field] || fallback || ''; }
 
 function syncColor(val){
   if(/^#[0-9A-Fa-f]{6}$/.test(val)){
@@ -265,18 +272,83 @@ function updatePreview(){
 
 function finishWizard(publish){
   const name   = document.getElementById('wiz-name')?.value.trim()||'My World';
+  const desc   = document.getElementById('wiz-desc')?.value.trim()||'';
   const color  = document.getElementById('cp')?.value||'#C9A84C';
   const tier   = publish?'community':'mine';
 
-  // Build worldConfig from wizard form
+  // Read all text inputs
+  const magicName     = document.getElementById('wiz-magic-name')?.value.trim()||'Magic';
+  const magicResource = document.getElementById('wiz-magic-resource')?.value.trim()||'Mana';
+  const factions      = document.getElementById('wiz-factions')?.value.trim()||'';
+  const locations     = document.getElementById('wiz-locations')?.value.trim()||'';
+  const conflict      = document.getElementById('wiz-conflict')?.value.trim()||'';
+  const lore          = document.getElementById('wiz-lore')?.value.trim()||'';
+
+  // Read all wopt selections
+  const tone          = _getWizSel('tone', 'Epic Heroic');
+  const era           = _getWizSel('era', 'Medieval');
+  const tech          = _getWizSel('tech', 'Swords & Shields');
+  const magicExists   = _getWizSel('magicExists', 'Yes — Common');
+  const magicSource   = _getWizSel('magicSource', 'Willpower / Inner Force');
+  const magicRisk     = _getWizSel('magicRisk', 'Moderate — Mishaps');
+  const statSystem    = _getWizSel('statSystem', 'dnd');
+  const progression   = _getWizSel('progression', 'Level-Based (XP)');
+  const namingStyle   = _getWizSel('namingStyle', 'Western Fantasy');
+  const narratorStyle = _getWizSel('narratorStyle', 'Epic & Mythic');
+  const combatFreq    = _getWizSel('combatFrequency', 'Moderate');
+  const storyFocus    = _getWizSel('storyFocus', 'Mixed');
+  const lethality     = _getWizSel('lethality', 'Balanced — Death is possible');
+  const npcDepth      = _getWizSel('npcDepth', 'Moderate — Personalities & motives');
+  const titleFont     = _getWizSel('titleFont', 'Cinzel');
+
+  // Parse locations into array
+  const locArray = locations ? locations.split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+  // Build GM lore string from all inputs
+  const gmLore = [
+    lore,
+    era !== 'Medieval' ? `Setting era: ${era}.` : '',
+    tech !== 'Swords & Shields' ? `Technology: ${tech}.` : '',
+    factions ? `Major factions: ${factions}.` : '',
+    conflict ? `Central conflict: ${conflict}.` : '',
+    namingStyle !== 'Western Fantasy' ? `Naming convention: ${namingStyle}.` : '',
+  ].filter(Boolean).join(' ') || `A ${tone.toLowerCase()} world of adventure and mystery.`;
+
+  // Build magic rules string
+  const magicRules = magicExists.startsWith('No')
+    ? 'There is no magic in this world. All power comes from skill, technology, or cunning.'
+    : `${magicName} is ${magicExists.toLowerCase().replace('yes — ','')}.
+It is powered by ${magicSource.toLowerCase()}. ${magicResource} is the resource spent to cast.
+Risk level: ${magicRisk.toLowerCase()}.`;
+
+  // Build tone instruction
+  const toneInstruction = `${tone} tone. ${narratorStyle} narration style. Story focus: ${storyFocus.toLowerCase()}. Combat frequency: ${combatFreq.toLowerCase()}. Lethality: ${lethality.toLowerCase()}. NPC depth: ${npcDepth.toLowerCase()}.`;
+
+  // Build worldConfig from ALL wizard form data
   const worldId = 'custom-' + Date.now();
   const worldConfig = {
     id: worldId,
     name,
-    tagline: name,
-    theme: { primary: color, secondary: '#28A87A', danger: '#B03828', bgTone: 'dark', titleFont: 'Cinzel', bodyFont: 'Crimson Pro' },
-    magic: { name: 'Magic', resource: 'Mana' },
-    gm: { worldName: name, tone: 'Epic fantasy' },
+    tagline: desc || name,
+    theme: { primary: color, secondary: '#28A87A', danger: '#B03828', bgTone: 'dark', titleFont: titleFont, bodyFont: 'Crimson Pro' },
+    magic: { name: magicName, resource: magicResource, source: magicSource, risk: magicRisk, exists: magicExists },
+    stats: statSystem === 'cosmere'
+      ? { keys:['str','spd','int','wil','awa','pre'], names:['STR','SPD','INT','WIL','AWA','PRE'], full:['Strength','Speed','Intellect','Willpower','Awareness','Presence'] }
+      : statSystem === 'simple'
+      ? { keys:['body','mind','spirit'], names:['BODY','MIND','SPIRIT'], full:['Body','Mind','Spirit'] }
+      : null, // null = use default (D&D stats)
+    gm: {
+      worldName: name,
+      worldLore: gmLore,
+      tone: toneInstruction,
+      npcFlavor: `${namingStyle} naming convention. NPC depth: ${npcDepth.toLowerCase()}.`,
+    },
+    locations: locArray,
+    factions,
+    conflict,
+    progression,
+    era,
+    tech,
     enemies: { categories: _selectedEnemyCategories },
     ambientAudio: _selectedAmbientAudio,
   };
