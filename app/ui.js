@@ -169,6 +169,18 @@ async function listCampaigns(){
   return camps;
 }
 
+// ══ FULL THEME DEFAULTS (must be before showScreen) ══
+const _THEME_DEFAULTS = {
+  primary:'#C9A84C', secondary:'#28A87A', danger:'#B03828',
+  bg:'#0f0d08', bg2:'#141109', bg3:'#1c1710', bg4:'#241e13',
+  border:'#2d2419', border2:'#3d3020', border3:'#5a4020',
+  text:'#F8F3E8', text2:'#F0E6CC', text3:'#DFC080', text4:'#A07830', text5:'#624e1f',
+  gold:'#C9A84C', goldMid:'#DFC080', goldBright:'#EFE4C8', goldDim:'#624e1f',
+  teal:'#1d7a5c', teal2:'#28a87a',
+  coral:'#b03828', coral2:'#d44e30',
+  glow:'rgba(201,168,76,0.15)',
+};
+
 // ══ SCREEN ROUTER ══
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -218,19 +230,6 @@ function showScreen(id){
   }
 
 // ══ FULL THEME INJECTION ══
-// Each system defines a complete color palette. This function maps it
-// to every CSS variable so the entire UI recolors instantly.
-const _THEME_DEFAULTS = {
-  primary:'#C9A84C', secondary:'#28A87A', danger:'#B03828',
-  bg:'#0f0d08', bg2:'#141109', bg3:'#1c1710', bg4:'#241e13',
-  border:'#2d2419', border2:'#3d3020', border3:'#5a4020',
-  text:'#F8F3E8', text2:'#F0E6CC', text3:'#DFC080', text4:'#A07830', text5:'#624e1f',
-  gold:'#C9A84C', goldMid:'#DFC080', goldBright:'#EFE4C8', goldDim:'#624e1f',
-  teal:'#1d7a5c', teal2:'#28a87a',
-  coral:'#b03828', coral2:'#d44e30',
-  glow:'rgba(201,168,76,0.15)',
-};
-
 function _applyFullTheme(sys) {
   const t = sys.theme || {};
   const tv = sys.themeVars || {}; // full palette override
