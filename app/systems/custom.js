@@ -27,6 +27,7 @@ window.CustomSystem = {
       subtitle: cfg.tagline || 'A Custom Adventure',
       tagline: cfg.tagline || '',
       glyph: '🌍',
+      ambientAudio: cfg.ambientAudio || 'forest',
 
       theme: {
         primary:   theme.primary   || '#C9A84C',

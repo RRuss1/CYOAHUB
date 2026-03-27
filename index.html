@@ -194,22 +194,6 @@
       </div>
     </div>
 
-    <!-- Community example: Grimdark Hinterlands -->
-    <div class="wcard" data-tier="community"
-         style="border-color:rgba(40,168,122,0.13);">
-      <div class="wcard-art">
-        <img src="GameCardImgs/Dragons.png" alt="Grimdark Hinterlands" class="wcard-img">
-      </div>
-      <div class="wcard-body">
-        <div class="wcard-badges"><span class="badge badge-community">🌐 Community</span></div>
-        <div class="wcard-name" style="color:#5acaaa">Grimdark Hinterlands</div>
-        <div class="wcard-desc">Ash and iron. Dark consequences. No heroes — only survivors.</div>
-        <div class="wcard-meta">★★★★☆ · Custom · Dark &amp; Gritty</div>
-        <button class="wcard-btn"
-          style="border-color:rgba(40,168,122,0.36);color:#5acaaa;">Play →</button>
-      </div>
-    </div>
-
     <!-- Add new tile -->
     <div class="wcard wcard-new" onclick="goTo('wizard')">
       <div class="new-plus">⊕</div>
@@ -325,13 +309,25 @@
       </div>
     </div>
 
-    <!-- Step 5 — Enemy Categories -->
+    <!-- Step 5 — Enemy Types & Ambient Audio -->
     <div class="wstep" id="ws-5">
-      <div class="wstep-eyebrow">Step 5 of 7 — Enemy Types</div>
-      <div class="wstep-title">What Lurks in Your World?</div>
-      <p class="wstep-desc" style="color:var(--amber2);opacity:.7;font-size:.88rem;margin-bottom:18px;">Select the enemy categories your world will use. The AI GM will draw from these pools during combat.</p>
-      <div class="enemy-cat-grid" id="enemy-cat-grid">
-        <!-- Populated dynamically by hub.js renderEnemyCategoryStep() -->
+      <div class="wstep-eyebrow">Step 5 of 7 — World Atmosphere</div>
+      <div class="wstep-title">What Lurks &amp; What You Hear</div>
+
+      <div class="wfield">
+        <label class="wlabel">Ambient Audio</label>
+        <p class="wstep-desc" style="color:var(--amber2);opacity:.6;font-size:.82rem;margin-bottom:10px;">Choose the soundscape players hear during gameplay.</p>
+        <div class="ambient-audio-grid" id="ambient-audio-grid">
+          <!-- Populated dynamically by hub.js renderAmbientAudioPicker() -->
+        </div>
+      </div>
+
+      <div class="wfield" style="margin-top:24px;">
+        <label class="wlabel">Enemy Categories</label>
+        <p class="wstep-desc" style="color:var(--amber2);opacity:.6;font-size:.82rem;margin-bottom:10px;">Select the enemy types the AI GM draws from during combat.</p>
+        <div class="enemy-cat-grid" id="enemy-cat-grid">
+          <!-- Populated dynamically by hub.js renderEnemyCategoryStep() -->
+        </div>
       </div>
     </div>
 
@@ -434,8 +430,8 @@
       style="background:var(--bg3);border-color:var(--border2);color:var(--text3)">🌐 EN</button>
   </div>
 
-  <div class="title-glyph">⟁</div>
-  <h1 class="title-h1">Stormlight Chronicles</h1>
+  <div class="title-glyph" id="camp-glyph">⟁</div>
+  <h1 class="title-h1" id="camp-title">Stormlight Chronicles</h1>
   <p class="title-h2"><span data-tr>Choose Your Adventure</span></p>
 
   <div id="thai-banner" class="hidden mt-2 px-4 py-1.5 rounded-full text-sm font-display tracking-widest"
@@ -505,11 +501,11 @@
      SCREEN: TITLE / PARTY SIZE
      ═══════════════════════════════════════════════════════ -->
 <div id="s-title" class="screen">
-  <div class="title-glyph">⟁</div>
-  <h1 class="title-h1">Stormlight Chronicles</h1>
+  <div class="title-glyph" id="title-glyph">⟁</div>
+  <h1 class="title-h1" id="title-name">Stormlight Chronicles</h1>
   <p class="title-h2" id="title-sub"><span data-tr>A Saga of the Shattered Plains</span></p>
   <div class="title-line"></div>
-  <p class="title-quote">"You must find the most important words a man can say."<cite>— The Way of Kings</cite></p>
+  <p class="title-quote" id="title-quote">"You must find the most important words a man can say."<cite>— The Way of Kings</cite></p>
 
   <div class="psz-wrap mb-6">
     <span class="block font-display text-xs tracking-widest uppercase mb-3" style="color:var(--text5)">
@@ -878,7 +874,7 @@
 
   <!-- Top bar -->
   <div class="game-top" id="game-top">
-    <span class="game-logo font-display text-xs tracking-widest uppercase" style="color:var(--text4)">
+    <span class="game-logo font-display text-xs tracking-widest uppercase" id="game-logo" style="color:var(--text4)">
       ⟁ Stormlight Chronicles
     </span>
     <div class="flex items-center gap-2">
@@ -894,7 +890,7 @@
 
   <!-- Thinking bar -->
   <div id="thinking-bar" style="display:none">
-    <span class="font-display text-xs tracking-widest uppercase" style="color:var(--gold)">⟁ The Stormfather deliberates</span>
+    <span class="font-display text-xs tracking-widest uppercase" id="thinking-label" style="color:var(--gold)">⟁ The Stormfather deliberates</span>
     <span class="inline-flex gap-1.5 ml-3 align-middle">
       <span class="pulse-dot" style="animation-delay:0s"></span>
       <span class="pulse-dot" style="animation-delay:0.2s"></span>
@@ -911,7 +907,7 @@
 
       <!-- Print header (hidden) -->
       <div id="print-header">
-        <div style="font-size:24pt;font-weight:bold">⟁ Stormlight Chronicles</div>
+        <div style="font-size:24pt;font-weight:bold" id="print-title">⟁ Stormlight Chronicles</div>
         <div id="print-campaign-name" style="font-size:14pt;color:#555"></div>
         <div id="print-date" style="font-size:10pt;color:#888"></div>
       </div>

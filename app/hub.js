@@ -150,6 +150,7 @@ function filterWorlds(tier,btn){
 let _ws=1;
 const WS_MAX=7;
 let _selectedEnemyCategories = ['undead','beasts','goblinoids','humanEnemies']; // defaults
+let _selectedAmbientAudio = 'forest'; // default for custom worlds
 
 function wizStep(dir){
   const n=_ws+dir;
@@ -170,8 +171,29 @@ function renderStep(){
   document.getElementById('wiz-back-btn').style.visibility=_ws>1?'visible':'hidden';
   document.getElementById('wiz-nav').style.display=_ws<WS_MAX?'flex':'none';
   gsap.fromTo('#ws-'+_ws,{opacity:0,x:16},{opacity:1,x:0,duration:.26,ease:'power2.out'});
-  if(_ws===5) renderEnemyCategoryStep();
+  if(_ws===5) { renderAmbientAudioPicker(); renderEnemyCategoryStep(); }
   if(_ws===WS_MAX) { renderCardImagePicker(); updatePreview(); }
+}
+
+/* ── AMBIENT AUDIO PICKER ── */
+function renderAmbientAudioPicker(){
+  const grid = document.getElementById('ambient-audio-grid');
+  if(!grid || grid.children.length) return;
+  const registry = window.AMBIENT_AUDIO_REGISTRY || [];
+  registry.forEach(a => {
+    const selected = a.id === _selectedAmbientAudio;
+    const el = document.createElement('div');
+    el.className = 'ambient-opt' + (selected ? ' selected' : '');
+    el.dataset.id = a.id;
+    el.innerHTML = `<span class="ambient-icon">${a.icon}</span><span class="ambient-label">${a.label}</span>`;
+    el.title = a.desc;
+    el.onclick = () => {
+      grid.querySelectorAll('.ambient-opt').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      _selectedAmbientAudio = a.id;
+    };
+    grid.appendChild(el);
+  });
 }
 
 /* ── ENEMY CATEGORY STEP ── */
@@ -256,6 +278,7 @@ function finishWizard(publish){
     magic: { name: 'Magic', resource: 'Mana' },
     gm: { worldName: name, tone: 'Epic fantasy' },
     enemies: { categories: _selectedEnemyCategories },
+    ambientAudio: _selectedAmbientAudio,
   };
   // Store config for system loader
   window._pendingWorldConfig = worldConfig;
@@ -340,6 +363,39 @@ function pickWorld(worldId) {
     gState.system = worldId;
     gState.worldId = worldId;
   }
+  // Populate dynamic screen titles from active system
+  const sys = window.SystemData || {};
+  const glyph = sys.glyph || '⟁';
+  const name = sys.name || worldId;
+  const sub = sys.subtitle || '';
+  const tag = sys.tagline || '';
+  const thinkLabel = worldId === 'dnd5e' ? '⚔ The Dungeon Master deliberates'
+                   : worldId === 'stormlight' ? '⟁ The Stormfather deliberates'
+                   : glyph + ' The GM deliberates';
+  // Campaign screen
+  const campGlyph = document.getElementById('camp-glyph');
+  const campTitle = document.getElementById('camp-title');
+  if (campGlyph) campGlyph.textContent = glyph;
+  if (campTitle) campTitle.textContent = name;
+  // Title screen
+  const titleGlyph = document.getElementById('title-glyph');
+  const titleName = document.getElementById('title-name');
+  const titleSub = document.getElementById('title-sub');
+  const titleQuote = document.getElementById('title-quote');
+  if (titleGlyph) titleGlyph.textContent = glyph;
+  if (titleName) titleName.textContent = name;
+  if (titleSub) titleSub.innerHTML = `<span data-tr>${sub}</span>`;
+  if (titleQuote && tag) titleQuote.innerHTML = `${tag}`;
+  // Game screen header
+  const gameLogo = document.getElementById('game-logo');
+  if (gameLogo) gameLogo.textContent = glyph + ' ' + name;
+  // Thinking bar
+  const thinkEl = document.getElementById('thinking-label');
+  if (thinkEl) thinkEl.textContent = thinkLabel;
+  // Print header
+  const printTitle = document.getElementById('print-title');
+  if (printTitle) printTitle.textContent = glyph + ' ' + name;
+
   window.location.hash = '#campaign';
   showScreen('campaign');
 }

@@ -14,6 +14,7 @@ window.StormlightSystem = {
   subtitle: 'A Saga of the Shattered Plains',
   tagline: '"Life before death. Strength before weakness. Journey before destination."',
   glyph: '⟁',
+  ambientAudio: 'storm',
 
   // ── Theme tokens ──────────────────────────────────────────────────────
   theme: {

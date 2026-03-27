@@ -13,6 +13,7 @@ window.DnD5eSystem = {
   subtitle: 'Adventures in the Forgotten Realms',
   tagline: '"Roll for initiative."',
   glyph: '⚔',
+  ambientAudio: 'forge',
 
   // ── Theme tokens ──────────────────────────────────────────────────────
   theme: {

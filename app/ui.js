@@ -191,6 +191,13 @@ function showScreen(id){
     el.style.display = isHub ? '' : 'none';
   });
 
+  // Audio bar only visible in game/combat screens (not hub or campaign)
+  const audioBar = document.getElementById('audio-bar');
+  if (audioBar) {
+    const isGame = ['game','combat'].includes(id);
+    audioBar.style.display = isGame ? '' : 'none';
+  }
+
   // GSAP transition for hub screens
   if (isHub && typeof gsap !== 'undefined') {
     gsap.fromTo(target,
@@ -1474,48 +1481,117 @@ async function generateTLDR(storyText){
   }catch(e){el.textContent='Summary unavailable.';}
 }
 
-// ══ SPREN SVG COMPANIONS ══
-function getSprenSVG(classId, bond, isHero, roleName){
-  if(isHero){
-    const roleIcons={
-      soldier:`<svg class="spren-svg" viewBox="0 0 44 44" style="color:#c44a28;animation:heroZoom 3s ease-in-out infinite,heroPulse 3s ease-in-out infinite;"><text x="22" y="30" text-anchor="middle" font-size="22" fill="currentColor">⚔</text></svg>`,
-      scholar:`<svg class="spren-svg" viewBox="0 0 44 44" style="color:#5a9e8f;animation:heroZoom 3.5s ease-in-out infinite,heroPulse 3.5s ease-in-out infinite;"><text x="22" y="30" text-anchor="middle" font-size="22" fill="currentColor">📜</text></svg>`,
-      merchant:`<svg class="spren-svg" viewBox="0 0 44 44" style="color:#BA7517;animation:heroZoom 4s ease-in-out infinite,heroPulse 4s ease-in-out infinite;"><text x="22" y="30" text-anchor="middle" font-size="22" fill="currentColor">💎</text></svg>`,
-      horneater:`<svg class="spren-svg" viewBox="0 0 44 44" style="color:#888;animation:heroZoom 2.5s ease-in-out infinite,heroPulse 2.5s ease-in-out infinite;"><text x="22" y="30" text-anchor="middle" font-size="22" fill="currentColor">🏔</text></svg>`,
-      herdazian:`<svg class="spren-svg" viewBox="0 0 44 44" style="color:#7a6e5a;animation:heroZoom 3s ease-in-out infinite,heroPulse 3s ease-in-out infinite;"><text x="22" y="30" text-anchor="middle" font-size="22" fill="currentColor">🗡</text></svg>`,
-      shin:`<svg class="spren-svg" viewBox="0 0 44 44" style="color:#8fa870;animation:heroZoom 4s ease-in-out infinite,heroPulse 4s ease-in-out infinite;"><text x="22" y="30" text-anchor="middle" font-size="22" fill="currentColor">🌾</text></svg>`,
-      worldsinger:`<svg class="spren-svg" viewBox="0 0 44 44" style="color:#9b7bb8;animation:heroZoom 3.5s ease-in-out infinite,heroPulse 3.5s ease-in-out infinite;"><text x="22" y="30" text-anchor="middle" font-size="22" fill="currentColor">🎵</text></svg>`,
-      custom:`<svg class="spren-svg" viewBox="0 0 44 44" style="color:#a09080;animation:heroZoom 3s ease-in-out infinite,heroPulse 3s ease-in-out infinite;"><text x="22" y="30" text-anchor="middle" font-size="22" fill="currentColor">✦</text></svg>`,
-    };
-    const roleId=(roleName||'').toLowerCase().replace(/\s+/g,'').replace('alethli','soldier').replace('alethi','soldier').replace('kharbranth','scholar').replace('thaylen','merchant').replace('horneater','horneater').replace('herdazian','herdazian').replace('shin','shin').replace('worldsinger','worldsinger');
-    return roleIcons[roleId]||roleIcons[classId]||roleIcons.custom;
+// ══ SPREN / COMPANION IMAGES ══
+// Radiant classId → specific spren image file
+const SPREN_IMG_MAP = {
+  windrunner:   'CompanionOrIcon/Spren/Honor Spren.jpg',
+  skybreaker:   'CompanionOrIcon/Spren/High Spren.jpg',
+  dustbringer:  'CompanionOrIcon/Spren/Ash Spren.jpg',
+  edgedancer:   'CompanionOrIcon/Spren/Cultivation Spren.jpg',
+  truthwatcher: 'CompanionOrIcon/Spren/Mist Spren.jpg',
+  lightweaver:  'CompanionOrIcon/Spren/Creation Spren.jpg',
+  willshaper:   'CompanionOrIcon/Spren/Light Spren.jpg',
+  elsecaller:   'CompanionOrIcon/Spren/Ink Spren.jpg',
+  stoneward:    'CompanionOrIcon/Spren/PeakSpren.jpg',
+  bondsmith:    'CompanionOrIcon/Spren/Bind Spren.jpg',
+};
+
+// Hero (non-Radiant) random pool — all images NOT in the class map
+const HERO_SPREN_POOL = [
+  'CompanionOrIcon/Spren/Ale Spren.jpg',
+  'CompanionOrIcon/Spren/Anxiety Spren.jpg',
+  'CompanionOrIcon/Spren/Awe Spren.jpg',
+  'CompanionOrIcon/Spren/Cold Spren.jpg',
+  'CompanionOrIcon/Spren/Exaustion Spren.jpg',
+  'CompanionOrIcon/Spren/Fear Spren.jpg',
+  'CompanionOrIcon/Spren/Flame Spren.jpg',
+  'CompanionOrIcon/Spren/Glory Spren.jpg',
+  'CompanionOrIcon/Spren/Life Spren.jpg',
+  'CompanionOrIcon/Spren/Music Spren.jpg',
+  'CompanionOrIcon/Spren/Pain Spren.jpg',
+  'CompanionOrIcon/Spren/Rain Spren.jpg',
+  'CompanionOrIcon/Spren/Rot Spren.jpg',
+  'CompanionOrIcon/Spren/Star Spren.jpg',
+  'CompanionOrIcon/Spren/anger Spren.jpg',
+  'CompanionOrIcon/Spren/wind Spren.jpg',
+];
+
+// Deterministic random pick based on player name (stable across renders)
+function _heroSprenForName(name) {
+  let hash = 0;
+  for (let i = 0; i < (name||'').length; i++) hash = ((hash << 5) - hash) + name.charCodeAt(i);
+  return HERO_SPREN_POOL[Math.abs(hash) % HERO_SPREN_POOL.length];
+}
+
+// ── D&D CLASS → IMAGE MAP ──
+const DND_CLASS_IMG_MAP = {
+  cleric:  'CompanionOrIcon/DnDClasses/Cleric.jpg',
+  fighter: 'CompanionOrIcon/DnDClasses/Fighter.jpg',
+  rogue:   'CompanionOrIcon/DnDClasses/Rogue.jpg',
+  wizard:  'CompanionOrIcon/DnDClasses/Wizard.jpg',
+};
+
+// D&D BACKGROUND → IMAGE MAP (hero/non-class path)
+const DND_BG_IMG_MAP = {
+  acolyte:  'CompanionOrIcon/DnDClasses/Acolyte.jpg',
+  criminal: 'CompanionOrIcon/DnDClasses/Criminal.jpg',
+  folkHero: 'CompanionOrIcon/DnDClasses/Folk Hero.jpg',
+  noble:    'CompanionOrIcon/DnDClasses/Noble.jpg',
+  sage:     'CompanionOrIcon/DnDClasses/Sage.jpg',
+  soldier:  'CompanionOrIcon/DnDClasses/Soldier.jpg',
+};
+
+// All D&D images as fallback pool
+const DND_IMG_POOL = [
+  ...Object.values(DND_CLASS_IMG_MAP),
+  ...Object.values(DND_BG_IMG_MAP),
+];
+
+function getSprenSVG(classId, bond, isHero, roleName) {
+  const sys = (gState && gState.system) || 'stormlight';
+
+  // ── Stormlight: spren images ──
+  if (sys === 'stormlight') {
+    if (isHero) {
+      const img = _heroSprenForName(roleName || classId || 'hero');
+      return `<img class="spren-img" src="${img}" alt="Spren">`;
+    }
+    const mapped = SPREN_IMG_MAP[classId];
+    if (mapped) return `<img class="spren-img" src="${mapped}" alt="${classId} Spren">`;
   }
 
-  if(!bond)return'';
-  const col=bond.color||'#aaa';
+  // ── D&D 5e: class/background images ──
+  if (sys === 'dnd5e') {
+    // Radiant path (class) → class image
+    if (!isHero && DND_CLASS_IMG_MAP[classId]) {
+      return `<img class="spren-img" src="${DND_CLASS_IMG_MAP[classId]}" alt="${classId}">`;
+    }
+    // Hero path (background) → background image
+    if (isHero) {
+      const bgKey = (roleName || '').replace(/\s+/g, '');
+      // Try exact match, then lowercase, then fuzzy
+      const bgImg = DND_BG_IMG_MAP[bgKey] || DND_BG_IMG_MAP[bgKey.toLowerCase()]
+        || DND_BG_IMG_MAP[(classId||'').toLowerCase()];
+      if (bgImg) return `<img class="spren-img" src="${bgImg}" alt="${roleName}">`;
+      // Fallback: deterministic random from full pool
+      const img = DND_IMG_POOL[Math.abs(_hashStr(roleName || classId || 'hero')) % DND_IMG_POOL.length];
+      return `<img class="spren-img" src="${img}" alt="Companion">`;
+    }
+    // Class image fallback
+    if (DND_CLASS_IMG_MAP[classId]) return `<img class="spren-img" src="${DND_CLASS_IMG_MAP[classId]}" alt="${classId}">`;
+    // Last resort: random from pool
+    const img = DND_IMG_POOL[Math.abs(_hashStr(classId || 'dnd')) % DND_IMG_POOL.length];
+    return `<img class="spren-img" src="${img}" alt="Companion">`;
+  }
 
-  const svgs={
-    windrunner:`<svg class="spren-svg" viewBox="0 0 44 44"><path d="M6 32 C10 26 14 20 18 16 C22 12 28 10 36 12" stroke="${col}" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="38 4" style="animation:flowRibbon 1.8s linear infinite;"/><path d="M4 36 C9 29 14 24 20 20 C26 15 32 14 38 16" stroke="${col}" stroke-width="1" fill="none" stroke-linecap="round" stroke-dasharray="42 6" opacity="0.45" style="animation:flowRibbon 2.4s linear infinite 0.6s;"/><path d="M8 28 C12 24 16 20 20 18" stroke="${col}" stroke-width="0.7" fill="none" stroke-linecap="round" opacity="0.25" stroke-dasharray="18 4" style="animation:flowRibbon 1.4s linear infinite 0.3s;"/></svg>`,
+  // ── Custom/other systems: no companion image ──
+  return '';
+}
 
-    lightweaver:`<svg class="spren-svg" viewBox="0 0 44 44"><g style="transform-origin:22px 22px;animation:spinSlow 8s linear infinite;"><polygon points="22,6 26,16 38,16 28,23 32,34 22,27 12,34 16,23 6,16 18,16" stroke="${col}" stroke-width="1.2" fill="none" opacity="0.8"/></g><g style="transform-origin:22px 22px;animation:spinSlowRev 5s linear infinite;"><polygon points="22,11 25,18 33,18 27,22 29,30 22,26 15,30 17,22 11,18 19,18" stroke="${col}" stroke-width="0.8" fill="${col}" fill-opacity="0.08"/></g><circle cx="22" cy="22" r="2.5" fill="${col}" opacity="0.7" style="animation:orbDrift 3s ease-in-out infinite;"/></svg>`,
-
-    edgedancer:`<svg class="spren-svg" viewBox="0 0 44 44"><path d="M22 38 Q18 30 20 22 Q21 16 22 10" stroke="${col}" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-dasharray="30 4" style="animation:vineGrow 2.2s ease-in-out infinite;"/><path d="M22 28 Q16 24 14 20" stroke="${col}" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7" style="animation:vineGrow 2.2s ease-in-out infinite 0.4s;"/><path d="M22 22 Q28 18 30 14" stroke="${col}" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.7" style="animation:vineGrow 2.2s ease-in-out infinite 0.8s;"/><circle cx="22" cy="10" r="2" fill="${col}" opacity="0.9"/><circle cx="14" cy="20" r="1.5" fill="${col}" opacity="0.6"/><circle cx="30" cy="14" r="1.5" fill="${col}" opacity="0.6"/></svg>`,
-
-    stoneward:`<svg class="spren-svg" viewBox="0 0 44 44"><polygon points="22,6 30,14 34,24 28,34 16,34 10,24 14,14" stroke="${col}" stroke-width="1.5" fill="${col}" fill-opacity="0.08" style="animation:starRay 3s ease-in-out infinite;"/><polygon points="22,12 27,18 29,24 25,30 19,30 15,24 17,18" stroke="${col}" stroke-width="1" fill="${col}" fill-opacity="0.12" style="animation:starRay 3s ease-in-out infinite 0.5s;"/><circle cx="22" cy="22" r="3" fill="${col}" opacity="0.5" style="animation:orbDrift 4s ease-in-out infinite;"/></svg>`,
-
-    elsecaller:`<svg class="spren-svg" viewBox="0 0 44 44"><circle cx="22" cy="22" r="12" stroke="${col}" stroke-width="1.2" fill="none" opacity="0.3" stroke-dasharray="4 2" style="animation:spinSlow 6s linear infinite;"/><circle cx="22" cy="22" r="7" stroke="${col}" stroke-width="1.5" fill="none" opacity="0.6" style="animation:spinSlowRev 4s linear infinite;"/><circle cx="22" cy="22" r="2" fill="${col}" opacity="0.9"/><circle cx="32" cy="22" r="2" fill="${col}" opacity="0.8" style="transform-origin:22px 22px;animation:spinSlow 3s linear infinite;"/></svg>`,
-
-    truthwatcher:`<svg class="spren-svg" viewBox="0 0 44 44"><g style="transform-origin:22px 22px;animation:starRay 2s ease-in-out infinite;"><line x1="22" y1="6" x2="22" y2="38" stroke="${col}" stroke-width="0.8" opacity="0.3"/><line x1="6" y1="22" x2="38" y2="22" stroke="${col}" stroke-width="0.8" opacity="0.3"/><line x1="10" y1="10" x2="34" y2="34" stroke="${col}" stroke-width="0.6" opacity="0.2"/><line x1="34" y1="10" x2="10" y2="34" stroke="${col}" stroke-width="0.6" opacity="0.2"/></g><polygon points="22,8 24.5,16 33,16 26.5,21 29,29 22,24 15,29 17.5,21 11,16 19.5,16" stroke="${col}" stroke-width="1.3" fill="${col}" fill-opacity="0.1" style="animation:starRay 2s ease-in-out infinite 0.3s;"/></svg>`,
-
-    willshaper:`<svg class="spren-svg" viewBox="0 0 44 44"><ellipse cx="22" cy="22" rx="14" ry="6" stroke="${col}" stroke-width="1.2" fill="none" opacity="0.5" style="transform-origin:22px 22px;animation:spinSlow 3s linear infinite;"/><ellipse cx="22" cy="22" rx="10" ry="14" stroke="${col}" stroke-width="1" fill="none" opacity="0.4" style="transform-origin:22px 22px;animation:spinSlowRev 4s linear infinite;"/><circle cx="22" cy="22" r="2.5" fill="${col}" opacity="0.8" style="animation:orbDrift 2s ease-in-out infinite;"/></svg>`,
-
-    dustbringer:`<svg class="spren-svg" viewBox="0 0 44 44"><ellipse cx="22" cy="30" rx="6" ry="4" fill="#ff4400" fill-opacity="0.5" style="animation:firePulse 0.8s ease-in-out infinite;"/><path d="M16 30 Q18 22 22 14 Q26 22 28 30" fill="${col}" fill-opacity="0.7" stroke="none" style="animation:firePulse 0.9s ease-in-out infinite;"/><path d="M18 30 Q20 24 22 18 Q24 24 26 30" fill="#ffaa22" fill-opacity="0.6" stroke="none" style="animation:firePulse 0.7s ease-in-out infinite 0.1s;"/><circle cx="14" cy="20" r="1.2" fill="${col}" style="animation:sparkFloat 1.5s ease-out infinite;"/><circle cx="30" cy="24" r="1" fill="#ffcc44" style="animation:sparkFloat 1.8s ease-out infinite 0.4s;"/><circle cx="20" cy="16" r="0.8" fill="#ff8800" style="animation:sparkFloat 1.2s ease-out infinite 0.7s;"/></svg>`,
-
-    bondsmith:`<svg class="spren-svg" viewBox="0 0 44 44"><circle cx="14" cy="22" r="8" stroke="${col}" stroke-width="1.5" fill="none" style="animation:linkPulse 2s ease-in-out infinite;"/><circle cx="30" cy="22" r="8" stroke="${col}" stroke-width="1.5" fill="none" style="animation:linkPulse 2s ease-in-out infinite 0.5s;"/><line x1="19" y1="22" x2="25" y2="22" stroke="${col}" stroke-width="2" style="animation:linkPulse 2s ease-in-out infinite 0.25s;"/><circle cx="14" cy="22" r="3" fill="${col}" fill-opacity="0.3" style="animation:orbDrift 3s ease-in-out infinite;"/><circle cx="30" cy="22" r="3" fill="${col}" fill-opacity="0.3" style="animation:orbDrift 3s ease-in-out infinite 1s;"/></svg>`,
-
-    skybreaker:`<svg class="spren-svg" viewBox="0 0 44 44"><g style="transform-origin:22px 22px;animation:spinSlow 10s linear infinite;"><polygon points="22,4 24.5,14 35,14 27,20 30,30 22,24 14,30 17,20 9,14 19.5,14" fill="${col}" fill-opacity="0.12"/><polygon points="22,4 24.5,14 35,14 27,20 30,30 22,24 14,30 17,20 9,14 19.5,14" stroke="${col}" stroke-width="1.3" fill="none"/></g><circle cx="22" cy="22" r="3" fill="${col}" opacity="0.6" style="animation:starRay 2.5s ease-in-out infinite;"/></svg>`,
-  };
-  return svgs[classId]||'';
+function _hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < (s||'').length; i++) h = ((h << 5) - h) + s.charCodeAt(i);
+  return h;
 }
 
 // ══ HP ANIMATION ══
@@ -2555,21 +2631,73 @@ function stormIntensify(intense=true){
   if(audioNodes.rain)audioNodes.rain.g.gain.linearRampToValueAtTime(0.06*ramp,now+time);
 }
 
+// ── AMBIENT AUDIO PRESETS ──────────────────────────────────
+// Each preset configures the procedural audio engine differently.
+// All use the same mkWind/mkRain/mkThunder/mkHum primitives.
+const AMBIENT_PRESETS = {
+  storm:      { icon:'🌩', label:'STORM',     desc:'Howling highstorm winds, rain, and thunder',
+    setup(){ audioNodes.w1=mkWind(380,0.11,0.07,-0.3); audioNodes.w2=mkWind(780,0.07,0.12,0.3); audioNodes.w3=mkWind(180,0.14,0.04,0.0); audioNodes.w4=mkWind(1200,0.04,0.18,-0.6); audioNodes.rain=mkRain(0.055); audioNodes.thunder=mkThunder(); audioNodes.hum=mkHum(); }},
+  forge:      { icon:'🔥', label:'FORGE',     desc:'Blacksmith anvil, bellows, crackling fire',
+    setup(){ audioNodes.w1=mkWind(120,0.06,0.03,0.0); audioNodes.w2=mkWind(2200,0.03,0.08,-0.4); audioNodes.w3=mkWind(1800,0.02,0.10,0.4); audioNodes.w4=mkWind(90,0.05,0.02,0.0); audioNodes.rain=mkRain(0.02); audioNodes.hum=mkHum(); }},
+  ocean:      { icon:'🌊', label:'OCEAN',     desc:'Rolling waves, distant gulls, sea breeze',
+    setup(){ audioNodes.w1=mkWind(180,0.10,0.015,0.0); audioNodes.w2=mkWind(420,0.06,0.02,0.3); audioNodes.w3=mkWind(90,0.12,0.01,-0.2); audioNodes.w4=mkWind(3000,0.015,0.04,0.5); audioNodes.rain=mkRain(0.015); audioNodes.hum=mkHum(); }},
+  forest:     { icon:'🌲', label:'FOREST',    desc:'Wind through leaves, birdsong, rustling',
+    setup(){ audioNodes.w1=mkWind(600,0.05,0.04,-0.3); audioNodes.w2=mkWind(1400,0.03,0.06,0.4); audioNodes.w3=mkWind(200,0.04,0.02,0.0); audioNodes.w4=mkWind(2800,0.02,0.08,-0.5); audioNodes.rain=mkRain(0.01); audioNodes.hum=mkHum(); }},
+  dungeon:    { icon:'🕯', label:'DUNGEON',   desc:'Dripping water, echoing stone, distant moans',
+    setup(){ audioNodes.w1=mkWind(60,0.08,0.01,0.0); audioNodes.w2=mkWind(3200,0.02,0.12,-0.6); audioNodes.w3=mkWind(1600,0.015,0.08,0.5); audioNodes.w4=mkWind(45,0.06,0.01,0.0); audioNodes.rain=mkRain(0.03); }},
+  tavern:     { icon:'🍺', label:'TAVERN',    desc:'Warm fire, murmuring crowd, clinking mugs',
+    setup(){ audioNodes.w1=mkWind(160,0.07,0.03,0.0); audioNodes.w2=mkWind(800,0.03,0.05,-0.3); audioNodes.w3=mkWind(1200,0.02,0.06,0.4); audioNodes.w4=mkWind(100,0.04,0.02,0.0); audioNodes.rain=mkRain(0.02); audioNodes.hum=mkHum(); }},
+  desert:     { icon:'🏜', label:'DESERT',    desc:'Dry wind, shifting sand, scorching silence',
+    setup(){ audioNodes.w1=mkWind(500,0.09,0.06,-0.2); audioNodes.w2=mkWind(1100,0.04,0.09,0.3); audioNodes.w3=mkWind(250,0.06,0.03,0.0); audioNodes.w4=mkWind(2000,0.02,0.05,0.5); }},
+  arctic:     { icon:'❄', label:'ARCTIC',    desc:'Howling blizzard, creaking ice, frozen silence',
+    setup(){ audioNodes.w1=mkWind(320,0.13,0.08,-0.4); audioNodes.w2=mkWind(900,0.08,0.14,0.3); audioNodes.w3=mkWind(150,0.10,0.05,0.0); audioNodes.w4=mkWind(1500,0.05,0.20,-0.5); audioNodes.rain=mkRain(0.04); }},
+  jungle:     { icon:'🌴', label:'JUNGLE',    desc:'Humid buzz, insects, dripping canopy, distant calls',
+    setup(){ audioNodes.w1=mkWind(400,0.04,0.05,0.0); audioNodes.w2=mkWind(2600,0.03,0.10,-0.4); audioNodes.w3=mkWind(3400,0.025,0.12,0.5); audioNodes.w4=mkWind(180,0.05,0.03,0.0); audioNodes.rain=mkRain(0.035); audioNodes.hum=mkHum(); }},
+  volcanic:   { icon:'🌋', label:'VOLCANIC',  desc:'Deep rumbling, hissing vents, molten glow',
+    setup(){ audioNodes.w1=mkWind(55,0.14,0.02,0.0); audioNodes.w2=mkWind(40,0.10,0.015,-0.2); audioNodes.w3=mkWind(800,0.04,0.06,0.3); audioNodes.w4=mkWind(2400,0.02,0.08,0.5); audioNodes.rain=mkRain(0.025); audioNodes.thunder=mkThunder(); }},
+  cathedral:  { icon:'⛪', label:'CATHEDRAL', desc:'Reverberant hum, distant bells, sacred stillness',
+    setup(){ audioNodes.w1=mkWind(110,0.03,0.01,0.0); audioNodes.w2=mkWind(440,0.02,0.03,-0.3); audioNodes.w3=mkWind(660,0.015,0.02,0.3); audioNodes.hum=mkHum(); }},
+  battlefield:{ icon:'⚔', label:'BATTLE',    desc:'Distant war drums, marching, horns on the wind',
+    setup(){ audioNodes.w1=mkWind(80,0.10,0.04,0.0); audioNodes.w2=mkWind(260,0.06,0.05,-0.3); audioNodes.w3=mkWind(520,0.04,0.03,0.3); audioNodes.w4=mkWind(1000,0.03,0.07,0.0); audioNodes.rain=mkRain(0.02); audioNodes.thunder=mkThunder(); }},
+  cosmic:     { icon:'✨', label:'COSMIC',    desc:'Ethereal drones, shimmering tones, vast emptiness',
+    setup(){ audioNodes.w1=mkWind(60,0.06,0.008,0.0); audioNodes.w2=mkWind(220,0.04,0.012,-0.4); audioNodes.w3=mkWind(330,0.03,0.015,0.4); audioNodes.hum=mkHum(); }},
+  swamp:      { icon:'🐸', label:'SWAMP',     desc:'Bubbling muck, croaking, thick humid drone',
+    setup(){ audioNodes.w1=mkWind(140,0.07,0.03,0.0); audioNodes.w2=mkWind(1800,0.025,0.09,-0.4); audioNodes.w3=mkWind(2400,0.02,0.07,0.5); audioNodes.w4=mkWind(70,0.05,0.02,0.0); audioNodes.rain=mkRain(0.03); }},
+  clockwork:  { icon:'⚙', label:'CLOCKWORK', desc:'Mechanical ticking, steam hiss, grinding gears',
+    setup(){ audioNodes.w1=mkWind(2000,0.03,0.14,-0.3); audioNodes.w2=mkWind(3000,0.025,0.18,0.3); audioNodes.w3=mkWind(100,0.05,0.03,0.0); audioNodes.w4=mkWind(4000,0.02,0.20,-0.5); audioNodes.rain=mkRain(0.02); }},
+};
+
+// Registry for wizard UI
+window.AMBIENT_AUDIO_REGISTRY = Object.entries(AMBIENT_PRESETS).map(([id, p]) => ({
+  id, icon: p.icon, label: p.label, desc: p.desc
+}));
+
 function startAudio(){
   initAudio();
   if(!audioCtx)return;
   if(audioCtx.state==='suspended')audioCtx.resume();
-  _noiseBuf=null; // reset shared buffer
-  audioNodes.w1=mkWind(380,0.11,0.07,-0.3);   // low howl, left
-  audioNodes.w2=mkWind(780,0.07,0.12, 0.3);   // mid whistle, right
-  audioNodes.w3=mkWind(180,0.14,0.04, 0.0);   // deep rumble, center
-  audioNodes.w4=mkWind(1200,0.04,0.18,-0.6);  // high shriek, far left
-  audioNodes.rain=mkRain(0.055);
-  audioNodes.thunder=mkThunder();
-  audioNodes.hum=mkHum();
+  _noiseBuf=null;
+
+  // Determine which ambient preset to use
+  const sysData = window.SystemData || {};
+  let presetId = sysData.ambientAudio || 'storm';
+  if (!AMBIENT_PRESETS[presetId]) presetId = 'storm';
+  const preset = AMBIENT_PRESETS[presetId];
+
+  preset.setup();
   audioOn=true;
-  document.getElementById('audio-toggle').textContent='🌩';
-  document.getElementById('audio-label').textContent='STORM';
+
+  // Theme the audio bar
+  const toggle = document.getElementById('audio-toggle');
+  const label = document.getElementById('audio-label');
+  if (toggle) toggle.textContent = preset.icon;
+  if (label) label.textContent = preset.label;
+
+  // Apply system theme color to audio bar
+  const bar = document.getElementById('audio-bar');
+  if (bar && sysData.theme && sysData.theme.primary) {
+    bar.style.borderColor = sysData.theme.primary + '30';
+  }
 }
 function stopAudio(){
   if(!audioCtx)return;

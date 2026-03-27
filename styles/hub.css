@@ -44,7 +44,8 @@
 #hub-particles {
   position: fixed;
   inset: 0;
-  z-index: 3;
+  z-index: 6;
+  pointer-events: none;
   pointer-events: none;
 }
 
@@ -780,6 +781,30 @@
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.18); border-radius: 2px; }
+
+/* ── AMBIENT AUDIO PICKER ── */
+.ambient-audio-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ambient-opt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid rgba(201,168,76,0.15);
+  border-radius: 20px;
+  background: rgba(201,168,76,0.04);
+  cursor: pointer;
+  transition: all .2s;
+  user-select: none;
+}
+.ambient-opt:hover { border-color: rgba(201,168,76,0.35); background: rgba(201,168,76,0.08); }
+.ambient-opt.selected { border-color: var(--gold, #C9A84C); background: rgba(201,168,76,0.14); box-shadow: 0 0 12px rgba(201,168,76,0.12); }
+.ambient-icon { font-size: 1.1rem; }
+.ambient-label { font-family: var(--font-title, 'Cinzel', serif); font-size: .75rem; color: var(--amber2, #DFC080); letter-spacing: 1px; }
 
 /* ── ENEMY CATEGORY GRID ── */
 .enemy-cat-grid {
