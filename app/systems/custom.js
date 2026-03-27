@@ -43,9 +43,15 @@ window.CustomSystem = {
     const name = cfg.name || 'Custom World';
     const theme = cfg.theme || {};
     const magic = cfg.magic || {};
-    const stats = cfg.stats || {};
     const gm = cfg.gm || {};
     const enemies = cfg.enemies || {};
+
+    // Derive a darken/lighten helper for generating themeVars from primary color
+    const _hex = (h) => { const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); return [r,g,b]; };
+    const _toHex = (r,g,b) => '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+    const _mix = (c,factor) => { const [r,g,b]=_hex(c||'#28a8a0'); return _toHex(r*factor,g*factor,b*factor); };
+    const pri = theme.primary || '#28a8a0';
+    const sec = theme.secondary || '#8ab4d4';
 
     return {
       id,
@@ -73,6 +79,31 @@ window.CustomSystem = {
         cardStyle:   theme.cardStyle   || 'Glass',
       },
 
+      // Full CSS variable palette — derived from wizard color picks
+      themeVars: {
+        bg:    theme.bg    || '#0A0C10',
+        bg2:   theme.surface || _mix(pri, 0.08),
+        bg3:   _mix(pri, 0.12),
+        bg4:   _mix(pri, 0.16),
+        border:  _mix(pri, 0.15),
+        border2: _mix(pri, 0.22),
+        border3: _mix(pri, 0.35),
+        primary:    pri,
+        goldMid:    _mix(pri, 1.3),
+        goldBright: _mix(pri, 1.6),
+        goldDim:    _mix(pri, 0.4),
+        secondary: sec,
+        teal:  _mix(sec, 0.7),
+        teal2: sec,
+        danger:    theme.danger || '#B03828',
+        coral2:    _mix(theme.danger || '#B03828', 1.2),
+        text:  theme.text  || '#E8E4E0',
+        text2: theme.text  ? _mix(theme.text, 0.92) : '#D8D4D0',
+        text3: theme.muted ? _mix(theme.muted, 1.2) : '#A0A0A8',
+        text4: theme.muted || '#707078',
+        text5: theme.muted ? _mix(theme.muted, 0.6) : '#404048',
+      },
+
       gmContext: {
         worldName:       gm.worldName       || name,
         systemName:      name,
@@ -91,7 +122,7 @@ window.CustomSystem = {
       // Use generic fantasy defaults for all data tables
       // These provide a playable baseline for any custom world
 
-      ..._resolveStats(stats, cfg.statSystem),
+      ..._resolveStats(null, cfg.statSystem),
 
       // Generic classes — warrior, mage, rogue, healer archetype
       classes: cfg.classes || [

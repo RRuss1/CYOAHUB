@@ -388,11 +388,7 @@ Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Tim
       uiStyle, buttonStyle, bgEffect, cardStyle,
     },
     magic: { name: magicName, resource: magicResource, source: magicSource, risk: magicRisk, exists: magicExists },
-    stats: statSystem === 'cosmere'
-      ? { keys:['str','spd','int','wil','awa','pre'], names:['STR','SPD','INT','WIL','AWA','PRE'], full:['Strength','Speed','Intellect','Willpower','Awareness','Presence'] }
-      : statSystem === 'simple'
-      ? { keys:['body','mind','spirit'], names:['BODY','MIND','SPIRIT'], full:['Body','Mind','Spirit'] }
-      : null, // null = use default (D&D stats)
+    statSystem, // pass the raw selection ID to custom.js _resolveStats()
     gm: {
       worldName: name,
       worldLore: gmLore,
