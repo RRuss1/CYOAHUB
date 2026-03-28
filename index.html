@@ -717,7 +717,7 @@
   </div>
 
   <div class="title-glyph" id="camp-glyph">⟁</div>
-  <h1 class="title-h1" id="camp-title">Stormlight Chronicles</h1>
+  <h1 class="title-h1" id="camp-title">Choose Your Campaign</h1>
   <p class="title-h2"><span data-tr>Choose Your Adventure</span></p>
 
   <div id="thai-banner" class="hidden mt-2 px-4 py-1.5 rounded-full text-sm font-display tracking-widest"
@@ -762,8 +762,8 @@
      ═══════════════════════════════════════════════════════ -->
 <div id="s-title" class="screen">
   <div class="title-glyph" id="title-glyph">⟁</div>
-  <h1 class="title-h1" id="title-name">Stormlight Chronicles</h1>
-  <p class="title-h2" id="title-sub"><span data-tr>A Saga of the Shattered Plains</span></p>
+  <h1 class="title-h1" id="title-name">Adventure Awaits</h1>
+  <p class="title-h2" id="title-sub"><span data-tr>Choose Your World</span></p>
   <div class="title-line"></div>
   <p class="title-quote" id="title-quote">"You must find the most important words a man can say."<cite>— The Way of Kings</cite></p>
 
@@ -778,7 +778,7 @@
   </div>
 
   <p class="font-display text-xs tracking-widest uppercase mb-3.5" style="color:var(--text5)">
-    <span data-tr id="party-label">Radiant Company</span>
+    <span data-tr id="party-label">Adventuring Party</span>
   </p>
 
   <!-- Party slot preview — populated by renderPSZ() -->
@@ -834,17 +834,17 @@
           <span data-tr>Starting Path</span>
         </label>
         <div class="grid grid-cols-2 gap-3 mb-4">
-          <div class="type-card sel" id="type-radiant" onclick="pickCharType(true)" title="Knight Radiant">
-            <div class="text-3xl mb-2">⟁</div>
-            <div class="font-display text-sm font-semibold" style="color:var(--text)">Knight Radiant</div>
-            <div class="text-xs italic mt-1" style="color:var(--amber2)">"Touched by a spren. Bound by Oaths."</div>
-            <div class="text-xs mt-1.5" style="color:var(--text5)">Spren bond · Stormlight · Shardblade · 5 Oaths</div>
+          <div class="type-card sel" id="type-radiant" onclick="pickCharType(true)" title="Class Path">
+            <div class="text-3xl mb-2">⚔</div>
+            <div class="font-display text-sm font-semibold" style="color:var(--text)">Class</div>
+            <div class="text-xs italic mt-1" style="color:var(--amber2)">"Choose your combat role."</div>
+            <div class="text-xs mt-1.5" style="color:var(--text5)">Primary path · Abilities · Progression</div>
           </div>
-          <div class="type-card" id="type-hero" onclick="pickCharType(false)" title="Heroic Path">
+          <div class="type-card" id="type-hero" onclick="pickCharType(false)" title="Background Path">
             <div class="text-3xl mb-2">✦</div>
-            <div class="font-display text-sm font-semibold" style="color:var(--text)">Heroic Path</div>
-            <div class="text-xs italic mt-1" style="color:var(--amber2)">"Ungifted. Undeterred. Dangerous."</div>
-            <div class="text-xs mt-1.5" style="color:var(--text5)">Agent · Envoy · Hunter · Leader · Scholar · Warrior</div>
+            <div class="font-display text-sm font-semibold" style="color:var(--text)">Background</div>
+            <div class="text-xs italic mt-1" style="color:var(--amber2)">"Your past defines your skills."</div>
+            <div class="text-xs mt-1.5" style="color:var(--text5)">Skills · Talents · Starting gear</div>
           </div>
         </div>
       </div>
@@ -863,13 +863,13 @@
       </div>
     </div>
 
-    <!-- STEP 2A: Radiant Order -->
+    <!-- STEP 2A: Class Path -->
     <div id="create-s2r" style="display:none">
       <h2 class="font-display text-2xl font-semibold tracking-wide mb-1" style="color:var(--amber2)">
-        <span data-tr id="class-heading">Your Order</span>
+        <span data-tr id="class-heading">Your Class</span>
       </h2>
       <p class="text-base italic mb-8" style="color:var(--text4)">
-        <span data-tr id="class-flavor">The Stormfather watches. Choose carefully.</span>
+        <span data-tr id="class-flavor">Choose carefully.</span>
       </p>
       <div class="class-grid grid grid-cols-2 md:grid-cols-3 gap-3" id="class-grid"></div>
       <div class="flex justify-between mt-4">
@@ -884,7 +884,7 @@
         <span data-tr>Your Role</span>
       </h2>
       <p class="text-base italic mb-8" style="color:var(--text4)">
-        <span data-tr>What shaped you before the storm?</span>
+        <span data-tr id="bg-flavor">What shaped you?</span>
       </p>
       <div class="grid grid-cols-2 md:grid-cols-3 gap-3" id="role-grid"></div>
       <div class="flex justify-between mt-4">
@@ -907,7 +907,7 @@
           <span data-tr>Your Name</span>
         </label>
         <input class="form-in" id="in-name" oninput="updateCreateSubmitBtn()" type="text" maxlength="24"
-          placeholder="What do they call you on the Plains?" autocomplete="off"/>
+          placeholder="What do they call you?" autocomplete="off"/>
       </div>
 
       <div class="mb-7">
@@ -931,20 +931,7 @@
           <span data-tr>Origin</span>
         </label>
         <div class="flex flex-wrap gap-2" id="origin-grid">
-          <button class="origin-btn" onclick="pickOrigin(this,'Alethkar')">Alethkar</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Azir')">Azir</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Herdaz')">Herdaz</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Iri')">Iri</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Jah Keved')">Jah Keved</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Kharbranth')">Kharbranth</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Reshi Isles')">Reshi Isles</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Shinovar')">Shinovar</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Shattered Plains')">Shattered Plains</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Thaylenah')">Thaylenah</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Horneater Peaks')">Horneater Peaks</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'New Natanan')">New Natanan</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Traveling')">Wayfarer</button>
-          <button class="origin-btn" onclick="pickOrigin(this,'Unknown')">Unknown</button>
+          <!-- Populated dynamically from SystemData.charCreation.origins by renderCreate() -->
         </div>
       </div>
 
@@ -1099,7 +1086,7 @@
   <div class="lobby-wrap w-full max-w-2xl p-10 min-h-96">
     <div class="text-center mb-8">
       <div class="font-display text-xs tracking-widest uppercase mb-1.5" style="color:var(--text5)">
-        <span data-tr>Radiant Company</span>
+        <span data-tr id="lobby-party-label">Adventuring Party</span>
       </div>
       <div id="lobby-title" class="font-display text-xl mb-1" style="color:var(--amber2)"></div>
       <div id="lobby-sub" class="text-sm italic" style="color:var(--text4)"></div>
@@ -1124,7 +1111,7 @@
   <!-- Top bar -->
   <div class="game-top" id="game-top">
     <span class="game-logo font-display text-xs tracking-widest uppercase" id="game-logo" style="color:var(--text4)">
-      ⟁ Stormlight Chronicles
+      ⟁ <span id="game-logo-name">CYOAhub</span>
     </span>
     <div class="flex items-center gap-2">
       <button id="lang-toggle" onclick="toggleLang()"
@@ -1232,7 +1219,7 @@
                 <div class="grid gap-1.5" style="grid-template-columns:auto 1fr">
                   <span class="tooltip-key">attack</span><span class="tooltip-desc">offensive strike</span>
                   <span class="tooltip-key">defend</span><span class="tooltip-desc">guard stance, DR next hit</span>
-                  <span class="tooltip-key">heal</span><span class="tooltip-desc">Stormlight recovery</span>
+                  <span class="tooltip-key">heal</span><span class="tooltip-desc">Recovery / healing</span>
                   <span class="tooltip-key">revive</span><span class="tooltip-desc">bring back downed ally</span>
                   <span class="tooltip-key">surge</span><span class="tooltip-desc">surgebinding ability</span>
                   <span class="tooltip-key">skill</span><span class="tooltip-desc">social or perception</span>
@@ -1373,12 +1360,19 @@
 <script src="app/systems/wretcheddeep.js"></script>
 <script src="app/systems/custom.js"></script>
 <script src="app/enemyPatterns.js"></script>
+<script src="app/configDefaults.js"></script>
+<script src="app/configValidator.js"></script>
+<script src="app/formulaEngine.js"></script>
+<script src="app/configResolver.js"></script>
+<script src="app/pluginRegistry.js"></script>
+<script src="app/actionEngine.js"></script>
 <script src="app/gameState.js"></script>
 <script src="app/rulesEngine.js"></script>
 <script src="app/hub.js"></script>
 <script src="app/ui.js"></script>
 <script src="app/combat.js"></script>
 <script src="app/main.js"></script>
+<script src="app/devMode.js"></script>
 
 <script>
 // Sync voice selector to stored preference after all scripts load

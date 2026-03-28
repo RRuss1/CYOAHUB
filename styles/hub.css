@@ -2,16 +2,15 @@
    hub.css — CYOAhub landing, worlds, and wizard screens
    ══════════════════════════════════════════════════════════════ */
 
-/* ── FULL-SCREEN BACKGROUND ── */
+/* ── FULL-SCREEN BACKGROUND — Ken Burns drift ── */
 #bg {
   position: fixed;
   inset: 0;
   z-index: 0;
   background: url('../assets/bg.jpg') center center / cover no-repeat;
-  /* Darken enough to read text, keep nebula visible */
   filter: brightness(0.35) saturate(0.8);
-  transform: scale(1.04); /* slight oversize prevents edge bleed on scale */
-  transition: filter 1.2s ease;
+  animation: kenBurnsDrift 25s ease-in-out infinite alternate;
+  will-change: transform;
 }
 /* Radial vignette — darkens edges, keeps center brighter */
 #bg-vignette {
@@ -65,8 +64,8 @@
 /* Prevent flex children from shrinking — lets landing page scroll */
 #s-landing.active > * { flex-shrink: 0; }
 /* Hide Stormlight glyph watermark on hub screens */
+/* Hide stale overlays on hub screens (but NOT #s-worlds::after — that's the bg image) */
 #s-landing.active::after,
-#s-worlds.active::after,
 #s-wizard.active::after { display: none; }
 
 /* ── NAV (shared) ── */
@@ -336,16 +335,26 @@
    ═══════════════════════════════════════════════ */
 #s-worlds { overflow-y: auto; }
 
-/* Worlds screen background — darkened so particles + text are visible */
+/* Worlds screen background — zoomed out + Ken Burns drift */
 #s-worlds {
-  background: url('../assets/background worlds.jpg') center center / cover no-repeat;
   background-color: #05090f;
+}
+#s-worlds::after {
+  content: '';
+  position: fixed;
+  inset: -10%;
+  background: url('../assets/background worlds.jpg') center center / cover no-repeat;
+  filter: brightness(0.4) saturate(0.85);
+  animation: kenBurnsDrift 30s ease-in-out infinite alternate;
+  will-change: transform;
+  pointer-events: none;
+  z-index: 0;
 }
 #s-worlds::before {
   content: '';
   position: fixed;
   inset: 0;
-  background: rgba(5, 9, 15, 0.65);
+  background: rgba(5, 9, 15, 0.55);
   pointer-events: none;
   z-index: 0;
 }
@@ -807,9 +816,9 @@
   top: 72px;
   right: 52px;
   z-index: 100;
-  background: var(--cream-off);
-  backdrop-filter: blur(24px);
-  border: 1px solid var(--steel-teal);
+  background: rgba(5,12,26,0.88);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(40,168,160,0.13);
   border-radius: 14px;
   padding: 10px;
   display: flex;
@@ -831,7 +840,7 @@
   font-size: 11px;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--dark-teal);
+  color: var(--text3, #DFC080);
   padding: 11px 16px;
   border-radius: 8px;
   text-align: left;
@@ -839,8 +848,8 @@
   width: 100%;
 }
 .hamburger-menu button:hover {
-  color: var(--glow-crimson);
-  background: rgba(46,202,168,0.08);
+  color: var(--text, #F8F3E8);
+  background: rgba(46,168,160,0.12);
 }
 
 /* ── SCROLLBAR ── */
@@ -865,10 +874,11 @@
   max-width: 640px;
   width: 100%;
   max-height: 80vh;
-  background: linear-gradient(160deg, var(--cream-off) 0%, var(--cream-light) 100%);
-  border: 1px solid var(--steel-teal);
-  border-radius: 18px;
-  box-shadow: 0 20px 80px rgba(0,0,0,0.5), 0 0 30px rgba(46,202,168,0.08);
+  background: rgba(5,12,26,0.92);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(40,168,160,0.13);
+  border-radius: 22px;
+  box-shadow: 0 20px 80px rgba(0,0,0,0.6), 0 0 30px rgba(40,168,160,0.06);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -878,27 +888,27 @@
   top: 14px; right: 18px;
   z-index: 2;
   font-size: 24px;
-  color: var(--deep-teal);
+  color: rgba(255,255,255,0.4);
   background: none;
   border: none;
   cursor: pointer;
   transition: color .2s;
 }
-.hub-modal-close:hover { color: var(--glow-crimson); }
+.hub-modal-close:hover { color: #F8F3E8; }
 .hub-modal-scroll {
   padding: 32px 36px;
   overflow-y: auto;
   flex: 1;
 }
-/* FAQ content styling */
-.hub-modal-scroll h1 { font-family:'Cinzel',serif; font-size:24px; color:var(--deep-teal); margin-bottom:20px; text-align:center; }
-.hub-modal-scroll h2 { font-family:'Cinzel',serif; font-size:16px; color:var(--dark-teal); margin:24px 0 12px; letter-spacing:1px; border-bottom:1px solid var(--sage); padding-bottom:8px; }
-.hub-modal-scroll p { font-family:'Crimson Pro',serif; font-size:14px; color:#3a4a50; line-height:1.7; margin-bottom:12px; }
-.hub-modal-scroll strong { color:var(--deep-teal); }
-.hub-modal-scroll ul, .hub-modal-scroll li { font-family:'Crimson Pro',serif; font-size:14px; color:#3a4a50; line-height:1.7; }
+/* FAQ/modal content styling — dark theme */
+.hub-modal-scroll h1 { font-family:'Cinzel',serif; font-size:24px; color:var(--text, #F8F3E8); margin-bottom:20px; text-align:center; }
+.hub-modal-scroll h2 { font-family:'Cinzel',serif; font-size:16px; color:var(--text3, #DFC080); margin:24px 0 12px; letter-spacing:1px; border-bottom:1px solid rgba(40,168,160,0.15); padding-bottom:8px; }
+.hub-modal-scroll p { font-family:'Crimson Pro',serif; font-size:14px; color:var(--text2, #F0E6CC); line-height:1.7; margin-bottom:12px; }
+.hub-modal-scroll strong { color:var(--text, #F8F3E8); }
+.hub-modal-scroll ul, .hub-modal-scroll li { font-family:'Crimson Pro',serif; font-size:14px; color:var(--text2, #F0E6CC); line-height:1.7; }
 .hub-modal-scroll li { margin-bottom:4px; }
-.hub-modal-scroll hr { border:none; border-top:1px solid var(--sage); margin:20px 0; }
-.hub-modal-scroll em { color:var(--steel-teal); }
+.hub-modal-scroll hr { border:none; border-top:1px solid rgba(40,168,160,0.12); margin:20px 0; }
+.hub-modal-scroll em { color:var(--text4, #A07830); }
 
 /* ── COLOR SYSTEM GRID ── */
 .color-grid { display: flex; flex-direction: column; gap: 8px; }
@@ -983,6 +993,12 @@
 .enemy-cat-icon { font-size: 1.3rem; }
 .enemy-cat-name { font-family: var(--font-title, 'Cinzel', serif); font-size: .85rem; color: rgba(40,168,160,0.85); }
 .enemy-cat-desc { width: 100%; font-size: .72rem; color: rgba(40,168,160,0.4); line-height: 1.3; margin-top: -2px; }
+
+/* ── KEN BURNS DRIFT — cinematic background motion ── */
+@keyframes kenBurnsDrift {
+  0%   { transform: scale(1.04) translate(0, 0); }
+  100% { transform: scale(1.12) translate(-1.5%, -1%); }
+}
 
 /* ── D&D THEME OVERRIDE ── */
 body[data-system="dnd5e"] { --gold: #9B2335; --teal: #C4972F; }

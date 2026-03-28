@@ -52,6 +52,89 @@ window.WretchedDeepSystem = {
     choiceTagRules: '[COMBAT] [DISCOVERY] [DECISION] [CORRUPTION] — tag every player choice. Use [CORRUPTION] when a choice involves using the artifact or giving in to obsession.',
   },
 
+  // ── Rules Config (config-driven formulas) ─────────────────────────────
+  rules: {
+    defenses: [
+      { id: 'physDef', label: 'Evasion', base: 10, stats: ['instinct','shadow'] },
+      { id: 'cogDef',  label: 'Resolve', base: 10, stats: ['will','cunning'] },
+    ],
+    hp: { base: 8, stat: 'will', perLevel: 4 },
+    focus: { base: 2, stat: 'will' },
+    magicPool: {
+      enabled: true, label: 'Obsession', formula: 'flat',
+      base: 0, stats: ['obsession'], classGated: false,
+    },
+    recoveryDie: {
+      stat: 'will',
+      table: [
+        { maxStat:0, die:4 }, { maxStat:2, die:6 }, { maxStat:4, die:8 },
+        { maxStat:6, die:10 }, { maxStat:999, die:12 },
+      ],
+    },
+    skillAttrMap: {
+      stealth:'shadow', athletics:'instinct', intimidation:'obsession',
+      perception:'cunning', survival:'instinct', deception:'cunning',
+      insight:'will', lore:'cunning', medicine:'will',
+      lightWeapon:'instinct', heavyWeapon:'instinct',
+    },
+    deflectableTypes: ['physical','sharp'],
+    currency: { name: 'scraps', symbol: 'sc', tiers: null },
+    progressionType: 'corruption', progressionLabel: 'Corruption Stage', maxProgression: 10,
+    turnOrder: 'fast-slow',
+    healClassMultipliers: { fleshwright: 1.6 },
+    equipmentDrops: {
+      enabled: true, fragmentName: 'crown shard', craftCost: 3, upgradeCost: 5,
+      legendaryName: 'Crown Fragment', armorName: 'Shadow Shroud',
+    },
+  },
+
+  // ── Character Creation Config ─────────────────────────────────────────
+  charCreation: {
+    paths: [
+      { id: 'class', label: 'Archetype', icon: '👁',
+        desc: '"What the Deep made you."',
+        sublabel: 'Lurker · Thief · Watcher · Whisperer · Fleshwright' },
+      { id: 'background', label: 'Past Life', icon: '🕯',
+        desc: '"Who you were before the fall."',
+        sublabel: 'Your memories shape your survival' },
+    ],
+    classLabel: 'Archetype', backgroundLabel: 'Past Life',
+    classHeading: 'Your Archetype', backgroundHeading: 'Your Past',
+    classFlavor: 'The Crown whispers. What do you become?',
+    backgroundFlavor: 'Who were you, before the Deep took everything?',
+    ancestryLabel: 'Origin',
+    partyLabel: 'The Desperate',
+    submitText: { class: 'Descend into the Deep →', background: 'Descend into the Deep →' },
+    origins: ['The Upper Tunnels','The Drowned Market','The Bone Warrens','The Weeping Halls','The Crown Chamber','The Forgotten Surface'],
+    startMessage: 'The darkness closes in. Your descent begins at {location}.',
+    actNames: ['Descent into {loc}', 'The Whispers of {loc}', 'The Crown beneath {loc}'],
+    attributePoints: 12, maxPerAttribute: 3,
+    showBlade: false, showWeapon: true, showCompanion: false,
+    namePlaceholder: 'What did they used to call you?',
+  },
+
+  // ── Combat Actions ────────────────────────────────────────────────────
+  combatActions: [
+    { id: 'attack',     tag: 'ATTACK',     label: 'Strike',     icon: '🗡', cost: null, phase: 'OFFENSE', stat: 'instinct', skill: 'lightWeapon', keywords: ['attack','strike','stab','swing','slash','hit','shiv'] },
+    { id: 'defend',     tag: 'DEFEND',     label: 'Evade',      icon: '🌑', cost: null, phase: 'DEFENSE', stat: 'shadow', skill: 'stealth', keywords: ['defend','dodge','evade','hide','duck','flee','escape'] },
+    { id: 'heal',       tag: 'HEAL',       label: 'Recover',    icon: '🕯', cost: null, phase: 'HEAL', stat: 'will', skill: 'medicine', keywords: ['heal','mend','recover','bandage','splint','rest'] },
+    { id: 'corruption', tag: 'CORRUPTION', label: 'Embrace It', icon: '👁', cost: 'magicPool:1', phase: 'OFFENSE', stat: 'obsession', skill: 'corruption', keywords: ['corrupt','embrace','crown','whisper','warp','drain','consume'] },
+  ],
+
+  // ── Story Actions ─────────────────────────────────────────────────────
+  storyActions: [
+    { id: 'combat',     tag: 'COMBAT',     label: 'Violence' },
+    { id: 'discovery',  tag: 'DISCOVERY',  label: 'Discovery' },
+    { id: 'decision',   tag: 'DECISION',   label: 'Decision' },
+    { id: 'corruption', tag: 'CORRUPTION', label: 'Corruption' },
+  ],
+
+  combatAtmosphere: [
+    'Something skitters in the dark beyond the fight. The Crown hums louder. Blood looks black down here.',
+    'The walls weep. Water drips upward for a moment. Your wounds ache in ways that feel intentional.',
+    'The darkness presses closer. Obsession claws at the edge of your thoughts. This place is feeding on the violence.',
+  ],
+
   // ══════════════════════════════════════════════════════════════════════
   // CHARACTER DATA
   // ══════════════════════════════════════════════════════════════════════
@@ -103,6 +186,17 @@ window.WretchedDeepSystem = {
      bonus:{cunning:0,obsession:2,will:0,shadow:0,instinct:1},
      abilities:['Corrupt Touch','Crown Voice','Warp Flesh','Madness Aura','Hollow Command'],
      dmgBonus:{crit:3,hit:2,miss:1},color:'#7B3F8E'},
+    {id:'fleshwright',name:'Fleshwright',
+     philosophy:'The body is clay. We shapes it.',
+     surges:['graftLimb','bonesplint','fleshShield'],
+     ideal1:'I mend what breaks.',ideal2:'Flesh remembers its shape when I remind it.',ideal3:'I rebuild what the Deep destroys.',ideal4:'I am the surgeon of the damned.',
+     spren:'Nerve Web',sprenDesc:'A living network that burrows into your nervous system. It lets you feel others\' bodies as your own — their pain, their breaks, their potential for change.',
+     sprenAssist:'Surgery, wound assessment, poison identification, body modification',
+     desc:'Surgeons of the Deep who reshape flesh — healing allies or warping enemies. The line between medicine and horror is thin down here.',
+     bonus:{cunning:0,obsession:1,will:1,shadow:0,instinct:1},
+     abilities:['Graft Limb','Bone Splint','Flesh Shield','Nerve Puppet','Abomination'],
+     dmgBonus:{crit:2,hit:2,miss:0},color:'#5E8E3A',
+     healMultiplier:1.6,critEffect:null},
   ],
 
   sprenBonds: {
@@ -110,6 +204,7 @@ window.WretchedDeepSystem = {
     thief:{name:'The Itch',nick:'Itch',stages:['Your fingers twitch near pockets that aren\'t yours...','You sense valuables through walls. The Itch guides your hands.','Locks open at your touch. Traps disarm themselves.','You steal seconds from time itself.','Everything you see is already yours. The world just doesn\'t know it yet.'],color:'#8E7B3F'},
     watcher:{name:'The Hollow',nick:'Hollow',stages:['You dream of strangers\' memories...','Touching someone shows you their worst moment.','You read intentions like words on a page.','Memories flow to you unbidden. You forget your childhood.','You are everyone and no one. A vessel of stolen lives.'],color:'#3F6E8E'},
     whisperer:{name:'The Shard',nick:'Shard',stages:['A hum at the edge of hearing, always present...','The Crown speaks your name in dreams.','Your touch leaves dark veins on skin. Yours and theirs.','Reality warps subtly around you. Stones weep. Metal moans.','You are the Crown\'s mouth. When you speak, the Deep listens.'],color:'#7B3F8E'},
+    fleshwright:{name:'The Web',nick:'Web',stages:['Your fingertips tingle near the wounded...','You feel others\' heartbeats through the stone.','Touching flesh shows you its structure — bone, muscle, nerve.','You reshape wounds with a thought. Pain is a language you speak fluently.','Bodies are your canvas. You unmake and remake at will.'],color:'#5E8E3A'},
   },
 
   // Backgrounds → heroRoles
@@ -191,6 +286,9 @@ window.WretchedDeepSystem = {
     {id:'corruptTouch',name:'Corrupt Touch',attr:'obsession',orders:['whisperer'],desc:'Your touch spreads dark veins through flesh. Deals damage and raises Obsession in the target.',dmgType:'spirit',targetDef:'spirDef'},
     {id:'crownVoice',name:'Crown Voice',attr:'obsession',orders:['whisperer'],desc:'Speak with the Crown\'s authority. Creatures must save or obey a single command.',dmgType:null,targetDef:'spirDef'},
     {id:'warpFlesh',name:'Warp Flesh',attr:'obsession',orders:['whisperer'],desc:'Reshape living tissue — heal allies or deform enemies.',dmgType:'spirit',targetDef:'physDef'},
+    {id:'graftLimb',name:'Graft Limb',attr:'will',orders:['fleshwright'],desc:'Attach salvaged flesh or bone to replace damaged limbs. Temporary but functional.',dmgType:null,targetDef:null},
+    {id:'bonesplint',name:'Bone Splint',attr:'instinct',orders:['fleshwright'],desc:'Instantly set broken bones and fuse torn tissue. Painful but effective.',dmgType:null,targetDef:null},
+    {id:'fleshShield',name:'Flesh Shield',attr:'will',orders:['fleshwright'],desc:'Harden your own skin to absorb incoming damage. Your body pays the cost later.',dmgType:null,targetDef:null},
   ],
 
   surgeScale: [{rank:1,die:'d4',size:'Whisper'},{rank:2,die:'d6',size:'Murmur'},{rank:3,die:'d8',size:'Voice'},{rank:4,die:'d10',size:'Scream'},{rank:5,die:'d12',size:'Crown Command'}],
@@ -200,6 +298,7 @@ window.WretchedDeepSystem = {
     thief:['quickFingers','misdirect','escapeArtist'],
     watcher:['memoryDrain','psychicEcho','mindShatter'],
     whisperer:['corruptTouch','crownVoice','warpFlesh'],
+    fleshwright:['graftLimb','bonesplint','fleshShield'],
   },
 
   conditions: {
@@ -259,7 +358,7 @@ window.WretchedDeepSystem = {
     {id:'corruption',name:'Corruption Lore',attr:'obsession',group:'mental'},
   ],
 
-  pathSkills: {lurker:'stealth',thief:'deception',watcher:'insight',whisperer:'corruption'},
+  pathSkills: {lurker:'stealth',thief:'deception',watcher:'insight',whisperer:'corruption',fleshwright:'medicine'},
   sprenAppearances: {},
 
   purposes: ['Escape the Deep — find a way to the surface','Destroy the Crown — end the corruption forever','Protect the Weak — someone has to','Find the Truth — what created the Crown?','Reclaim Your Name — remember who you were','Survive — that is enough'],
@@ -278,7 +377,7 @@ window.WretchedDeepSystem = {
 
   baseActs: [{num:1,tag:'Act I — The Shallows',start:0,end:59},{num:2,tag:'Act II — The Deep',start:60,end:119},{num:3,tag:'Act III — The Crown',start:120,end:179}],
   bladeTiers: ['Crude','Honed','Warped','Crown-Touched','Hollow'],
-  bladeNames: {lurker:'Shadowfang',thief:'Quicksilver Edge',watcher:'Memory\'s Tooth',whisperer:'Crown\'s Whisper'},
+  bladeNames: {lurker:'Shadowfang',thief:'Quicksilver Edge',watcher:'Memory\'s Tooth',whisperer:'Crown\'s Whisper',fleshwright:'Nerve Blade'},
 
   // ══════════════════════════════════════════════════════════════════════
   // PROGRESSION
@@ -289,6 +388,7 @@ window.WretchedDeepSystem = {
     thief:['I take what I need.','No lock holds me.','What is theirs is mine.','I steal time itself.','Everything belongs to me.'],
     watcher:['I remember.','Their memories feed me.','I know what you\'ll do next.','I am everyone and no one.','All minds are open books.'],
     whisperer:['I hear the Crown.','Its voice is my voice.','Flesh obeys my word.','Reality bends when I speak.','I am the Crown\'s will made flesh.'],
+    fleshwright:['I mend what breaks.','The body remembers my touch.','I rebuild what the Deep destroys.','Pain is a language I speak fluently.','I am the surgeon of the damned.'],
   },
 
   oathBonuses: {
@@ -308,6 +408,7 @@ window.WretchedDeepSystem = {
     thief:{words:['steal','take','grab','snatch','pocket','mine','claim'],ideal:'What is theirs becomes mine'},
     watcher:{words:['remember','memory','know','see','mind','forget','recall'],ideal:'I remember what you cannot'},
     whisperer:{words:['crown','whisper','corrupt','power','voice','command','obey'],ideal:'The Crown speaks through me'},
+    fleshwright:{words:['heal','mend','flesh','bone','graft','surgery','body','fix','repair'],ideal:'The body is clay and I am the sculptor'},
   },
 
   hoidLines: [
@@ -326,6 +427,21 @@ window.WretchedDeepSystem = {
   weaponSuffixes: ['fang','bite','whisper','scream','tooth','claw','drip','maw','crawl','grip'],
 
   // ── Enemy Configuration ──────────────────────────────────────────────────
+  // Boss Templates
+  bossTemplates: [
+    {name:'The Hollow King',type:'Crown Vessel',phases:[{hp:35,dmg:7,atk:7,desc:'A figure of pure darkness, crown fragments orbiting'},{hp:22,dmg:10,atk:9,desc:'Crown shards embedding in flesh, mutating'},{hp:10,dmg:14,atk:12,desc:'Barely human, the Crown itself fighting through them'}],drop:'Crown Shard'},
+    {name:'The Worm God',type:'Aberration',phases:[{hp:45,dmg:8,atk:6,desc:'Vast, pale, filling the tunnel, grinding forward'},{hp:28,dmg:11,atk:9,desc:'Rearing up, maw splitting open, acid dripping'},{hp:14,dmg:15,atk:12,desc:'Thrashing in death throes, tunnel collapsing'}],drop:'Worm God Tooth'},
+    {name:'The Rememberer',type:'Psychic Horror',phases:[{hp:30,dmg:6,atk:8,desc:'A figure of stolen faces, whispering your memories'},{hp:18,dmg:9,atk:10,desc:'Your own face stares back, speaking your secrets'},{hp:8,dmg:13,atk:13,desc:'Identity dissolving, pure psychic onslaught'}],drop:'Memory Crystal'},
+  ],
+
+  // Environmental Hazards
+  envHazards: {
+    shallows:{name:'Cave-In',desc:'The ceiling groans and drops rubble.',effect:'15% chance each round: random combatant takes 2 damage.',mechanic:'plateauCollapse'},
+    drowned:{name:'Rising Water',desc:'Black water seeps from the walls, rising fast.',effect:'Players must spend movement or start drowning.',mechanic:'cognitiveDrain'},
+    crownhold:{name:'Crown Aura',desc:'The Crown fragment pulses with corruption.',effect:'Each round all players gain 1 Obsession unless they resist.',mechanic:'voidWhispers'},
+    ashpits:{name:'Volcanic Vents',desc:'Sulfurous gas erupts from cracks in the floor.',effect:'Players must save or take 2 heat damage.',mechanic:'cognitiveDrain'},
+  },
+
   enemyCategories: ['undead','aberrations','beasts','goblinoids','plants','humanEnemies','swarms'],
   enemyPools: {
     shallows:[{name:'Tunnel Rat',type:'Beast',baseHP:5,dmg:2,attackBonus:2},{name:'Fungal Zombie',type:'Undead',baseHP:8,dmg:3,attackBonus:1},{name:'Scavenger Thug',type:'Humanoid',baseHP:9,dmg:3,attackBonus:2}],

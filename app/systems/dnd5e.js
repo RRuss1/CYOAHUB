@@ -50,6 +50,93 @@ window.DnD5eSystem = {
     choiceTagRules: '[COMBAT] [DISCOVERY] [DECISION] [MAGIC] — tag every player choice. Combat choices also use [ATTACK] [DEFEND] [HEAL] [MAGIC].',
   },
 
+  // ── Rules Config (config-driven formulas) ─────────────────────────────
+  rules: {
+    defenses: [
+      { id: 'physDef', label: 'Armor Class', base: 10, stats: ['dex'] },
+    ],
+    hp: { base: 10, stat: 'con', perLevel: 5, useHitDie: true, abilityModFn: true },
+    focus: { base: 2, stat: 'wis', abilityModFn: true },
+    magicPool: {
+      enabled: true, label: 'Spell Slots', formula: 'spellSlots',
+      base: 0, stats: [], classGated: true,
+      slotTable: {
+        1:[2], 2:[3], 3:[4,2], 4:[4,3], 5:[4,3,2], 6:[4,3,3],
+        7:[4,3,3,1], 8:[4,3,3,2], 9:[4,3,3,3,1], 10:[4,3,3,3,2],
+      },
+    },
+    recoveryDie: {
+      stat: 'con',
+      table: [
+        { maxStat:8, die:4 }, { maxStat:10, die:6 }, { maxStat:12, die:8 },
+        { maxStat:14, die:10 }, { maxStat:16, die:12 }, { maxStat:999, die:20 },
+      ],
+    },
+    skillAttrMap: {
+      acrobatics:'dex', athletics:'str', stealth:'dex', arcana:'int',
+      history:'int', investigation:'int', nature:'int', religion:'int',
+      animalHandling:'wis', insight:'wis', medicine:'wis', perception:'wis', survival:'wis',
+      deception:'cha', intimidation:'cha', performance:'cha', persuasion:'cha',
+      lightWeapon:'dex', heavyWeapon:'str',
+    },
+    deflectableTypes: ['slashing','piercing','bludgeoning'],
+    currency: { name: 'gold', symbol: 'gp', tiers: null },
+    progressionType: 'levels', progressionLabel: 'Level', maxProgression: 20,
+    turnOrder: 'initiative',
+    healClassMultipliers: { cleric: 1.5 },
+    equipmentDrops: {
+      enabled: true, fragmentName: 'relic shard', craftCost: 3, upgradeCost: 5,
+      legendaryName: 'Legendary Weapon', armorName: 'Legendary Armor',
+    },
+  },
+
+  // ── Character Creation Config ─────────────────────────────────────────
+  charCreation: {
+    paths: [
+      { id: 'class', label: 'Class', icon: '⚔',
+        desc: '"Fighter, Cleric, Rogue, or Wizard."',
+        sublabel: 'Hit dice · Abilities · Subclass' },
+      { id: 'background', label: 'Background', icon: '📜',
+        desc: '"Where you came from shapes where you\'re going."',
+        sublabel: 'Acolyte · Criminal · Folk Hero · Noble · Sage · Soldier' },
+    ],
+    classLabel: 'Class', backgroundLabel: 'Background',
+    classHeading: 'Your Class', backgroundHeading: 'Your Background',
+    classFlavor: 'The adventure awaits. Choose your path.',
+    backgroundFlavor: 'Where you came from shapes where you\'re going.',
+    ancestryLabel: 'Race',
+    partyLabel: 'Adventuring Party',
+    submitText: { class: 'Begin Your Adventure →', background: 'Begin Your Adventure →' },
+    origins: ['Waterdeep','Baldur\'s Gate','Neverwinter','Candlekeep','Icewind Dale','Phandalin','Luskan','Cormyr','Silverymoon','Amn','Calimshan','Chult'],
+    startMessage: 'The party gathers. Adventure calls from {location}.',
+    actNames: ['{loc}', 'Shadows of {loc}', 'The Siege of {loc}'],
+    attributePoints: 12, maxPerAttribute: 3,
+    showBlade: false, showWeapon: true, showCompanion: false,
+    namePlaceholder: 'What is your name, adventurer?',
+  },
+
+  // ── Combat Actions ────────────────────────────────────────────────────
+  combatActions: [
+    { id: 'attack', tag: 'ATTACK', label: 'Attack', icon: '⚔', cost: null, phase: 'OFFENSE', stat: 'str', skill: 'heavyWeapon', keywords: ['attack','strike','slash','swing','stab','hit','shoot'] },
+    { id: 'defend', tag: 'DEFEND', label: 'Defend', icon: '🛡', cost: null, phase: 'DEFENSE', stat: 'dex', skill: 'acrobatics', keywords: ['defend','block','dodge','evade','shield','parry','disengage'] },
+    { id: 'heal',   tag: 'HEAL',   label: 'Heal',   icon: '✦', cost: null, phase: 'HEAL', stat: 'wis', skill: 'medicine', keywords: ['heal','cure','restore','bandage','lay hands','medicine'] },
+    { id: 'magic',  tag: 'MAGIC',  label: 'Cast Spell', icon: '✨', cost: 'magicPool:1', phase: 'OFFENSE', stat: 'int', skill: 'arcana', keywords: ['cast','spell','magic','arcane','divine','cantrip','fireball','sacred flame'] },
+  ],
+
+  // ── Story Actions ─────────────────────────────────────────────────────
+  storyActions: [
+    { id: 'combat',    tag: 'COMBAT',    label: 'Combat' },
+    { id: 'discovery', tag: 'DISCOVERY', label: 'Discovery' },
+    { id: 'decision',  tag: 'DECISION',  label: 'Decision' },
+    { id: 'magic',     tag: 'MAGIC',     label: 'Magic' },
+  ],
+
+  combatAtmosphere: [
+    'Torchlight flickers across drawn weapons and grim faces. The dungeon air is thick with dust.',
+    'The smell of blood and ozone fills the corridor. Steel rings against stone. Someone is breathing hard.',
+    'Sweat and desperation — muscles burn, shields crack. This ends now, one way or another.',
+  ],
+
   // ══════════════════════════════════════════════════════════════════════
   // CHARACTER DATA
   // ══════════════════════════════════════════════════════════════════════
@@ -567,6 +654,20 @@ window.DnD5eSystem = {
   // ══════════════════════════════════════════════════════════════════════
   // ENEMY CONFIGURATION
   // ══════════════════════════════════════════════════════════════════════
+
+  // Boss Templates
+  bossTemplates: [
+    {name:'The Necromancer Lord',type:'Undead Lich',phases:[{hp:35,dmg:7,atk:7,desc:'Surrounded by swirling necrotic energy'},{hp:22,dmg:10,atk:9,desc:'Phylactery pulsing, summoning undead reinforcements'},{hp:10,dmg:14,atk:12,desc:'Desperate, unleashing raw death magic'}],drop:'Staff of the Magi'},
+    {name:'Ancient Red Dragon',type:'Dragon',phases:[{hp:45,dmg:9,atk:8,desc:'Wings spread, fire licking between teeth'},{hp:28,dmg:12,atk:10,desc:'Airborne, strafing with flame breath'},{hp:14,dmg:16,atk:13,desc:'Wounded, raging, the lair itself burns'}],drop:'Dragon Scale Shield'},
+    {name:'The Drow Matron',type:'Dark Elf Elite',phases:[{hp:38,dmg:8,atk:8,desc:'Calm, commanding drow soldiers from the shadows'},{hp:24,dmg:11,atk:10,desc:'Drawing on Lolths power, darkness spreading'},{hp:12,dmg:15,atk:12,desc:'Spider form manifesting, poison dripping'}],drop:'Cloak of Invisibility'},
+  ],
+
+  // Environmental Hazards
+  envHazards: {
+    dungeon:{name:'Collapsing Ceiling',desc:'Stones crumble from above.',effect:'15% chance each round: random combatant takes 2 damage.',mechanic:'plateauCollapse'},
+    underdark:{name:'Faerzress Radiation',desc:'Wild magic warps spells.',effect:'Spell-like abilities have 20% chance to fizzle or surge.',mechanic:'cognitiveDrift'},
+    swamp:{name:'Toxic Fog',desc:'Poisonous mist rolls across the ground.',effect:'Players must save or take 1 poison damage per round.',mechanic:'cognitiveDrain'},
+  },
 
   // Enemy configuration for D&D — uses shared categories from enemyPatterns.js
   enemyCategories: ['undead','demons','dragons','giants','goblinoids','beasts','fey','elementals','aberrations','sea','lycanthropes','plants','humanEnemies','swarms'],

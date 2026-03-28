@@ -25,24 +25,40 @@ const SA={
 };
 
 // ══ SYSTEM LOADER + DATA ALIASES ══
-const _sys = window.StormlightSystem;
-window.SystemData = _sys;
+// No default system loaded at startup — loadSystem() must be called
+window.SystemData = null;
 function loadSystem(systemId) {
   const systems = {
     stormlight:   window.StormlightSystem,
     dnd5e:        window.DnD5eSystem,
     wretcheddeep: window.WretchedDeepSystem,
   };
+  let sys;
   // Custom worlds built via wizard
   if (systemId && systemId.startsWith('custom-') && window.CustomSystem) {
     const cfg = window._pendingWorldConfig || {};
-    const custom = window.CustomSystem.build(cfg);
-    window.SystemData = custom;
-    return custom;
+    sys = window.CustomSystem.build(cfg);
+  } else {
+    sys = systems[systemId];
   }
-  const sys = systems[systemId];
   if (!sys) { console.error('Unknown system:', systemId); return window.SystemData; }
+
+  // Apply defaults so every config field is guaranteed present
+  if (window.resolveWithDefaults) window.resolveWithDefaults(sys);
+
+  // Validate config and auto-repair
+  if (window.ConfigValidator) window.ConfigValidator.validate(sys);
+
+  // Apply plugins (crafting, factions, etc.)
+  if (window.PluginRegistry) window.PluginRegistry.applyPlugins(sys);
+
   window.SystemData = sys;
+
+  // Rebuild ACTS from loaded system
+  if (sys.baseActs && sys.baseActs.length) {
+    ACTS = sys.baseActs.map(a => ({ ...a, name: a.tag, location: (sys.gmContext || {}).worldName || 'the world' }));
+  }
+
   // Apply theme to body
   document.body.setAttribute('data-system', sys.id);
   if (sys.theme) {
@@ -51,6 +67,18 @@ function loadSystem(systemId) {
     if (sys.theme.secondary) r.setProperty('--theme-secondary', sys.theme.secondary);
     if (sys.theme.danger)    r.setProperty('--theme-danger', sys.theme.danger);
   }
+
+  // Apply full themeVars if present
+  if (sys.themeVars) {
+    const r = document.documentElement.style;
+    for (const [key, val] of Object.entries(sys.themeVars)) {
+      if (val) r.setProperty('--' + key.replace(/([A-Z])/g, '-$1').toLowerCase(), val);
+    }
+  }
+
+  // Dev mode notification
+  if (window.DevMode) window.DevMode.onSystemLoad(sys);
+
   return sys;
 }
 
@@ -60,7 +88,7 @@ function loadSystem(systemId) {
 // CLASSES, NPC_M, etc. now reads from the CURRENT system, not the
 // one loaded at startup.
 // Usage: CLASSES (getter) — no code changes needed downstream.
-function _SD() { return window.SystemData || window.StormlightSystem; }
+function _SD() { return window.SystemData || window.StormlightSystem || {}; }
 
 Object.defineProperties(window, {
   // Character data
@@ -101,7 +129,11 @@ Object.defineProperties(window, {
   OBSTACLES:     { get(){ return _SD().obstacles     || []; }},
   GEMSTONES:     { get(){ return _SD().gemstones     || {}; }},
   HOID_LINES:    { get(){ return _SD().hoidLines     || []; }},
-  // World
+  // World — generic aliases (ROSHAR_* kept for backward compat)
+  LOCATIONS:     { get(){ return _SD().locations             || []; }},
+  LOCATIONS_ALT: { get(){ return _SD().offworldLocations     || []; }},
+  LOCATIONS_SUB: { get(){ return _SD().shadesmarLocations    || []; }},
+  LOCATIONS_LEG: { get(){ return _SD().legendaryLocations    || []; }},
   ROSHAR_P:      { get(){ return _SD().locations             || []; }},
   ROSHAR_O:      { get(){ return _SD().offworldLocations     || []; }},
   ROSHAR_S:      { get(){ return _SD().shadesmarLocations    || []; }},
@@ -120,8 +152,12 @@ Object.defineProperties(window, {
 });
 
 // ══ NON-DATA CONSTANTS (game engine config) ══
-const ATTR_POINTS_START=12;
-const ATTR_MAX_CREATE=3;
+// Config-driven — reads from charCreation on access
+function _getAttrPoints() { return (_SD().charCreation && _SD().charCreation.attributePoints) || 12; }
+function _getAttrMax() { return (_SD().charCreation && _SD().charCreation.maxPerAttribute) || 3; }
+// Legacy constants kept for backward compat (read dynamically)
+Object.defineProperty(window, 'ATTR_POINTS_START', { get: _getAttrPoints });
+Object.defineProperty(window, 'ATTR_MAX_CREATE', { get: _getAttrMax });
 const DC={EASY:10, MEDIUM:15, HARD:20, VERY_HARD:25, NEARLY_IMPOSSIBLE:30};
 const COMBAT_BEATS_MIN=3, COMBAT_BEATS_MAX=8;
 
@@ -131,6 +167,10 @@ const COMBAT_BEATS_MIN=3, COMBAT_BEATS_MAX=8;
 
 // ══ RECOVERY DIE (WIL-based, Official) ══
 function getRecoveryDie(wil){
+  if(window.ConfigResolver){
+    const die=window.ConfigResolver.getRecoveryDieFromConfig(wil);
+    return '1d'+die;
+  }
   if(wil<=0)return'1d4';
   if(wil<=2)return'1d6';
   if(wil<=4)return'1d8';
@@ -144,8 +184,11 @@ function rollRecoveryDie(wil){
   return Math.ceil(Math.random()*(sides[die.slice(1)]||4));
 }
 
-// ══ INVESTITURE (Official: 2 + higher of AWA or PRE) ══
-function getMaxInvestiture(stats){
+// ══ INVESTITURE / MAGIC POOL (config-driven) ══
+function getMaxInvestiture(stats, character){
+  if(window.ConfigResolver){
+    return window.ConfigResolver.getMaxMagicPool(stats, character||{isRadiant:true,stats});
+  }
   const awa=stats&&stats.awa||0;
   const pre=stats&&stats.pre||0;
   return 2+Math.max(awa,pre);
@@ -154,11 +197,13 @@ function getMaxInvestiture(stats){
 // ══ DEFLECT (reduces energy/impact/keen damage — NOT spirit/vital) ══
 // deflect value stored on character; 0 = no armor
 function applyDeflect(dmg, dmgType, deflect){
-  const deflectable=['energy','impact','keen'];
-  if(deflectable.includes(dmgType)&&deflect>0){
+  const isDefl = window.ConfigResolver
+    ? window.ConfigResolver.isDeflectable(dmgType)
+    : ['energy','impact','keen'].includes(dmgType);
+  if(isDefl&&deflect>0){
     return Math.max(0,dmg-deflect);
   }
-  return dmg; // spirit/vital damage bypasses deflect
+  return dmg;
 }
 
 // Apply a condition to a player object
@@ -175,53 +220,14 @@ function hasCondition(player, condId){
   return !!(player.conditions&&player.conditions[condId]);
 }
 
-// ══ INJURY SYSTEM (Official Chapter 9) ══
-function rollInjury(player, isShardblade=false){
-  const deflect=player.deflect||0;
-  const existingInjuries=(player.injuries||[]).length;
-  const roll=Math.ceil(Math.random()*20)+deflect-(existingInjuries*5);
-
-  let severity, duration;
-  if(isShardblade){
-    // Spiritual Injury table
-    if(roll>=16)      {severity='Flesh Wound';      duration='until long rest';}
-    else if(roll>=1)  {severity='Permanent Spiritual Injury'; duration='permanent (no non-Invested healing)';}
-    else              {severity='Death';             duration='permanent';}
-  } else {
-    if(roll>=16)      {severity='Flesh Wound';       duration='until long rest';}
-    else if(roll>=6)  {severity='Shallow Injury';    duration=`${Math.ceil(Math.random()*6)} days`;}
-    else if(roll>=1)  {severity='Vicious Injury';    duration=`${Math.ceil(Math.random()*6)+Math.ceil(Math.random()*6)+Math.ceil(Math.random()*6)+Math.ceil(Math.random()*6)+Math.ceil(Math.random()*6)+Math.ceil(Math.random()*6)} days`;}
-    else if(roll>=-5) {severity='Permanent Injury';  duration='permanent';}
-    else              {severity='Death';              duration='permanent';}
-  }
-
-  const effectIdx=Math.floor(Math.random()*8);
-  const effect=INJURY_EFFECTS[effectIdx];
-  const injury={severity,duration,effect,roll,isShardblade};
-
-  if(!player.injuries)player.injuries=[];
-  if(severity!=='Death')player.injuries.push(injury);
-
-  // Apply condition from injury
-  if(effect.includes('Exhausted')){
-    const pen=effect.includes('[−2]')?2:1;
-    if(!player.conditions)player.conditions={};
-    player.conditions.exhausted=(player.conditions.exhausted||0)+pen;
-  } else if(effect.includes('Slowed')){
-    applyCondition(player,'slowed');
-  } else if(effect.includes('Disoriented')){
-    applyCondition(player,'disoriented');
-  } else if(effect.includes('Surprised')){
-    applyCondition(player,'surprised');
-  }
-
-  return injury;
-}
+// ══ INJURY SYSTEM — delegates to Rules.rollInjury (rulesEngine.js) ══
+// Kept as global for backward compat — actual logic in rulesEngine.js
 
 // ══ CURRENCY ══
 function formatMarks(mk){
+  if (window.ConfigResolver) return window.ConfigResolver.formatCurrency(mk);
   if(!mk||mk<1)return mk+'mk';
-  if(mk>=200)return Math.floor(mk/4)+'b '+Math.round(mk%4)+'m'; // broams + marks
+  if(mk>=200)return Math.floor(mk/4)+'b '+Math.round(mk%4)+'m';
   return mk+'mk';
 }
 
@@ -270,8 +276,8 @@ function rollSurgeDie(ranks){
   return Math.ceil(Math.random()*die);
 }
 
-// Derived variable
-let ACTS=BASE_ACTS.map(a=>({...a,name:a.tag,location:'Roshar'}));
+// Derived variable — rebuilt when system loads
+let ACTS=(typeof BASE_ACTS!=='undefined'&&BASE_ACTS.length)?BASE_ACTS.map(a=>({...a,name:a.tag,location:(_SD().gmContext||{}).worldName||'the world'})):[];
 
 function genWeaponName(weaponId){
   const pre=WEAPON_PREFIXES[Math.floor(Math.random()*WEAPON_PREFIXES.length)];
@@ -281,7 +287,7 @@ function genWeaponName(weaponId){
 
 // Character creation step variables
 let createStep=1;
-let isRadiant=true;
+let isRadiant=false;  // Set dynamically by renderCreate() based on system config
 let selAncestry='human'; // 'human' | 'singer'
 let selCultures=[]; // up to 2 cultural expertises
 let selRole=null;
@@ -295,7 +301,11 @@ let charAppearance='';
 async function checkOathMoment(gmText, player){
   if(!player||!gmText||!gState)return;
   const oathStage=(player.oathStage||1);
-  if(oathStage>=5||!player.isRadiant)return;
+  const progType=(_SD().rules&&_SD().rules.progressionType)||'oaths';
+  const maxProg=(_SD().rules&&_SD().rules.maxProgression)||5;
+  const isClassPath=window.ConfigResolver?window.ConfigResolver.hasClassPath(player):player.isRadiant;
+  if(oathStage>=maxProg||!isClassPath)return;
+  if(progType!=='oaths'&&progType!=='corruption')return; // only oath/corruption systems have progression moments
   const ideal=ORDER_IDEALS[player.classId];if(!ideal)return;
   const recentActions=(gState.actionLog||[]).slice(0,6).filter(e=>e.name===player.name).map(e=>e.verb+' '+(e.noun||''));
   const allText=(recentActions.join(' ')+' '+gmText).toLowerCase();
@@ -306,21 +316,22 @@ async function checkOathMoment(gmText, player){
   await progressOath(player);
 }
 
-// ══ THE HOID SYSTEM ══
-// ~2% chance per turn that Wit appears — cryptic, never directly helpful
-// Increases slightly at dramatic moments
+// ══ MYSTERY VISITOR SYSTEM (Hoid/Wit for Stormlight, generic for others) ══
+// ~2% chance per turn that a mysterious figure appears — cryptic, never directly helpful
 async function maybeSpawnHoid(gmText, turn){
   if(!gState||turn<5)return;
-  // Base chance 2%, rises at dramatic moments and multiples of 10
+  const lines=HOID_LINES;
+  if(!lines||!lines.length)return; // System has no mystery visitor lines
   let chance=0.02;
   if(turn%10===0)chance=0.08;
   if(gState.preCombatTriggered&&!gState.combatMode)chance=0.12;
   if(Math.random()>chance)return;
-  // Don't repeat too soon
   if(gState.lastHoidTurn&&turn-gState.lastHoidTurn<15)return;
   gState.lastHoidTurn=turn;
-  const line=HOID_LINES[Math.floor(Math.random()*HOID_LINES.length)];
-  await addLog({type:'system',who:'⟁ Wit',text:line,choices:[]});
+  const line=lines[Math.floor(Math.random()*lines.length)];
+  const _glyph=(_SD().glyph)||'✦';
+  const _visitorName=(_SD().id)==='stormlight'?'Wit':'A Stranger';
+  await addLog({type:'system',who:_glyph+' '+_visitorName,text:line,choices:[]});
   await saveState(gState);
 }
 
@@ -332,8 +343,10 @@ async function progressOath(player){
   const oath=oaths[newStage-1]||'I will hold to what matters.';
   const bonus=OATH_BONUSES[newStage];
   player.oathStage=newStage;
-  if(newStage===4&&!player.shardplate)player.shardplate='Nascent Plate';
-  if(newStage===5)player.shardplate='Full Shardplate';
+  // Config-driven progression equipment (Shardplate for Stormlight, etc.)
+  const _edCfgP=window.ConfigResolver?window.ConfigResolver.getEquipDropConfig():{armorName:'Legendary Armor'};
+  if(newStage===4&&!player.shardplate)player.shardplate='Nascent '+_edCfgP.armorName;
+  if(newStage===5)player.shardplate='Full '+_edCfgP.armorName;
   const idx=gState.players.findIndex(p=>p&&p.name===player.name);
   if(idx>=0)gState.players[idx]=player;
   if(myChar&&myChar.name===player.name){myChar=player;saveMyChar(player);}
@@ -381,11 +394,15 @@ Return ONLY the single sentence, nothing else.`;
 // ══ COMBAT HEALING/REVIVE HELPERS ══
 function getHealAmount(player, stageOverride){
   const stage=stageOverride!=null?stageOverride:getSprenStage(gState&&gState.totalMoves||0);
-  const base=(stage+2)*3; // 9,12,15,18,21 — meaningful healing
-  if(player.classId==='edgedancer')return Math.round(base*1.8); // 16,22,27,32,38
-  if(player.classId==='bondsmith')return null;
-  if(player.shardplate)return Math.round(base*1.2); // Shardplate wearers channel more
-  return base;
+  const base=(stage+2)*3;
+  // Config-driven heal multiplier per class
+  const mult = window.ConfigResolver
+    ? window.ConfigResolver.getHealMultiplier(player.classId)
+    : (player.classId==='edgedancer'?1.8:player.classId==='bondsmith'?0:1);
+  if(mult===0)return null; // party-wide healer returns null (handled separately)
+  let heal=Math.round(base*mult);
+  if(player.shardplate)heal=Math.round(heal*1.2);
+  return heal;
 }
 function getBondsmitnPartyHeal(stage){return Math.max(2,Math.floor(stage*1.5+2));} // 2,3,5,7,9
 function getReviveCost(stage){return Math.max(0,3-stage);} // 3,2,1,0,0 fragments
@@ -394,13 +411,28 @@ function getReviveHP(stage){return Math.max(1,stage*2);} // 0,2,4,6,8 → capped
 function calcEnemyHP(baseHP, actNum, avgBladeTier){
   const actMult=[1.0,1.5,2.0][actNum-1]||1.0;
   const bladeFactor=1+(avgBladeTier*0.15);
-  return Math.round(baseHP*actMult*bladeFactor);
+  // Party size scaling
+  const sz=(typeof gState!=='undefined'&&gState&&gState.partySize)||partySize||3;
+  const sizeMult=sz<=2?1.0:sz===3?1.2:sz===4?1.5:2.0;
+  // Average party level scaling
+  const players=(typeof gState!=='undefined'&&gState&&gState.players||[]).filter(p=>p&&!p.isNPC&&!p.isPlaceholder);
+  const avgLevel=players.length?players.reduce((s,p)=>s+(p.level||1),0)/players.length:1;
+  const levelMult=1+(Math.max(0,avgLevel-1)*0.12); // +12% per level above 1
+  return Math.round(baseHP*actMult*bladeFactor*sizeMult*levelMult);
 }
 
 function enemyAttackRoll(enemy, target){
   const roll=Math.min(20,Math.ceil(Math.random()*20)+Math.floor(enemy.attackBonus||2));
-  // Official Physical Defense = 10 + STR + SPD
-  const pDef=10+(target.stats&&target.stats.str||0)+(target.stats&&target.stats.spd||0)+(target.shardplate?3:0);
+  // Use config-driven defense (first defense in rules.defenses) or fallback
+  let pDef;
+  if(target.physDef!=null){
+    pDef=target.physDef+(target.shardplate?3:0);
+  } else if(window.ConfigResolver){
+    const defs=window.ConfigResolver.calcDefensesFromConfig(target.stats||{},{});
+    pDef=(defs.physDef||10)+(target.shardplate?3:0);
+  } else {
+    pDef=10+(target.stats&&target.stats.str||0)+(target.stats&&target.stats.spd||0)+(target.shardplate?3:0);
+  }
   const hit=roll>pDef;
   const dmg=hit?Math.ceil(Math.random()*enemy.dmg)+Math.floor(enemy.dmg/2):0;
   return{roll,hit,dmg,defense:pDef};
@@ -421,12 +453,17 @@ function buildCombatChoices(player, combatState){
   const wName=weapon?weapon.name:(player.shardblade||'my weapon');
   const surgeId=(ORDER_SURGES[player.classId]||[])[0];
   const surgeObj=surgeId&&SURGES.find(s=>s.id===surgeId);
-  const surgeName=surgeObj?surgeObj.name:'my surge';
+  const _gmCtx=_SD().gmContext||{};
+  const _magicName=_gmCtx.magicName||'power';
+  const _magicRes=_gmCtx.magicResource||'energy';
+  const surgeName=surgeObj?surgeObj.name:('my '+_magicName.toLowerCase());
+  const _abilTag=(_SD().combatActions||[]).find(a=>a.id==='surge'||a.id==='magic'||a.id==='corruption');
+  const _surgeTag=_abilTag?_abilTag.tag:'SURGE';
   const seed=((round-1)%5);
   const attackPool=[
     `[ATTACK] I drive forward and unleash ${surgeName} directly into ${eName}'s center of mass`,
     `[ATTACK] I feint left and swing hard for the gap in ${eName}'s guard with ${wName}`,
-    `[ATTACK] I channel Stormlight through my feet and launch off the ground at ${eName}`,
+    `[ATTACK] I channel ${_magicName} through my body and launch at ${eName}`,
     `[ATTACK] I read ${eName}'s weight distribution and strike exactly where balance fails`,
     `[ATTACK] I put everything into a single overwhelming blow — no holding back`,
   ];
@@ -438,20 +475,20 @@ function buildCombatChoices(player, combatState){
     `[ATTACK] I call ${eName}'s next move before they make it and counter before they adjust`,
   ];
   const surgePool=[
-    `[SURGE] I pour Investiture into ${surgeName} and reshape the ground between us`,
-    `[SURGE] I breathe in deep and let ${surgeName} flow through my limbs — faster, stronger`,
-    `[SURGE] I push ${surgeName} beyond its usual limits and see what it can do`,
-    `[SURGE] I use ${surgeName} to create an opening no one else in this fight could make`,
-    `[SURGE] I anchor myself with ${surgeName} and become the immovable point this battle needs`,
+    `[${_surgeTag}] I pour ${_magicRes} into ${surgeName} and reshape the ground between us`,
+    `[${_surgeTag}] I breathe in deep and let ${surgeName} flow through my limbs — faster, stronger`,
+    `[${_surgeTag}] I push ${surgeName} beyond its usual limits and see what it can do`,
+    `[${_surgeTag}] I use ${surgeName} to create an opening no one else in this fight could make`,
+    `[${_surgeTag}] I anchor myself with ${surgeName} and become the immovable point this battle needs`,
   ];
   const healPool=[
-    downed.length>0?`[HEAL] I drop to ${downed[0].name}'s side and push Stormlight into the wound`:
-      `[HEAL] I press Stormlight into the worst of my injuries and force them to close`,
+    downed.length>0?`[HEAL] I drop to ${downed[0].name}'s side and channel ${_magicName} into the wound`:
+      `[HEAL] I press ${_magicName} into the worst of my injuries and force them to close`,
     downed.length>0?`[HEAL] I cover ${downed[0].name} and pour everything I have into keeping them alive`:
-      `[HEAL] I steal a moment to let Progression do its work on whoever needs it most`,
-    `[HEAL] I draw all Stormlight within reach and distribute it among those who need it`,
+      `[HEAL] I steal a moment to let healing do its work on whoever needs it most`,
+    `[HEAL] I draw all the ${_magicName} within reach and distribute it among those who need it`,
     `[HEAL] I sacrifice momentum to stabilize — we cannot win if we keep bleeding out`,
-    `[HEAL] I inhale from the nearest sphere and let the light seal what the last blow opened`,
+    `[HEAL] I draw deep and let the energy seal what the last blow opened`,
   ];
   return [attackPool[seed], tacticalPool[seed], surgePool[seed], healPool[seed]];
 }
@@ -491,17 +528,22 @@ async function generateCombatChoices(player){
   const recentLog=(gState.combatLog||[]).slice(-2).map(e=>e.text||'').filter(Boolean).join(' ');
   const contextSnippet=recentLog.slice(0,300);
 
-  const surgesText=surgeNames?`\nSurges available: ${surgeNames}. Weave them into at least one option.`:'';
+  const _ctx2 = window.SystemData?.gmContext || {};
+  const _magicName2 = _ctx2.magicName || 'power';
+  const _magicRes2 = _ctx2.magicResource || 'energy';
+  const _abilTag2 = (_SD().combatActions||[]).find(a=>a.id==='surge'||a.id==='magic'||a.id==='corruption');
+  const _surgeTag2 = _abilTag2?_abilTag2.tag:'SURGE';
+  const surgesText=surgeNames?`\nAbilities available: ${surgeNames}. Weave them into at least one option.`:'';
   const abilitiesText=(cls.abilities||[]).length?`\nClass abilities: ${cls.abilities.slice(0,3).join(', ')}.`:'';
   const woundNote=player.hp<(player.maxHp||10)*0.4?`\n${player.name} is badly wounded (${player.hp}/${player.maxHp}HP) — this must show in at least one option.`:'';
   const injuryNote=(player.injuries&&player.injuries.length)?`\nActive injuries: ${player.injuries.map(i=>i.effect).join(', ')} — let this shape the choices.`:'';
 
-  const _ctx = window.SystemData?.gmContext || {};
-  const _sysLabel = _ctx.combatFlavor || _ctx.systemName || 'RPG';
+  const _sysLabel = _ctx2.combatFlavor || _ctx2.systemName || 'RPG';
+  const _actionTags = (_SD().combatActions||[]).map(a=>'['+a.tag+']').join(', ')||'[ATTACK], [DEFEND], [HEAL], ['+_surgeTag2+']';
   const prompt=`You are writing 4 combat action choices for a ${_sysLabel} game. These appear as buttons the player clicks.
 
 ROUND ${round}. LOCATION: ${loc}.
-ACTING CHARACTER: ${player.name}, ${cls.name}${player.oathStage?' (Oath '+player.oathStage+'/5)':''}${woundNote}${injuryNote}
+ACTING CHARACTER: ${player.name}, ${cls.name}${player.oathStage?' (Stage '+player.oathStage+')':''}${woundNote}${injuryNote}
 ENEMIES: ${enemyDesc}
 ALLIES: ${partyDesc}
 RECENT CONTEXT: ${contextSnippet||'Combat just began.'}${surgesText}${abilitiesText}
@@ -511,16 +553,16 @@ ${prevWarning}
 RULES — EVERY choice must follow ALL of these:
 1. FIRST PERSON ONLY — "I [verb]..." or starts with an action verb implying "I". NEVER "Strike the enemy" or "${player.name} does X".
 2. ONE VIVID SENTENCE — specific, concrete, shows what happens physically.
-3. MECHANICALLY TAGGED — start with [ATTACK], [DEFEND], [HEAL], or [SURGE].
+3. MECHANICALLY TAGGED — start with one of: ${_actionTags}.
 4. UNIQUE TO THIS MOMENT — reference the specific enemy, location detail, or current status. No generic RPG phrases.
-5. FOUR DISTINCT APPROACHES — one aggressive, one tactical/defensive, one surge/class ability, one situational (healing, terrain, ally help).
+5. FOUR DISTINCT APPROACHES — one aggressive, one tactical/defensive, one ${_magicName2.toLowerCase()}/class ability, one situational (healing, terrain, ally help).
 6. NO REPETITION from previous rounds listed above.
 
 EXAMPLES OF GOOD choices:
-"[ATTACK] I slam a Basic Lashing into the Fused's chest and hurl them backward into the wall."
-"[DEFEND] I interpose myself between Kal and the singer's spear, taking the blow on my shoulder."
-"[SURGE] I pour Progression into the cracked stone floor and force it to buckle under their feet."
-"[HEAL] I pull ${player.name==='Kaladin'?'Shallan':'my ally'} behind a pillar and breathe Stormlight into the wound."
+"[ATTACK] I drive forward and slam my weapon into the enemy's center mass, hurling them backward."
+"[DEFEND] I interpose myself between my ally and the incoming strike, taking the blow on my shoulder."
+"[${_surgeTag2}] I channel ${_magicName2} into the cracked ground and force it to buckle under their feet."
+"[HEAL] I pull my ally behind cover and channel ${_magicName2} into the wound."
 
 Return ONLY 4 numbered lines. Nothing else.`;
 
@@ -606,7 +648,8 @@ let selKit      = null;
 let charObstacle    = '';
 
 // Point-buy allocation (12 points, max 3 per attr at creation)
-let _pbAlloc = { str:2, spd:2, int:2, wil:2, awa:2, pre:2 };
+// Point-buy allocation — rebuilt dynamically when system loads
+let _pbAlloc = {}; // Initialized by renderCreate() from STAT_KEYS
 
 // Speech synthesis
 let voiceActive = false, currentUtterance = null;

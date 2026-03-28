@@ -25,6 +25,15 @@ window.ENEMY_CATEGORY_REGISTRY = [
   { id: 'humanEnemies', name: 'Human Enemies', icon: '⚔', desc: 'Cultists, pirates, assassins, bandits' },
   { id: 'mythological', name: 'Mythological', icon: '⛩', desc: 'Oni, djinn, rakshasa, Norse creatures' },
   { id: 'swarms', name: 'Swarms', icon: '🦇', desc: 'Rat swarms, bat swarms, insect swarms' },
+  { id: 'robots', name: 'Robots & Machines', icon: '🤖', desc: 'Combat robots, war machines, sentry turrets, spider bots' },
+  { id: 'cyborgs', name: 'Cyborgs', icon: '🦾', desc: 'Cyborg soldiers, augmented enforcers, chrome soldiers' },
+  { id: 'drones', name: 'Drones', icon: '🛸', desc: 'Drone swarms, assault drones, heavy gunship drones' },
+  { id: 'mechs', name: 'Mechs', icon: '🦿', desc: 'Scout mechs, assault mechs, titan mechs' },
+  { id: 'androids', name: 'Androids', icon: '🧬', desc: 'Android workers, combat androids, infiltrators' },
+  { id: 'aliens', name: 'Aliens & Xenos', icon: '👽', desc: 'Xenomorphs, insectoids, cosmic parasites, shapeshifters' },
+  { id: 'postapoc', name: 'Post-Apocalyptic', icon: '☢', desc: 'Raiders, mutants, feral animals, plague carriers' },
+  { id: 'corporate', name: 'Corporate & PMC', icon: '🏢', desc: 'Corp security, PMC operators, tactical response, black ops' },
+  { id: 'steampunk', name: 'Steampunk', icon: '⚙', desc: 'Clockwork soldiers, brass automata, steam knights, airship pirates' },
 ];
 
 // Shared patterns organized by category ID
@@ -582,6 +591,432 @@ window.SHARED_ENEMY_PATTERNS = {
         { name: 'Scarab Swarm',        type: 'Swarm',   baseHP: 5,  dmg: 3, attackBonus: 2 },
         { name: 'Locust Swarm',        type: 'Swarm',   baseHP: 4,  dmg: 2, attackBonus: 1 },
         { name: 'Flesh Beetle Swarm',  type: 'Swarm',   baseHP: 6,  dmg: 3, attackBonus: 2 },
+      ]},
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // ROBOTS & MACHINES (5 patterns)
+  // ═══════════════════════════════════════════════════════════════
+  robots: [
+    // ── Sentry Turrets
+    { keywords: [/sentry|turret|auto.gun|automated.*defense|gun.*emplacement/i],
+      enemies: [
+        { name: 'Light Sentry Turret',   type: 'Machine',  baseHP: 6,  dmg: 3, attackBonus: 3 },
+        { name: 'Heavy Sentry Turret',   type: 'Machine',  baseHP: 14, dmg: 5, attackBonus: 4 },
+        { name: 'Plasma Turret',         type: 'Machine',  baseHP: 18, dmg: 6, attackBonus: 5 },
+      ]},
+
+    // ── Combat Robots
+    { keywords: [/robot|combat.bot|war.machine|killbot|battle.droid|mechanical.*soldier/i],
+      enemies: [
+        { name: 'Patrol Bot',            type: 'Machine',  baseHP: 8,  dmg: 3, attackBonus: 2 },
+        { name: 'Combat Robot',          type: 'Machine',  baseHP: 14, dmg: 5, attackBonus: 3 },
+        { name: 'War Machine',           type: 'Elite',    baseHP: 22, dmg: 7, attackBonus: 5 },
+        { name: 'Siege Bot',             type: 'Boss',     baseHP: 30, dmg: 9, attackBonus: 6 },
+      ]},
+
+    // ── Spider Bots & Crawlers
+    { keywords: [/spider.bot|crawler|skitter|multi.legged.*machine|mechanical.*spider/i],
+      enemies: [
+        { name: 'Spider Bot',            type: 'Machine',  baseHP: 5,  dmg: 2, attackBonus: 2 },
+        { name: 'Recon Crawler',         type: 'Machine',  baseHP: 7,  dmg: 3, attackBonus: 3 },
+        { name: 'Siege Crawler',         type: 'Elite',    baseHP: 18, dmg: 6, attackBonus: 4 },
+        { name: 'Widow Mk-IV',          type: 'Boss',     baseHP: 26, dmg: 8, attackBonus: 6 },
+      ]},
+
+    // ── Maintenance & Utility Bots (gone haywire)
+    { keywords: [/haywire|malfunction|rogue.*bot|broken.*machine|glitch|corrupted.*ai/i],
+      enemies: [
+        { name: 'Haywire Welder',        type: 'Machine',  baseHP: 6,  dmg: 3, attackBonus: 2 },
+        { name: 'Rogue Loader Bot',      type: 'Machine',  baseHP: 12, dmg: 4, attackBonus: 2 },
+        { name: 'Glitched Security Bot',  type: 'Machine', baseHP: 10, dmg: 4, attackBonus: 3 },
+      ]},
+
+    // ── Heavy War Platforms
+    { keywords: [/war.platform|tank.bot|heavy.*mech.*weapon|artillery.bot|mobile.*fortress/i],
+      enemies: [
+        { name: 'Artillery Platform',    type: 'Machine',  baseHP: 16, dmg: 6, attackBonus: 4 },
+        { name: 'Tank Bot',              type: 'Elite',    baseHP: 22, dmg: 7, attackBonus: 5 },
+        { name: 'Devastator Platform',   type: 'Boss',     baseHP: 35, dmg: 10, attackBonus: 7 },
+      ]},
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // CYBORGS (4 patterns)
+  // ═══════════════════════════════════════════════════════════════
+  cyborgs: [
+    // ── Cyborg Soldiers
+    { keywords: [/cyborg|half.machine|augmented.*soldier|metal.*flesh|cyber.*warrior/i],
+      enemies: [
+        { name: 'Cyborg Grunt',           type: 'Cyborg',  baseHP: 10, dmg: 4, attackBonus: 3 },
+        { name: 'Cyborg Soldier',         type: 'Cyborg',  baseHP: 14, dmg: 5, attackBonus: 3 },
+        { name: 'Cyborg Sergeant',        type: 'Elite',   baseHP: 18, dmg: 6, attackBonus: 4 },
+        { name: 'Cyborg Warlord',         type: 'Boss',    baseHP: 28, dmg: 8, attackBonus: 6 },
+      ]},
+
+    // ── Augmented Enforcers
+    { keywords: [/enforcer|augmented.*brute|chrome.*fist|hydraulic.*arm|enhanced.*thug/i],
+      enemies: [
+        { name: 'Street Enforcer',        type: 'Cyborg',  baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Augmented Enforcer',     type: 'Cyborg',  baseHP: 16, dmg: 5, attackBonus: 4 },
+        { name: 'Heavy Enforcer',         type: 'Elite',   baseHP: 20, dmg: 6, attackBonus: 5 },
+      ]},
+
+    // ── Chrome Soldiers & Razorgirls
+    { keywords: [/chrome|razor|blade.*arm|mono.*wire|reflex.*boost|wired/i],
+      enemies: [
+        { name: 'Chrome Soldier',         type: 'Cyborg',  baseHP: 11, dmg: 4, attackBonus: 3 },
+        { name: 'Razorhand',              type: 'Cyborg',  baseHP: 13, dmg: 5, attackBonus: 4 },
+        { name: 'Full-Conversion Borg',   type: 'Elite',   baseHP: 22, dmg: 7, attackBonus: 5 },
+        { name: 'Chrome Berserker',       type: 'Boss',    baseHP: 26, dmg: 8, attackBonus: 6 },
+      ]},
+
+    // ── Techno-Zealots & Cult of the Machine
+    { keywords: [/techno.zealot|machine.cult|flesh.*weak|omnissiah|mechanical.*convert/i],
+      enemies: [
+        { name: 'Techno-Acolyte',         type: 'Cyborg',  baseHP: 7,  dmg: 3, attackBonus: 2 },
+        { name: 'Techno-Priest',          type: 'Cyborg',  baseHP: 14, dmg: 5, attackBonus: 4 },
+        { name: 'Machine Apostle',        type: 'Elite',   baseHP: 20, dmg: 6, attackBonus: 5 },
+        { name: 'Archmagos',              type: 'Boss',    baseHP: 30, dmg: 9, attackBonus: 7 },
+      ]},
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // DRONES (4 patterns)
+  // ═══════════════════════════════════════════════════════════════
+  drones: [
+    // ── Scout & Recon Drones
+    { keywords: [/scout.drone|recon.drone|surveillance|eye.*sky|spotter|hover.*cam/i],
+      enemies: [
+        { name: 'Recon Drone',            type: 'Drone',   baseHP: 4,  dmg: 2, attackBonus: 2 },
+        { name: 'Spotter Drone',          type: 'Drone',   baseHP: 5,  dmg: 2, attackBonus: 2 },
+        { name: 'Hunter-Seeker Drone',    type: 'Drone',   baseHP: 8,  dmg: 3, attackBonus: 3 },
+      ]},
+
+    // ── Assault Drones
+    { keywords: [/assault.drone|attack.drone|armed.*drone|drone.*strafe|drone.*fire/i],
+      enemies: [
+        { name: 'Assault Drone',          type: 'Drone',   baseHP: 10, dmg: 4, attackBonus: 3 },
+        { name: 'Strike Drone',           type: 'Drone',   baseHP: 13, dmg: 5, attackBonus: 4 },
+        { name: 'Predator Drone',         type: 'Elite',   baseHP: 18, dmg: 6, attackBonus: 5 },
+        { name: 'Drone Mothership',       type: 'Boss',    baseHP: 28, dmg: 8, attackBonus: 6 },
+      ]},
+
+    // ── Drone Swarms
+    { keywords: [/drone.swarm|micro.drone|nanite|cloud.*drones|buzzing.*machines/i],
+      enemies: [
+        { name: 'Micro-Drone Swarm',      type: 'Swarm',   baseHP: 6,  dmg: 3, attackBonus: 2 },
+        { name: 'Razor Drone Swarm',      type: 'Swarm',   baseHP: 8,  dmg: 3, attackBonus: 3 },
+        { name: 'Nanite Cloud',           type: 'Swarm',   baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Hive Drone Cluster',     type: 'Elite',   baseHP: 16, dmg: 5, attackBonus: 4 },
+      ]},
+
+    // ── Heavy Gunship Drones
+    { keywords: [/gunship|heavy.drone|bomber.drone|aerial.*assault|vtol.*hostile/i],
+      enemies: [
+        { name: 'Gunship Drone',          type: 'Drone',   baseHP: 16, dmg: 6, attackBonus: 4 },
+        { name: 'Bomber Drone',           type: 'Drone',   baseHP: 14, dmg: 7, attackBonus: 3 },
+        { name: 'Aerial Dreadnought',     type: 'Boss',    baseHP: 32, dmg: 9, attackBonus: 6 },
+      ]},
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // MECHS (4 patterns)
+  // ═══════════════════════════════════════════════════════════════
+  mechs: [
+    // ── Scout Mechs
+    { keywords: [/scout.mech|light.mech|recon.walker|chicken.walker|bipedal.*scout/i],
+      enemies: [
+        { name: 'Scout Walker',           type: 'Mech',    baseHP: 10, dmg: 4, attackBonus: 3 },
+        { name: 'Light Mech',             type: 'Mech',    baseHP: 14, dmg: 5, attackBonus: 3 },
+        { name: 'Recon Strider',          type: 'Mech',    baseHP: 12, dmg: 4, attackBonus: 4 },
+      ]},
+
+    // ── Assault Mechs
+    { keywords: [/assault.mech|battle.mech|war.walker|heavy.mech|armed.*walker/i],
+      enemies: [
+        { name: 'Assault Mech',           type: 'Mech',    baseHP: 20, dmg: 6, attackBonus: 4 },
+        { name: 'Battle Mech',            type: 'Elite',   baseHP: 22, dmg: 7, attackBonus: 5 },
+        { name: 'Siege Mech',             type: 'Elite',   baseHP: 24, dmg: 7, attackBonus: 5 },
+        { name: 'War Colossus',           type: 'Boss',    baseHP: 35, dmg: 10, attackBonus: 7 },
+      ]},
+
+    // ── Titan Mechs
+    { keywords: [/titan|colossus|mega.mech|god.machine|leviathan.*mech|towering.*mech/i],
+      enemies: [
+        { name: 'Titan Scout',            type: 'Mech',    baseHP: 18, dmg: 6, attackBonus: 4 },
+        { name: 'Titan Warframe',         type: 'Elite',   baseHP: 22, dmg: 7, attackBonus: 5 },
+        { name: 'Titan Executioner',      type: 'Boss',    baseHP: 34, dmg: 10, attackBonus: 7 },
+      ]},
+
+    // ── Piloted Exoskeletons
+    { keywords: [/exo.suit|power.armor|exoskeleton|hardsuit|powered.*frame/i],
+      enemies: [
+        { name: 'Exo-Suit Trooper',       type: 'Mech',    baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Hardsuit Breacher',      type: 'Mech',    baseHP: 16, dmg: 5, attackBonus: 4 },
+        { name: 'Heavy Exo-Frame',        type: 'Elite',   baseHP: 20, dmg: 6, attackBonus: 5 },
+        { name: 'Juggernaut Frame',       type: 'Boss',    baseHP: 28, dmg: 8, attackBonus: 6 },
+      ]},
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // ANDROIDS (5 patterns)
+  // ═══════════════════════════════════════════════════════════════
+  androids: [
+    // ── Worker Androids (gone rogue)
+    { keywords: [/android.worker|servant.*android|synth.*worker|domestic.*robot|rogue.*servant/i],
+      enemies: [
+        { name: 'Rogue Worker Android',   type: 'Android',  baseHP: 6,  dmg: 2, attackBonus: 1 },
+        { name: 'Berserk Laborer',        type: 'Android',  baseHP: 8,  dmg: 3, attackBonus: 2 },
+        { name: 'Overclocked Worker',     type: 'Android',  baseHP: 10, dmg: 4, attackBonus: 2 },
+      ]},
+
+    // ── Combat Androids
+    { keywords: [/combat.android|battle.synth|android.*soldier|synthetic.*warrior|android.*attack/i],
+      enemies: [
+        { name: 'Combat Android',         type: 'Android',  baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Assault Synth',          type: 'Android',  baseHP: 16, dmg: 5, attackBonus: 4 },
+        { name: 'Praetorian Android',     type: 'Elite',    baseHP: 20, dmg: 6, attackBonus: 5 },
+        { name: 'Android Centurion',      type: 'Boss',     baseHP: 28, dmg: 8, attackBonus: 6 },
+      ]},
+
+    // ── Infiltrators
+    { keywords: [/infiltrator|android.*disguise|synthetic.*skin|replica|passing.*human/i],
+      enemies: [
+        { name: 'Infiltrator Unit',       type: 'Android',  baseHP: 10, dmg: 4, attackBonus: 4 },
+        { name: 'Doppel-Synth',           type: 'Android',  baseHP: 14, dmg: 5, attackBonus: 5 },
+        { name: 'Termination Unit',       type: 'Elite',    baseHP: 20, dmg: 7, attackBonus: 5 },
+        { name: 'Perfect Replica',        type: 'Boss',     baseHP: 26, dmg: 8, attackBonus: 6 },
+      ]},
+
+    // ── Medical & Science Androids
+    { keywords: [/medical.*android|science.*bot|surgeon.*rogue|experiment.*loose|lab.*android/i],
+      enemies: [
+        { name: 'Rogue Medbot',           type: 'Android',  baseHP: 7,  dmg: 3, attackBonus: 2 },
+        { name: 'Mad Surgeon Unit',       type: 'Android',  baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Experimental Prototype', type: 'Elite',    baseHP: 18, dmg: 6, attackBonus: 5 },
+      ]},
+
+    // ── AI Networked Androids
+    { keywords: [/networked|hivemind.*android|linked.*synth|ai.*collective|unified.*machines/i],
+      enemies: [
+        { name: 'Networked Drone',        type: 'Android',  baseHP: 8,  dmg: 3, attackBonus: 2 },
+        { name: 'Sync-Linked Android',    type: 'Android',  baseHP: 13, dmg: 5, attackBonus: 4 },
+        { name: 'Hivemind Node',          type: 'Elite',    baseHP: 18, dmg: 6, attackBonus: 5 },
+        { name: 'Core Intelligence',      type: 'Boss',     baseHP: 32, dmg: 9, attackBonus: 7 },
+      ]},
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // ALIENS & XENOS (6 patterns)
+  // ═══════════════════════════════════════════════════════════════
+  aliens: [
+    // ── Xenomorphs & Predatory Aliens
+    { keywords: [/xenomorph|alien.*predator|acid.*blood|face.hugger|chest.burst|hive.*alien/i],
+      enemies: [
+        { name: 'Facehugger',             type: 'Alien',    baseHP: 4,  dmg: 2, attackBonus: 3 },
+        { name: 'Xenomorph Drone',        type: 'Alien',    baseHP: 12, dmg: 5, attackBonus: 4 },
+        { name: 'Xenomorph Warrior',      type: 'Elite',    baseHP: 18, dmg: 6, attackBonus: 5 },
+        { name: 'Xenomorph Queen',        type: 'Boss',     baseHP: 35, dmg: 10, attackBonus: 7 },
+      ]},
+
+    // ── Insectoid Aliens
+    { keywords: [/insectoid|bug.*alien|chitinous|mantis.*alien|hive.*mind|swarm.*alien/i],
+      enemies: [
+        { name: 'Insectoid Drone',        type: 'Alien',    baseHP: 6,  dmg: 2, attackBonus: 2 },
+        { name: 'Insectoid Warrior',      type: 'Alien',    baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Insectoid Broodguard',   type: 'Elite',    baseHP: 18, dmg: 6, attackBonus: 4 },
+        { name: 'Hive Tyrant',            type: 'Boss',     baseHP: 30, dmg: 9, attackBonus: 6 },
+      ]},
+
+    // ── Cosmic Parasites
+    { keywords: [/parasite|brain.slug|body.*snatch|infest|alien.*worm|host.*control/i],
+      enemies: [
+        { name: 'Parasitic Larva',        type: 'Alien',    baseHP: 4,  dmg: 2, attackBonus: 2 },
+        { name: 'Brain Parasite',         type: 'Alien',    baseHP: 8,  dmg: 3, attackBonus: 3 },
+        { name: 'Infected Host',          type: 'Alien',    baseHP: 14, dmg: 5, attackBonus: 3 },
+        { name: 'Parasite Overlord',      type: 'Elite',    baseHP: 20, dmg: 7, attackBonus: 5 },
+      ]},
+
+    // ── Shapeshifting Aliens
+    { keywords: [/shapeshifter|mimic.*alien|thing|assimilat|alien.*copy|not.*who.*seem/i],
+      enemies: [
+        { name: 'Alien Mimic',            type: 'Alien',    baseHP: 10, dmg: 4, attackBonus: 4 },
+        { name: 'Assimilator',            type: 'Alien',    baseHP: 16, dmg: 5, attackBonus: 5 },
+        { name: 'Apex Shapeshifter',      type: 'Elite',    baseHP: 22, dmg: 7, attackBonus: 5 },
+      ]},
+
+    // ── Alien Soldiers & Raiders
+    { keywords: [/alien.*soldier|xeno.*raider|extraterrestrial|invader|alien.*trooper/i],
+      enemies: [
+        { name: 'Alien Scout',            type: 'Alien',    baseHP: 8,  dmg: 3, attackBonus: 2 },
+        { name: 'Alien Trooper',          type: 'Alien',    baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Alien Elite Guard',      type: 'Elite',    baseHP: 18, dmg: 6, attackBonus: 5 },
+        { name: 'Alien Warlord',          type: 'Boss',     baseHP: 30, dmg: 9, attackBonus: 6 },
+      ]},
+
+    // ── Energy Beings & Ethereal Aliens
+    { keywords: [/energy.being|ethereal.*alien|plasma.*creature|light.*entity|phase.*alien/i],
+      enemies: [
+        { name: 'Phase Wraith',           type: 'Alien',    baseHP: 9,  dmg: 4, attackBonus: 4 },
+        { name: 'Plasma Entity',          type: 'Alien',    baseHP: 14, dmg: 5, attackBonus: 4 },
+        { name: 'Void Stalker',           type: 'Elite',    baseHP: 20, dmg: 7, attackBonus: 5 },
+      ]},
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // POST-APOCALYPTIC (6 patterns)
+  // ═══════════════════════════════════════════════════════════════
+  postapoc: [
+    // ── Raiders
+    { keywords: [/raider|scavenger|wasteland.*bandit|road.warrior|marauder|looter/i],
+      enemies: [
+        { name: 'Raider Scav',            type: 'Humanoid', baseHP: 6,  dmg: 2, attackBonus: 1 },
+        { name: 'Raider',                 type: 'Humanoid', baseHP: 10, dmg: 3, attackBonus: 2 },
+        { name: 'Raider Veteran',         type: 'Humanoid', baseHP: 14, dmg: 5, attackBonus: 3 },
+        { name: 'Raider Warlord',         type: 'Boss',     baseHP: 24, dmg: 7, attackBonus: 5 },
+      ]},
+
+    // ── Mutants
+    { keywords: [/mutant|irradiated|twisted.*flesh|grotesque.*form|mutation|glowing/i],
+      enemies: [
+        { name: 'Feral Mutant',           type: 'Mutant',   baseHP: 8,  dmg: 3, attackBonus: 2 },
+        { name: 'Brute Mutant',           type: 'Mutant',   baseHP: 16, dmg: 5, attackBonus: 3 },
+        { name: 'Glowing Mutant',         type: 'Elite',    baseHP: 20, dmg: 6, attackBonus: 4 },
+        { name: 'Mutant Behemoth',        type: 'Boss',     baseHP: 32, dmg: 9, attackBonus: 6 },
+      ]},
+
+    // ── Feral Animals
+    { keywords: [/feral|wild.*dog|mutant.*beast|irradiated.*animal|wasteland.*creature/i],
+      enemies: [
+        { name: 'Feral Dog',              type: 'Beast',    baseHP: 5,  dmg: 2, attackBonus: 2 },
+        { name: 'Mutant Rat Pack',        type: 'Swarm',    baseHP: 6,  dmg: 2, attackBonus: 2 },
+        { name: 'Irradiated Bear',        type: 'Beast',    baseHP: 18, dmg: 6, attackBonus: 4 },
+        { name: 'Deathclaw',              type: 'Boss',     baseHP: 28, dmg: 8, attackBonus: 6 },
+      ]},
+
+    // ── Plague Carriers & Infected
+    { keywords: [/plague|infected|virus|zombie.*modern|outbreak|contagion|shambler/i],
+      enemies: [
+        { name: 'Infected Shambler',      type: 'Infected', baseHP: 6,  dmg: 2, attackBonus: 1 },
+        { name: 'Plague Carrier',         type: 'Infected', baseHP: 10, dmg: 3, attackBonus: 2 },
+        { name: 'Bloated Infected',       type: 'Infected', baseHP: 14, dmg: 5, attackBonus: 2 },
+        { name: 'Patient Zero',           type: 'Boss',     baseHP: 24, dmg: 7, attackBonus: 5 },
+      ]},
+
+    // ── Wasteland Machines
+    { keywords: [/rusted.*robot|scrap.bot|junk.*machine|pre.war.*machine|relic.*bot/i],
+      enemies: [
+        { name: 'Scrap Bot',              type: 'Machine',  baseHP: 8,  dmg: 3, attackBonus: 2 },
+        { name: 'Rusted Sentry',          type: 'Machine',  baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Pre-War Security Bot',   type: 'Elite',    baseHP: 18, dmg: 6, attackBonus: 4 },
+      ]},
+
+    // ── Cannibal Tribes
+    { keywords: [/cannibal|tribal.*hostile|blood.*cult|savage.*tribe|human.*hunt/i],
+      enemies: [
+        { name: 'Cannibal Scout',         type: 'Humanoid', baseHP: 7,  dmg: 3, attackBonus: 2 },
+        { name: 'Cannibal Hunter',        type: 'Humanoid', baseHP: 11, dmg: 4, attackBonus: 3 },
+        { name: 'Cannibal Chieftain',     type: 'Elite',    baseHP: 18, dmg: 6, attackBonus: 4 },
+        { name: 'Blood Priest',           type: 'Boss',     baseHP: 22, dmg: 7, attackBonus: 5 },
+      ]},
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // CORPORATE & PMC (5 patterns)
+  // ═══════════════════════════════════════════════════════════════
+  corporate: [
+    // ── Corp Security
+    { keywords: [/corp.*security|corporate.*guard|company.*men|rent.a.cop|office.*security/i],
+      enemies: [
+        { name: 'Corp Security Guard',    type: 'Humanoid', baseHP: 7,  dmg: 2, attackBonus: 2 },
+        { name: 'Corp Security Officer',  type: 'Humanoid', baseHP: 10, dmg: 3, attackBonus: 3 },
+        { name: 'Security Chief',         type: 'Elite',    baseHP: 16, dmg: 5, attackBonus: 4 },
+      ]},
+
+    // ── PMC Operators
+    { keywords: [/pmc|mercenary|private.military|contractor|hired.*gun|merc/i],
+      enemies: [
+        { name: 'PMC Trooper',            type: 'Humanoid', baseHP: 10, dmg: 4, attackBonus: 3 },
+        { name: 'PMC Operator',           type: 'Humanoid', baseHP: 14, dmg: 5, attackBonus: 4 },
+        { name: 'PMC Team Lead',          type: 'Elite',    baseHP: 18, dmg: 6, attackBonus: 5 },
+        { name: 'PMC Commander',          type: 'Boss',     baseHP: 24, dmg: 7, attackBonus: 6 },
+      ]},
+
+    // ── Tactical Response
+    { keywords: [/swat|tactical.*team|breach.*team|riot.*squad|response.*unit|tac.team/i],
+      enemies: [
+        { name: 'Tac-Team Breacher',      type: 'Humanoid', baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Tac-Team Pointman',      type: 'Humanoid', baseHP: 14, dmg: 5, attackBonus: 4 },
+        { name: 'Tac-Team Sniper',        type: 'Humanoid', baseHP: 10, dmg: 6, attackBonus: 5 },
+        { name: 'Tac-Team Commander',     type: 'Elite',    baseHP: 18, dmg: 6, attackBonus: 5 },
+      ]},
+
+    // ── Black Ops & Wetwork
+    { keywords: [/black.ops|wetwork|covert.*agent|shadow.*operative|off.the.books|deniable/i],
+      enemies: [
+        { name: 'Black Ops Agent',        type: 'Humanoid', baseHP: 12, dmg: 5, attackBonus: 5 },
+        { name: 'Wetwork Specialist',     type: 'Humanoid', baseHP: 14, dmg: 6, attackBonus: 5 },
+        { name: 'Ghost Operative',        type: 'Elite',    baseHP: 18, dmg: 7, attackBonus: 6 },
+        { name: 'Black Ops Director',     type: 'Boss',     baseHP: 22, dmg: 7, attackBonus: 6 },
+      ]},
+
+    // ── Corporate Drones & Exec Security
+    { keywords: [/executive.*protect|bodyguard|vip.*security|suit.*armed|corpo.*elite/i],
+      enemies: [
+        { name: 'Executive Bodyguard',    type: 'Humanoid', baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Corpo Elite Guard',      type: 'Humanoid', baseHP: 16, dmg: 5, attackBonus: 4 },
+        { name: 'Head of Security',       type: 'Elite',    baseHP: 20, dmg: 6, attackBonus: 5 },
+      ]},
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // STEAMPUNK (5 patterns)
+  // ═══════════════════════════════════════════════════════════════
+  steampunk: [
+    // ── Clockwork Soldiers
+    { keywords: [/clockwork|wind.up|mechanical.*soldier|gears.*grind|spring.*powered/i],
+      enemies: [
+        { name: 'Clockwork Drone',        type: 'Construct', baseHP: 6,  dmg: 2, attackBonus: 2 },
+        { name: 'Clockwork Soldier',      type: 'Construct', baseHP: 12, dmg: 4, attackBonus: 3 },
+        { name: 'Clockwork Knight',       type: 'Elite',     baseHP: 18, dmg: 6, attackBonus: 4 },
+        { name: 'Grand Clockwork Titan',  type: 'Boss',      baseHP: 30, dmg: 9, attackBonus: 6 },
+      ]},
+
+    // ── Brass Automata
+    { keywords: [/brass|automaton|copper.*golem|bronze.*construct|metal.*servant/i],
+      enemies: [
+        { name: 'Brass Servant',          type: 'Construct', baseHP: 8,  dmg: 3, attackBonus: 2 },
+        { name: 'Brass Automaton',        type: 'Construct', baseHP: 14, dmg: 5, attackBonus: 3 },
+        { name: 'Brass Juggernaut',       type: 'Elite',     baseHP: 22, dmg: 7, attackBonus: 5 },
+        { name: 'Iron Colossus',          type: 'Boss',      baseHP: 34, dmg: 10, attackBonus: 7 },
+      ]},
+
+    // ── Steam Knights & Ironclads
+    { keywords: [/steam.knight|ironclad|boiler.*plate|piston.*fist|steam.*powered.*armor/i],
+      enemies: [
+        { name: 'Steam Squire',           type: 'Humanoid',  baseHP: 10, dmg: 3, attackBonus: 2 },
+        { name: 'Steam Knight',           type: 'Humanoid',  baseHP: 16, dmg: 5, attackBonus: 4 },
+        { name: 'Ironclad Champion',      type: 'Elite',     baseHP: 22, dmg: 7, attackBonus: 5 },
+        { name: 'Grand Marshal',          type: 'Boss',      baseHP: 28, dmg: 8, attackBonus: 6 },
+      ]},
+
+    // ── Airship Pirates
+    { keywords: [/airship|sky.pirate|zeppelin|dirigible|aerial.*raider|cloud.*corsair/i],
+      enemies: [
+        { name: 'Sky Pirate Deckhand',    type: 'Humanoid',  baseHP: 7,  dmg: 3, attackBonus: 2 },
+        { name: 'Sky Pirate Gunner',      type: 'Humanoid',  baseHP: 10, dmg: 4, attackBonus: 3 },
+        { name: 'Sky Pirate Captain',     type: 'Elite',     baseHP: 18, dmg: 6, attackBonus: 5 },
+        { name: 'Dread Admiral',          type: 'Boss',      baseHP: 24, dmg: 7, attackBonus: 6 },
+      ]},
+
+    // ── Tesla & Electrical Constructs
+    { keywords: [/tesla|electric|voltaic|galvanic|lightning.*machine|spark.*engine/i],
+      enemies: [
+        { name: 'Voltaic Sprite',         type: 'Construct', baseHP: 5,  dmg: 3, attackBonus: 3 },
+        { name: 'Tesla Automaton',        type: 'Construct', baseHP: 14, dmg: 5, attackBonus: 4 },
+        { name: 'Galvanic Golem',         type: 'Elite',     baseHP: 20, dmg: 6, attackBonus: 5 },
+        { name: 'Arc Colossus',           type: 'Boss',      baseHP: 28, dmg: 8, attackBonus: 6 },
       ]},
   ],
 

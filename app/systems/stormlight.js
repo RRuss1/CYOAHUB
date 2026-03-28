@@ -51,6 +51,92 @@ window.StormlightSystem = {
     choiceTagRules: '[COMBAT] [DISCOVERY] [DECISION] [SURGE] — tag every player choice. Combat choices also use [ATTACK] [DEFEND] [HEAL] [SURGE].',
   },
 
+  // ── Rules Config (config-driven formulas) ─────────────────────────────
+  rules: {
+    defenses: [
+      { id: 'physDef', label: 'Physical Defense', base: 10, stats: ['str','spd'] },
+      { id: 'cogDef',  label: 'Cognitive Defense', base: 10, stats: ['int','wil'] },
+      { id: 'spirDef', label: 'Spiritual Defense', base: 10, stats: ['awa','pre'] },
+    ],
+    hp: { base: 10, stat: 'str', perLevel: 5 },
+    focus: { base: 2, stat: 'wil' },
+    magicPool: {
+      enabled: true, label: 'Investiture', formula: 'max',
+      base: 2, stats: ['awa','pre'], classGated: true,
+    },
+    recoveryDie: {
+      stat: 'wil',
+      table: [
+        { maxStat:0, die:4 }, { maxStat:2, die:6 }, { maxStat:4, die:8 },
+        { maxStat:6, die:10 }, { maxStat:8, die:12 }, { maxStat:999, die:20 },
+      ],
+    },
+    skillAttrMap: {
+      agility:'spd', athletics:'str', heavyWeapon:'str', lightWeapon:'spd',
+      stealth:'spd', thievery:'spd', crafting:'int', deduction:'int',
+      discipline:'wil', intimidation:'wil', lore:'int', medicine:'int',
+      deception:'pre', insight:'awa', leadership:'pre', perception:'awa',
+      persuasion:'pre', survival:'awa',
+    },
+    deflectableTypes: ['energy','impact','keen'],
+    currency: { name: 'marks', symbol: 'mk', tiers: { broam: 4, mark: 1 } },
+    progressionType: 'oaths', progressionLabel: 'Ideal', maxProgression: 5,
+    turnOrder: 'fast-slow',
+    healClassMultipliers: { edgedancer: 1.8, bondsmith: 0 },
+    equipmentDrops: {
+      enabled: true, fragmentName: 'fragment', craftCost: 3, upgradeCost: 5,
+      legendaryName: 'Shardblade', armorName: 'Shardplate',
+    },
+  },
+
+  // ── Character Creation Config ─────────────────────────────────────────
+  charCreation: {
+    paths: [
+      { id: 'class', label: 'Knight Radiant', icon: '⟁',
+        desc: '"Touched by a spren. Bound by Oaths."',
+        sublabel: 'Spren bond · Stormlight · Shardblade · 5 Oaths' },
+      { id: 'background', label: 'Heroic Path', icon: '✦',
+        desc: '"Ungifted. Undeterred. Dangerous."',
+        sublabel: 'Agent · Envoy · Hunter · Leader · Scholar · Warrior' },
+    ],
+    classLabel: 'Order', backgroundLabel: 'Role',
+    classHeading: 'Your Order', backgroundHeading: 'Your Role',
+    classFlavor: 'The Stormfather watches. Choose carefully.',
+    backgroundFlavor: 'What shaped you before the storm?',
+    ancestryLabel: 'Ancestry',
+    partyLabel: 'Radiant Company',
+    submitText: { class: 'Speak the First Oath →', background: 'Enter the Storm →' },
+    origins: ['Alethkar','Azir','Herdaz','Iri','Jah Keved','Kharbranth','Reshi Isles','Shinovar','Shattered Plains','Thaylenah','Horneater Peaks'],
+    startMessage: 'The Radiants have spoken their Oaths. The saga begins in {location}.',
+    actNames: ['The {loc}', 'Secrets of {loc}', 'The Storm over {loc}'],
+    attributePoints: 12, maxPerAttribute: 3,
+    showBlade: true, showWeapon: true, showCompanion: true,
+    namePlaceholder: 'What do they call you on the Plains?',
+  },
+
+  // ── Combat Actions ────────────────────────────────────────────────────
+  combatActions: [
+    { id: 'attack', tag: 'ATTACK', label: 'Attack', icon: '⚔', cost: null, phase: 'OFFENSE', stat: 'str', skill: 'heavyWeapon', keywords: ['attack','strike','slash','swing','stab','hit','smash'] },
+    { id: 'defend', tag: 'DEFEND', label: 'Defend', icon: '🛡', cost: null, phase: 'DEFENSE', stat: 'spd', skill: 'agility', keywords: ['defend','block','dodge','evade','shield','parry','protect','interpose'] },
+    { id: 'heal',   tag: 'HEAL',   label: 'Heal',   icon: '✦', cost: null, phase: 'HEAL', stat: 'wil', skill: 'medicine', keywords: ['heal','mend','restore','bandage','cure','tend','patch'] },
+    { id: 'surge',  tag: 'SURGE',  label: 'Surge',  icon: '◈', cost: 'magicPool:1', phase: 'OFFENSE', stat: 'awa', skill: 'gravitation', keywords: ['surge','lash','bind','division','progression','illumination'] },
+  ],
+
+  // ── Story Actions ─────────────────────────────────────────────────────
+  storyActions: [
+    { id: 'combat',    tag: 'COMBAT',    label: 'Combat' },
+    { id: 'discovery', tag: 'DISCOVERY', label: 'Discovery' },
+    { id: 'decision',  tag: 'DECISION',  label: 'Decision' },
+    { id: 'surge',     tag: 'SURGE',     label: 'Surge' },
+  ],
+
+  // Combat atmospheric flavor (injected into round prompts)
+  combatAtmosphere: [
+    'Painspren (orange hands) grasp upward near anyone who was hit. The Stormlight in the air tastes like ozone.',
+    'Fearspren (violet blobs) crawl up a wall. The ground trembles with distant thunder. Stormlight gutters.',
+    'Anticipationspren (red streamers) drift from someone about to break. The air itself is heavy with Investiture.',
+  ],
+
   // ══════════════════════════════════════════════════════════════════════
   // CHARACTER DATA
   // ══════════════════════════════════════════════════════════════════════
@@ -800,6 +886,22 @@ window.StormlightSystem = {
   weaponPrefixes: ['Iron','Ash','Silver','Copper','Bronze','Obsidian','Granite','Storm','Crest','Ember'],
 
   weaponSuffixes: ['mark','fall','watch','hold','edge','strike','ward','crest','fang','point'],
+
+  // ── Boss Templates ──────────────────────────────────────────────────────
+  bossTemplates: [
+    {name:'The Blackthorns Shadow',type:'Alethi Traitor',phases:[{hp:40,dmg:8,atk:7,desc:'Aggressive, twin Shardblades gleaming'},{hp:25,dmg:11,atk:9,desc:'Shardplate cracking, fighting with desperate fury'},{hp:12,dmg:14,atk:12,desc:'Barely standing, Stormlight erupting wildly'}],drop:'Obsidian Shardblade'},
+    {name:'Yelig-nars Vessel',type:'Unmade Host',phases:[{hp:35,dmg:7,atk:6,desc:'Human form, dark tendrils coiling'},{hp:20,dmg:10,atk:9,desc:'Half-transformed, grotesque power'},{hp:10,dmg:15,atk:13,desc:'Full transformation — barely recognizable'}],drop:'Voidlight Crystal'},
+    {name:'The Heralds Echo',type:'Cognitive Shadow',phases:[{hp:45,dmg:9,atk:8,desc:'Calm, ancient, measuring'},{hp:28,dmg:12,atk:11,desc:'Revealing true divine fury'},{hp:14,dmg:16,atk:14,desc:'Burning with divine fire'}],drop:'Heralds Remnant Plate'},
+  ],
+
+  // ── Environmental Hazards ──────────────────────────────────────────────
+  envHazards: {
+    shattered_plains:{name:'Plateau Collapse',desc:'The plateau beneath you groans and tilts — footing is treacherous.',effect:'15% chance each round: random combatant takes 2 fall damage.',mechanic:'plateauCollapse'},
+    aimian_sea:{name:'Cognitive Drift',desc:'The water whispers old memories — concentration wavers.',effect:'Spell-like abilities cost 1 extra resource.',mechanic:'cognitiveDrift'},
+    shadesmar:{name:'Cognitive Shadows',desc:'Half-real shapes claw at your mind from the darkness.',effect:'Each round players lose 1 resource unless they spend an action resisting.',mechanic:'cognitiveDrain'},
+    urithiru:{name:'Ancient Wards',desc:'Ancient defenses still hum faintly.',effect:'Party gains +1 defense rating.',mechanic:'ancientWards'},
+    braize:{name:'Void Whispers',desc:'The Everstorm howls across the wastes.',effect:'Players must roll will or their action is disrupted.',mechanic:'voidWhispers'},
+  },
 
   // ── Enemy Configuration ──────────────────────────────────────────────────
   // Shared categories from enemyPatterns.js that are active for Stormlight

@@ -23,36 +23,43 @@ function getAiDmSystemPrompt() {
   const worldName = ctx.worldName || 'the world';
   const worldLore = ctx.worldLore || '';
   const tone = ctx.toneInstruction || 'Epic fantasy — mythic stakes, personal cost.';
-  return `You are the AI Dungeon Master for ${sysName} — a digital RPG set in ${worldName}. You are optimized for FAST, responsive, cinematic storytelling.
+  const magicName = ctx.magicName || 'power';
+  const magicRules = ctx.magicRules || '';
+  const npcFlavor = ctx.npcFlavor || '';
+  const choiceTags = ctx.choiceTagRules || (window.ActionEngine ? window.ActionEngine.getActionTagsString() : '[ATTACK], [DEFEND], [HEAL], [SURGE], [COMBAT], [DISCOVERY], [DECISION]');
 
-TWO-PARAGRAPH RULE (CRITICAL — NEVER BREAK THIS):
-Every response is EXACTLY two short paragraphs (2-3 sentences each, separated by a blank line).
-- Paragraph 1: What the world does in response — consequence, environment, sensory detail.
-- Paragraph 2: What shifts — new tension, new information, or the setup for what comes next.
-NEVER write more than 2 paragraphs. NEVER include action choices in narrative text. Choices go ONLY in the [CHOICES] block.
+  return `You are the AI Game Master for ${sysName} — a digital RPG set in ${worldName}. You create immersive, responsive, cinematic experiences unique to this world.
 
-NARRATIVE RULES:
-- Present tense. Visceral, specific prose. Show, never tell.
-- No HP numbers, damage values, roll totals, or game jargon in narrative.
-- Translate mechanics to fiction: "The blow staggers you backward" not "you lose 4 HP"
-- Short sentences in action. Longer atmospheric ones for aftermath.
-- Injuries persist. Previous actions have weight.
+TWO-PARAGRAPH RULE (CRITICAL — NEVER BREAK):
+Every response is EXACTLY two short paragraphs (2-3 sentences each, blank line between).
+P1: What the world does — consequence, environment, sensory detail rooted in ${worldName}.
+P2: What shifts — new tension, revelation, or setup. End on something unresolved.
+NEVER exceed 2 paragraphs. NEVER put choices in the narrative. Choices go in [CHOICES] only.
 
-WORLD CONSISTENCY:
+WORLD IDENTITY — THIS IS ${worldName.toUpperCase()}:
 ${worldLore}
-- Tone: ${tone}
-- Never invent lore that contradicts the established world. Never allow actions that break world logic.
+${magicRules ? 'MAGIC: ' + magicRules : ''}
+${npcFlavor ? 'NPCs: ' + npcFlavor : ''}
+Tone: ${tone}
+You are not a generic fantasy GM. Every sentence must feel like it belongs in ${worldName} and ONLY ${worldName}. Use the world's specific geography, cultures, creatures, and vocabulary. Never import concepts from other settings.
 
-CHOICES FORMAT (when choices are requested):
+NARRATIVE CRAFT:
+- Present tense. Visceral, specific prose. Show through action, never tell through narration.
+- No HP, damage values, roll results, or game jargon in narrative text.
+- Translate mechanics to fiction: "The blow drives you back three steps" not "you lose 4 HP"
+- Vary rhythm: short punches in combat, flowing imagery in calm. Never repeat sentence structures.
+- Injuries persist. Previous choices have consequences. The world remembers.
+- Each scene changes something permanently — no status quo returns.
+
+CHOICES FORMAT:
 [CHOICES]
-- Exactly 4 choices, each on its own numbered line
-- First-person: "I [verb]..." — one vivid sentence per choice
-- Tagged: [ATTACK], [DEFEND], [HEAL], [SURGE], [COMBAT], [DISCOVERY], or [DECISION]
-- Four distinct types: aggressive, defensive, ability-based, situational
-- Reference specific enemies, terrain, or character state
-- NEVER write choices for NPCs. Only for the named human player.`;
+- Exactly 4 numbered choices, first-person: "I [verb]..." — one vivid sentence each
+- Tagged: ${choiceTags}
+- Four distinct approaches: aggressive, defensive, ${magicName.toLowerCase()}/ability, situational
+- Grounded in THIS moment — reference specific enemies, terrain, character state
+- NEVER generic ("I attack" / "I explore"). Always specific to what's happening NOW.
+- NEVER write choices for NPCs. Only the named player character.`;
 }
-// Rebuilt dynamically on each GM call — not cached at module load
 function _currentSystemPrompt() { return getAiDmSystemPrompt(); }
 
 // ══ COMBAT SYSTEMS ══
@@ -95,7 +102,9 @@ function applyRollDamage(roll,actor,st){
   } else {
     const d=Math.floor(Math.random()*4)+2;actor.hp=Math.max(0,actor.hp-d);msg=`💀 -${d} HP${actor.hp===0?' DOWNED!':''}`;
   }
-  if(actor.classId==='edgedancer'&&roll>=10&&roll<18&&actor.hp<actor.maxHp){actor.hp=Math.min(actor.maxHp,actor.hp+1);msg+=' ✦ Regrowth +1';}
+  // Config-driven class heal bonus (e.g. edgedancer regrowth, cleric heal)
+  const _healMult=window.ConfigResolver?window.ConfigResolver.getHealMultiplier(actor.classId):1;
+  if(_healMult>1&&roll>=10&&roll<18&&actor.hp<actor.maxHp){actor.hp=Math.min(actor.maxHp,actor.hp+1);msg+=' ✦ Regen +1';}
   if(st.enemies)st.enemies=st.enemies.filter(e=>e.hp>0);
   if(st.enemies&&!st.enemies.length){st.combatActive=false;st.combatOrder=[];st.combatRound=0;}
   const idx=st.players.findIndex(p=>p&&p.name===actor.name);
@@ -103,34 +112,37 @@ function applyRollDamage(roll,actor,st){
   return msg;
 }
 function checkEquipDrop(actor,st){
+  const _edCfg2=window.ConfigResolver?window.ConfigResolver.getEquipDropConfig():{legendaryName:'Legendary Weapon',armorName:'Legendary Armor'};
   const roll=Math.random();
   let msg='';
-  if(roll>0.7&&!actor.shardplate){actor.shardplate=true;actor.maxHp=Math.round(actor.maxHp*1.4);actor.hp=Math.min(actor.maxHp,actor.hp+8);msg=' ⬛ SHARDPLATE!';}
-  else if(roll>0.4&&!actor.shardblade){actor.shardblade=BLADE_NAMES[actor.classId]||'Shardblade';actor.bladeLevel=1;msg=` ⚔ ${actor.shardblade}!`;}
+  if(roll>0.7&&!actor.shardplate){actor.shardplate=true;actor.maxHp=Math.round(actor.maxHp*1.4);actor.hp=Math.min(actor.maxHp,actor.hp+8);msg=' ⬛ '+_edCfg2.armorName.toUpperCase()+'!';}
+  else if(roll>0.4&&!actor.shardblade){actor.shardblade=BLADE_NAMES[actor.classId]||_edCfg2.legendaryName;actor.bladeLevel=1;msg=` ⚔ ${actor.shardblade}!`;}
   return msg;
 }
 
-// ══ SHARDBLADE CRAFTING ══
+// ══ LEGENDARY EQUIPMENT CRAFTING ══
 function craftBlade(){
   if(!myChar||!gState)return;
-  if((myChar.fragments||0)<3){alert('Need 3 '+(window.SystemData?.gmContext?.magicResource||'Fragments')+'.');return;}
-  myChar.shardblade=BLADE_NAMES[myChar.classId]||'Nascent Shardblade';
-  myChar.bladeLevel=1;myChar.fragments=(myChar.fragments||0)-3;
+  const _edCfg3=window.ConfigResolver?window.ConfigResolver.getEquipDropConfig():{fragmentName:'Fragment',craftCost:3,legendaryName:'Legendary Weapon'};
+  if((myChar.fragments||0)<_edCfg3.craftCost){alert('Need '+_edCfg3.craftCost+' '+_edCfg3.fragmentName+'s.');return;}
+  myChar.shardblade=BLADE_NAMES[myChar.classId]||('Nascent '+_edCfg3.legendaryName);
+  myChar.bladeLevel=1;myChar.fragments=(myChar.fragments||0)-_edCfg3.craftCost;
   saveMyChar(myChar);const idx=gState.players.findIndex(p=>p&&p.name===myChar.name);
   if(idx>=0){gState.players[idx]=myChar;saveState(gState).catch(()=>{});}
   renderSheet();alert('⚔ '+myChar.shardblade+' forged!');
 }
 function upgradeBlade(){
   if(!myChar)return;const tier=myChar.bladeLevel||1;
-  if(tier>=5){alert('Your blade has reached its ultimate form.');return;}
-  if((myChar.fragments||0)<5){alert('Need 5 '+(window.SystemData?.gmContext?.magicResource||'Fragments')+'.');return;}
+  const _edCfg4=window.ConfigResolver?window.ConfigResolver.getEquipDropConfig():{fragmentName:'Fragment',upgradeCost:5};
+  if(tier>=5){alert('Your weapon has reached its ultimate form.');return;}
+  if((myChar.fragments||0)<_edCfg4.upgradeCost){alert('Need '+_edCfg4.upgradeCost+' '+_edCfg4.fragmentName+'s.');return;}
   myChar.fragments=(myChar.fragments||0)-5;myChar.bladeLevel=tier+1;
   saveMyChar(myChar);const idx=gState&&gState.players.findIndex(p=>p&&p.name===myChar.name);
   if(idx>=0){gState.players[idx]=myChar;saveState(gState).catch(()=>{});}
   renderSheet();alert('⬆ Blade upgraded to Tier '+myChar.bladeLevel+' ('+BLADE_TIERS[myChar.bladeLevel-1]+')!');
 }
 
-// ══ SPREN MEMORIES ══
+// ══ COMPANION / BOND MEMORIES ══
 function recordSprenMemory(action,roll,turn){
   if(!myChar||!gState)return;
   const noteworthy=roll<6||roll>=18||/protect|sacrifice|refuse|truth|oath|remember|forget/i.test(action);
@@ -153,7 +165,7 @@ function getSprenMemoryContext(){
     const bond=SPREN_BONDS[p.classId];
     if(mems&&mems.length&&bond)lines.push(`${bond.nick} (bonded to ${p.name}) remembers: ${mems.slice(-2).join(' | ')}`);
   });
-  return lines.length?'\n\nSPREN MEMORIES (weave naturally into narration):\n'+lines.join('\n'):'';
+  return lines.length?'\n\nCOMPANION MEMORIES (weave naturally into narration):\n'+lines.join('\n'):'';
 }
 function getCharContext(){
   if(!myChar)return'';
@@ -174,15 +186,16 @@ function getCharContext(){
   if(myChar.motivation)parts.push('Driven by: '+myChar.motivation);
   if(myChar.backstory&&myChar.backstory.trim())parts.push('Background: '+myChar.backstory.trim());
   if(myChar.appearance&&myChar.appearance.trim())parts.push('Looks: '+myChar.appearance.trim());
-  if(!myChar.isRadiant&&myChar.roleName)parts.push('Path: '+myChar.roleName);
+  const _isCP=window.ConfigResolver?window.ConfigResolver.hasClassPath(myChar):myChar.isRadiant;
+  if(!_isCP&&myChar.roleName)parts.push('Path: '+myChar.roleName);
   // Stat summary using official names
   const s=myChar.stats||{};
   const topStats=Object.entries(s).sort((a,b)=>b[1]-a[1]).slice(0,3)
     .map(([k,v])=>`${STAT_FULL[STAT_KEYS.indexOf(k)]||k} ${v}`).join(', ');
   if(topStats)parts.push('Highest attributes: '+topStats);
-  const physDef=myChar.physDef||(10+(s.str||0)+(s.spd||0));
-  const cogDef=myChar.cogDef||(10+(s.int||0)+(s.wil||0));
-  parts.push(`Defenses — Physical:${physDef} Cognitive:${cogDef}`);
+  const _charDefs=window.ConfigResolver?window.ConfigResolver.calcDefensesFromConfig(s,{}):{physDef:10+(s.str||0)+(s.spd||0),cogDef:10+(s.int||0)+(s.wil||0)};
+  const _defLabels=((window.SystemData&&window.SystemData.rules&&window.SystemData.rules.defenses)||[]).map(d=>d.label+':'+(_charDefs[d.id]||10)).join(' ');
+  parts.push('Defenses — '+(_defLabels||('Physical:'+(_charDefs.physDef||10)+' Cognitive:'+(_charDefs.cogDef||10))));
   // Inject kit and equipment
   if(myChar.kitName)parts.push('Starting kit: '+myChar.kitName);
   if(myChar.armor)parts.push('Armor: '+myChar.armor.name+' (Deflect '+myChar.deflect+')');
@@ -199,9 +212,8 @@ function getCharContext(){
     parts.push('Injuries: '+myChar.injuries.map(i=>i.severity+' ('+i.duration+') — '+i.effect).join('; '));
   }
   // Inject philosophy + current Ideal for Radiants
-  if(myChar.isRadiant&&myChar.philosophy){
+  if(_isCP&&myChar.philosophy){
     parts.push('Philosophy: '+myChar.philosophy);
-    // Spren personality from CLASSES
     const cls=CLASSES.find(cl=>cl.id===myChar.classId);
     if(cls&&cls.sprenDesc)parts.push('Spren personality: '+cls.sprenDesc);
     if(cls&&cls.sprenAssist)parts.push('Spren test assistance: '+cls.sprenAssist);
@@ -210,11 +222,10 @@ function getCharContext(){
     if(myChar[idealKey])parts.push('Current Ideal ('+idealNum+'): '+myChar[idealKey]);
     if(myChar.spren)parts.push('Spren: '+myChar.spren+(myChar.sprenAssist?'. Assists with: '+myChar.sprenAssist:''));
   }
-  // Inject key talent for heroic path characters
-  if(!myChar.isRadiant&&myChar.keyTalent){
+  if(!_isCP&&myChar.keyTalent){
     parts.push('Path key talent: '+myChar.keyTalent+' — '+myChar.keyTalentDesc);
   }
-  if(!myChar.isRadiant&&myChar.weapon){
+  if(!_isCP&&myChar.weapon){
     const wd=myChar.weaponData;
     const tier=myChar.weaponLevel||1;
     const tierDesc=wd&&wd.tiers&&wd.tiers[tier-1]?wd.tiers[tier-1].desc:'';
@@ -222,20 +233,21 @@ function getCharContext(){
     parts.push('Weapon: '+weaponCtx);
     if(wd&&wd.style)parts.push('Fighting style: '+wd.style);
   }
-  if(myChar.isRadiant&&myChar.shardblade){
+  if(_isCP&&myChar.shardblade){
+    const _edCfg=window.ConfigResolver?window.ConfigResolver.getEquipDropConfig():{legendaryName:'Shardblade'};
     const bname=myChar.bladeName||myChar.shardblade;
     const bdesc=myChar.bladeDesc?` — ${myChar.bladeDesc}`:'';
     const blevel=myChar.bladeLevel||1;
-    const bpow=blevel>=5?'fully manifested Shardblade, cuts through stone and steel effortlessly':
-                blevel>=4?'Shardblade nearly fully formed, leaves glowing cuts':
-                blevel>=3?'Shardblade solidifying, reliable in battle':
-                blevel>=2?'Shardblade flickering but usable':'nascent Shardblade, unstable but deadly';
-    parts.push(`Shardblade: ${bname}${bdesc} — Tier ${blevel}/5 (${bpow})`);
+    const bpow=blevel>=5?'fully manifested '+_edCfg.legendaryName+', devastating power':
+                blevel>=4?_edCfg.legendaryName+' nearly fully formed':
+                blevel>=3?_edCfg.legendaryName+' solidifying, reliable in battle':
+                blevel>=2?_edCfg.legendaryName+' flickering but usable':'nascent '+_edCfg.legendaryName+', unstable but deadly';
+    parts.push(`${_edCfg.legendaryName}: ${bname}${bdesc} — Tier ${blevel}/5 (${bpow})`);
   }
-  if(myChar.isRadiant&&myChar.className){
+  if(_isCP&&myChar.className){
     const cl=CLASSES.find(c=>c.id===myChar.classId);
     if(cl&&cl.abilities&&cl.abilities.length){
-      parts.push('Surgebinding abilities: '+cl.abilities.join(', '));
+      parts.push('Class abilities: '+cl.abilities.join(', '));
     }
   }
   return parts.length?'\n'+parts.join('. '):''
@@ -309,9 +321,19 @@ function renderSheet(){
     ${stageDesc?`<div style="font-size:14px;font-style:italic;color:var(--text4);padding:6px 0;border-top:1px solid var(--border);margin-top:4px;">${stageDesc}</div>`:''}
     ${(myChar.fragments||0)>=3&&!myChar.shardblade?`<div style="margin-top:8px;"><button class="btn btn-sm btn-gold" onclick="craftBlade()" style="font-size:12px;">⚔ Forge Blade (3 Frags)</button></div>`:''}
     ${(myChar.fragments||0)>=5&&(myChar.bladeLevel||0)<5?`<div style="margin-top:8px;"><button class="btn btn-sm btn-teal" onclick="upgradeBlade()" style="font-size:12px;">⬆ Upgrade Blade (5 Frags)</button></div>`:''}
-    <div style="margin-top:10px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">SURGES & ABILITIES</div>
+    ${(()=>{
+      const _mpCfg=(window.SystemData&&window.SystemData.rules&&window.SystemData.rules.magicPool)||{};
+      if(_mpCfg.formula==='spellSlots'&&_mpCfg.slotTable){
+        const lvl=myChar.level||1;
+        const slots=_mpCfg.slotTable[Math.min(lvl,10)]||[2];
+        const slotHTML=slots.map((n,i)=>`<span style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;"><span style="color:var(--text4);">Lv${i+1}:</span> <span style="color:var(--teal2);font-weight:600;">${n}</span></span>`).join(' ');
+        return`<div style="margin-top:10px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">SPELL SLOTS</div><div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">${slotHTML}</div>`;
+      }
+      return'';
+    })()}
+    <div style="margin-top:10px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">ABILITIES</div>
     <div class="abils">${myChar.abilities.map(a=>`<span class="abil">${a}</span>`).join('')}</div>
-    ${myChar.isRadiant&&myChar.surges&&myChar.surges.length?`
+    ${(myChar.surges&&myChar.surges.length)?`
     <div style="margin-top:8px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">SURGE SKILLS</div>
     <div style="font-size:12px;padding:4px 0;">${myChar.surges.map(sid=>{
       const surge=SURGES.find(s=>s.id===sid);
@@ -321,7 +343,7 @@ function renderSheet(){
       const mod=ranks+attrScore;
       return surge?`<div class="sheet-row"><span class="sheet-lbl">${surge.name} (${attr.toUpperCase()})</span><span class="sheet-val">Ranks ${ranks} +${mod} mod</span></div>`:'';
     }).join('')}</div>`:''}
-    ${myChar.isRadiant&&myChar.philosophy?`
+    ${myChar.philosophy?`
     <div style="margin-top:8px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">PHILOSOPHY & IDEALS</div>
     <div style="font-size:12px;color:var(--amber2);font-style:italic;padding:4px 0;">"${myChar.philosophy}"</div>
     <div style="font-size:11px;color:var(--text3);padding:2px 0;"><span style="color:var(--text4);">1st:</span> ${myChar.ideal1||''}</div>
@@ -329,14 +351,14 @@ function renderSheet(){
     ${myChar.oathStage>=3?`<div style="font-size:11px;color:var(--teal2);padding:2px 0;"><span style="color:var(--text4);">3rd:</span> ${myChar.ideal3||''}</div>`:''}
     ${myChar.oathStage>=4?`<div style="font-size:11px;color:var(--gold);padding:2px 0;"><span style="color:var(--text4);">4th:</span> ${myChar.ideal4||''}</div>`:''}
     `:''}
-    ${!myChar.isRadiant&&myChar.keyTalent?`
+    ${myChar.keyTalent?`
     <div style="margin-top:8px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">PATH: ${myChar.roleName||''}</div>
     <div style="font-size:12px;color:var(--amber2);padding:4px 0;font-weight:600;">${myChar.keyTalent}</div>
     <div style="font-size:11px;color:var(--text3);line-height:1.5;">${myChar.keyTalentDesc||''}</div>
     `:''}
     ${myChar.kit?`<div style="margin-top:10px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">EQUIPMENT — ${myChar.kitName||''}</div>${(myChar.weapons||[]).map(w=>`<div class=\"sheet-row\"><span class=\"sheet-lbl\">${w.name}</span><span class=\"sheet-val\">${w.dmg} ${dmgTypeLabel(w.dmgType)}</span></div>`).join('')}${myChar.armor?`<div class=\"sheet-row\"><span class=\"sheet-lbl\">Armor</span><span class=\"sheet-val\">${myChar.armor.name} · Deflect ${myChar.deflect||0}</span></div>`:''}`:''}
     ${myChar.ancestry?`<div style="margin-top:10px;font-size:12px;color:var(--text4);font-family:var(--font-d);letter-spacing:1px;">ORIGINS</div>
-    <div style="font-size:13px;padding:4px 0;"><span style="color:var(--amber2);">Ancestry:</span> ${myChar.ancestry==='singer'?'Singer':'Human'}</div>
+    <div style="font-size:13px;padding:4px 0;"><span style="color:var(--amber2);">${(window.SystemData&&window.SystemData.charCreation&&window.SystemData.charCreation.ancestryLabel)||'Ancestry'}:</span> ${(ANCESTRIES.find(a=>a.id===myChar.ancestry)||{}).name||myChar.ancestry}</div>
     ${(myChar.culturalExpertises||[]).map(cu=>`<div style="font-size:12px;padding:2px 0;"><span style="color:var(--text3);">Culture:</span> <span style="color:var(--text);">${cu.name}</span> <span style="color:var(--text5);font-size:11px;">(${cu.region})</span></div>`).join('')}`:''}`;
 }
 
@@ -428,32 +450,23 @@ async function onReset(){
 // ══════════════════════════════════════
 // ══════════════════════════════════════
 
-// ══ ENVIRONMENTAL HAZARDS — System-aware ══
-// Each system can define envHazards in its data. Fallback to generic.
+// ══ ENVIRONMENTAL HAZARDS — Config-driven ══
+// Systems define envHazards in their data. Fallback to generic.
 const _GENERIC_HAZARDS={
   default:{name:'Unknown Danger',desc:'Something is wrong with this place.',effect:'Combat is harder here.',mechanic:'none'},
   dungeon:{name:'Collapsing Ceiling',desc:'Stones crumble from above.',effect:'15% chance each round: random combatant takes 2 damage.',mechanic:'plateauCollapse'},
   cave:{name:'Toxic Fumes',desc:'Noxious gas seeps from cracks in the rock.',effect:'Players must resist or lose 1 resource.',mechanic:'cognitiveDrain'},
 };
 
-// Stormlight-specific hazards (loaded from system data or fallback)
-const _STORMLIGHT_HAZARDS={
-  shattered_plains:{name:'Plateau Collapse',desc:'The plateau beneath you groans and tilts — footing is treacherous.',effect:'15% chance each round: random combatant takes 2 fall damage.',mechanic:'plateauCollapse'},
-  aimian_sea:{name:'Cognitive Drift',desc:'The water whispers old memories — concentration wavers.',effect:'Spell-like abilities cost 1 extra resource.',mechanic:'cognitiveDrift'},
-  shadesmar:{name:'Cognitive Shadows',desc:'Half-real shapes claw at your mind from the darkness.',effect:'Each round players lose 1 resource unless they spend an action resisting.',mechanic:'cognitiveDrain'},
-  urithiru:{name:'Ancient Wards',desc:'Ancient defenses still hum faintly.',effect:'Party gains +1 defense rating.',mechanic:'ancientWards'},
-  braize:{name:'Void Whispers',desc:'The Everstorm howls across the wastes.',effect:'Players must roll will or their action is disrupted.',mechanic:'voidWhispers'},
-};
-
 function getHazardForLocation(loc){
   const l=(loc||'').toLowerCase();
-  const sys = (gState && gState.system) || 'stormlight';
-  // System-specific hazards
-  const sysHazards = sys === 'stormlight' ? _STORMLIGHT_HAZARDS : _GENERIC_HAZARDS;
+  // Read hazards from system config, fallback to generic
+  const _sd = window.SystemData || {};
+  const sysHazards = _sd.envHazards || _GENERIC_HAZARDS;
   for (const [key, hazard] of Object.entries(sysHazards)) {
     if (key !== 'default' && l.includes(key)) return hazard;
   }
-  return null; // no hazard for generic locations
+  return null;
 }
 
 function applyHazardEffect(hazard, gState){
@@ -475,28 +488,16 @@ function applyHazardEffect(hazard, gState){
   return msgs;
 }
 
-// ══ BOSS ENCOUNTERS — System-aware ══
-const _BOSS_BY_SYSTEM = {
-  stormlight: [
-    {name:'The Blackthorns Shadow',type:'Alethi Traitor',phases:[{hp:40,dmg:8,atk:7,desc:'Aggressive, twin Shardblades gleaming'},{hp:25,dmg:11,atk:9,desc:'Shardplate cracking, fighting with desperate fury'},{hp:12,dmg:14,atk:12,desc:'Barely standing, Stormlight erupting wildly'}],drop:'Obsidian Shardblade'},
-    {name:'Yelig-nars Vessel',type:'Unmade Host',phases:[{hp:35,dmg:7,atk:6,desc:'Human form, dark tendrils coiling'},{hp:20,dmg:10,atk:9,desc:'Half-transformed, grotesque power'},{hp:10,dmg:15,atk:13,desc:'Full transformation — barely recognizable'}],drop:'Voidlight Crystal'},
-    {name:'The Heralds Echo',type:'Cognitive Shadow',phases:[{hp:45,dmg:9,atk:8,desc:'Calm, ancient, measuring'},{hp:28,dmg:12,atk:11,desc:'Revealing true divine fury'},{hp:14,dmg:16,atk:14,desc:'Burning with divine fire'}],drop:'Heralds Remnant Plate'},
-  ],
-  dnd5e: [
-    {name:'The Necromancer Lord',type:'Undead Lich',phases:[{hp:35,dmg:7,atk:7,desc:'Surrounded by swirling necrotic energy'},{hp:22,dmg:10,atk:9,desc:'Phylactery pulsing, summoning undead reinforcements'},{hp:10,dmg:14,atk:12,desc:'Desperate, unleashing raw death magic'}],drop:'Staff of the Magi'},
-    {name:'Ancient Red Dragon',type:'Dragon',phases:[{hp:45,dmg:9,atk:8,desc:'Wings spread, fire licking between teeth'},{hp:28,dmg:12,atk:10,desc:'Airborne, strafing with flame breath'},{hp:14,dmg:16,atk:13,desc:'Wounded, raging, the lair itself burns'}],drop:'Dragon Scale Shield'},
-    {name:'The Drow Matron',type:'Dark Elf Elite',phases:[{hp:38,dmg:8,atk:8,desc:'Calm, commanding drow soldiers from the shadows'},{hp:24,dmg:11,atk:10,desc:'Drawing on Lolths power, darkness spreading'},{hp:12,dmg:15,atk:12,desc:'Spider form manifesting, poison dripping'}],drop:'Cloak of Invisibility'},
-  ],
-  _default: [
-    {name:'The Dark Overlord',type:'Boss',phases:[{hp:40,dmg:8,atk:7,desc:'Radiating malevolent power'},{hp:25,dmg:11,atk:9,desc:'Unleashing devastating attacks'},{hp:12,dmg:14,atk:12,desc:'Final desperate onslaught'}],drop:'Legendary Weapon'},
-    {name:'The Ancient Guardian',type:'Construct',phases:[{hp:45,dmg:7,atk:6,desc:'Stone eyes flickering to life'},{hp:28,dmg:10,atk:9,desc:'Full power, shaking the ground'},{hp:14,dmg:13,atk:11,desc:'Overloading, energy crackling'}],drop:'Ancient Relic'},
-  ],
-};
+// ══ BOSS ENCOUNTERS — Config-driven ══
+// Each system defines bossTemplates in its data. Fallback to generic.
+const _DEFAULT_BOSSES = [
+  {name:'The Dark Overlord',type:'Boss',phases:[{hp:40,dmg:8,atk:7,desc:'Radiating malevolent power'},{hp:25,dmg:11,atk:9,desc:'Unleashing devastating attacks'},{hp:12,dmg:14,atk:12,desc:'Final desperate onslaught'}],drop:'Legendary Weapon'},
+  {name:'The Ancient Guardian',type:'Construct',phases:[{hp:45,dmg:7,atk:6,desc:'Stone eyes flickering to life'},{hp:28,dmg:10,atk:9,desc:'Full power, shaking the ground'},{hp:14,dmg:13,atk:11,desc:'Overloading, energy crackling'}],drop:'Ancient Relic'},
+];
 function _getBossTemplates() {
-  const sys = (gState && gState.system) || 'stormlight';
-  return _BOSS_BY_SYSTEM[sys] || _BOSS_BY_SYSTEM._default;
+  const _sd = window.SystemData || {};
+  return _sd.bossTemplates || _DEFAULT_BOSSES;
 }
-const BOSS_TEMPLATES = null; // replaced by _getBossTemplates()
 
 function shouldSpawnBoss(gState){
   const actNum=getAct(gState.totalMoves||0).num||1;
@@ -506,7 +507,7 @@ function shouldSpawnBoss(gState){
   return actCombats===1; // 0-indexed: second combat
 }
 
-// ══ HIGHSTORM EVENTS ══
+// ══ WORLD EVENT SYSTEM (was Highstorm — now config-driven) ══
 async function checkHighstorm(){
   if(gState.combatMode||gState.highstorm)return;
   if(Math.random()>0.08)return; // 8% chance per beat
@@ -514,18 +515,22 @@ async function checkHighstorm(){
   const sz=gState.partySize||partySize;
   await saveState(gState);
   const party=gState.players.slice(0,sz).map(p=>p?`${p.name} the ${p.className}`:'?').join(', ');
-  const loc=getAct(gState.totalMoves||0).location||(window.SystemData?.gmContext?.worldName||'the world');
-  const prompt=`${window.SystemData?.gmContext?.combatFlavor||'RPG'} GM. A HIGHSTORM has struck ${loc}!
+  const _gmCtx2=(window.SystemData&&window.SystemData.gmContext)||{};
+  const loc=getAct(gState.totalMoves||0).location||(_gmCtx2.worldName||'the world');
+  const _magicN6=_gmCtx2.magicName||'power';
+  const _worldN6=_gmCtx2.worldName||'the world';
+  const _flavor6=_gmCtx2.combatFlavor||'RPG';
+  const prompt=`${_flavor6} GM. A catastrophic world event has struck ${loc}!
 Party: ${party}
 ${getGenderContext()}
 
-Write a vivid 3-sentence highstorm scene: the wall of wind and lightning hitting, the party scrambling for shelter, the world transformed. Then present 4 survival choices — each character-class specific, under 1 sentence each.
+Write a vivid 3-sentence scene: a sudden natural disaster or supernatural event unique to ${_worldN6} hits the area — the party scrambles for shelter, the world transformed. Then present 4 survival choices — each character-class specific, under 1 sentence each.
 
 [CHOICES]
-1. (${gState.players[0]?gState.players[0].className:'Radiant'}-specific survival action)
+1. (${gState.players[0]?gState.players[0].className:'Character'}-specific survival action)
 2. (shelter and protect allies)
-3. (use Stormlight surge to survive)
-4. (bold exposure — ride the storm for power)
+3. (use ${_magicN6} to survive)
+4. (bold exposure — harness the event for power)
 
 Tag: [COMBAT]. Under 200 words.`;
   setBottomLoading();
@@ -553,6 +558,7 @@ Tag: [COMBAT]. Under 200 words.`;
 
 async function enterCombat(){
   if(!gState)return;
+  if(window.PluginRegistry)window.PluginRegistry.invoke('onCombatStart',gState);
   try{
   // ── If combat already in progress, just restore the screen — don't re-roll enemies ──
   const existingEnemies=gState.combatEnemies&&gState.combatEnemies.filter(e=>!e.downed&&e.hp>0);
@@ -1058,8 +1064,11 @@ async function resolveRound(){
           }
           // Class-specific crit effects
           if(oc===AOUT.CRIT){
-            if(p.classId==='dustbringer'||a.bucket==='surge'){target.burning=2;detail=detail||`${target.name} -${dmg}HP ☄ BURNING${weaponName?' ['+weaponName+']':''}`;}
-            else if(p.classId==='elsecaller'){target.poisoned=2;detail=detail||`${target.name} -${dmg}HP ☠ POISONED${weaponName?' ['+weaponName+']':''}`;}
+            // Class-specific crit effects: check class data for critEffect
+            const _critCls=(CLASSES.find(c=>c.id===p.classId)||{});
+            const _critEff=_critCls.critEffect||(_critCls.surges&&_critCls.surges.includes('division')?'burning':null);
+            if(_critEff==='burning'||a.bucket==='surge'){target.burning=2;detail=detail||`${target.name} -${dmg}HP ☄ BURNING${weaponName?' ['+weaponName+']':''}`;}
+            else if(_critEff==='poisoned'){target.poisoned=2;detail=detail||`${target.name} -${dmg}HP ☠ POISONED${weaponName?' ['+weaponName+']':''}`;}
             else{detail=detail||`${target.name} -${dmg}HP CRIT [${dmgTypeLabel(dmgType)}${weaponName?', '+weaponName:''}]${target.downed?' ☠':''}`;}
           } else {
             detail=detail||`${target.name} -${dmg}HP [${dmgTypeLabel(dmgType)}]${target.downed?' ☠':''}`;
@@ -1105,8 +1114,11 @@ async function resolveRound(){
             else{detail=`${target.name} FALLS — ${inj.severity} for ${inj.duration}. ${inj.effect}`;}
           }
           if(total>=18){
-            if(p.classId==='dustbringer'||a.bucket==='surge'){target.burning=2;detail=detail||`${target.name} -${dmg}HP ☄ BURNING${weaponName?' ['+weaponName+']':''}`;}
-            else if(p.classId==='elsecaller'){target.poisoned=2;detail=detail||`${target.name} -${dmg}HP ☠ POISONED${weaponName?' ['+weaponName+']':''}`;}
+            // Class-specific crit effects: check class data for critEffect
+            const _critCls=(CLASSES.find(c=>c.id===p.classId)||{});
+            const _critEff=_critCls.critEffect||(_critCls.surges&&_critCls.surges.includes('division')?'burning':null);
+            if(_critEff==='burning'||a.bucket==='surge'){target.burning=2;detail=detail||`${target.name} -${dmg}HP ☄ BURNING${weaponName?' ['+weaponName+']':''}`;}
+            else if(_critEff==='poisoned'){target.poisoned=2;detail=detail||`${target.name} -${dmg}HP ☠ POISONED${weaponName?' ['+weaponName+']':''}`;}
             else{detail=detail||`${target.name} -${dmg}HP CRIT [${dmgTypeLabel(dmgType)}${weaponName?', '+weaponName:''}]${target.downed?' ☠':''}`;}
           } else {detail=detail||`${target.name} -${dmg}HP [${dmgTypeLabel(dmgType)}]${target.downed?' ☠':''}`;}
           const ei=gState.combatEnemies.findIndex(e=>e.name===target.name);if(ei>=0)gState.combatEnemies[ei]=target;
@@ -1283,6 +1295,7 @@ async function resolveRound(){
   const allEnemiesDead=(gState.combatEnemies||[]).every(e=>e.downed||e.hp<=0);
   const humanCombatants=gState.players.slice(0,sz).filter(p=>p&&!p.isNPC);
   const allPartyDowned=humanCombatants.length>0&&humanCombatants.every(p=>p.downed);
+  if(window.PluginRegistry)window.PluginRegistry.invoke('onRoundEnd',gState);
   if(allEnemiesDead){gState.combatPhase='victory';await saveAndBroadcast(gState);renderCombatScreen();renderCombatActions();return;}
   if(allPartyDowned){gState.combatPhase='defeat';await saveAndBroadcast(gState);renderCombatScreen();renderCombatActions();return;}
 
@@ -1434,19 +1447,20 @@ P2: The moment before first contact. One image. Held breath. End here.
 Fast, visceral, present tense. No game jargon. No "suddenly". Show emotion through action.`;
 
   } else if(type==='round'){
-    // Inject world-specific atmospheric flavor into combat round
-    const _sys = (gState && gState.system) || 'stormlight';
-    const sprenFlavor = _sys === 'stormlight'
-      ? (round<=2?'Painspren (orange hands) grasp upward near anyone who was hit.':
-         round<=4?'Fearspren (violet blobs) crawl up a wall somewhere in the fight.':
-         'Anticipationspren (red streamers) drift from someone about to break.')
-      : _sys === 'dnd5e'
-      ? (round<=2?'Torchlight flickers across drawn weapons and grim faces.':
-         round<=4?'The smell of blood and ozone fills the air. Dust motes swirl.':
-         'Sweat and desperation — someone is about to break.')
-      : (round<=2?'The air crackles with tension.':
-         round<=4?'The battle takes its toll — exhaustion creeping in.':
-         'This ends soon — someone or something will break.');
+    // World-specific atmospheric flavor — reads from system config
+    const _worldN = (window.SystemData?.gmContext?.worldName) || 'this place';
+    const _magicN = (window.SystemData?.gmContext?.magicName) || 'energy';
+    const _combAtmo = (window.SystemData?.combatAtmosphere) || null;
+    let sprenFlavor;
+    if (_combAtmo && _combAtmo.length >= 3) {
+      sprenFlavor = round <= 2 ? _combAtmo[0] : round <= 4 ? _combAtmo[1] : _combAtmo[2];
+    } else {
+      sprenFlavor = round <= 2
+        ? `The air in ${_worldN} shifts — something ambient reacts to the violence.`
+        : round <= 4
+        ? `The ${_magicN} in the air thickens. Exhaustion and adrenaline compete.`
+        : `This ends soon. The world itself seems to hold its breath.`;
+    }
     // Get previous round text to avoid repetition
     const prevRoundText=(gState.combatLog||[]).slice(-2).map(e=>e.text||'').filter(Boolean).join(' ');
     const prevHint=prevRoundText?`
@@ -1472,10 +1486,10 @@ Active injuries: ${injuries} — these should show in the aftermath.`:'';
 Party: ${party}${gctx}${mctx}${injNote}
 
 Write 2 sentences. Rules:
-• Sentence 1: The exact physical moment the last enemy falls — specific, visual, definitive
+• Sentence 1: The exact physical moment the last enemy falls — specific, visual, definitive. Rooted in ${(window.SystemData?.gmContext?.worldName||'this world')}.
 • Sentence 2: The immediate aftermath — what the survivors feel in their BODIES, not their hearts; what the silence sounds like; one detail that has permanently changed
-• No triumphalism. Victory in real fights tastes like copper and shaking hands.
-• Gloryspren (golden orbs) will appear — mention them once, briefly`;
+• No triumphalism. Victory costs something. Ground it in physical sensation.
+• One brief world-specific atmospheric detail to mark the moment (natural phenomenon, ambient shift, environmental reaction).`;
 
   } else if(type==='defeat'){
     prompt=`Combat GM. ${loc}. All party members downed.
@@ -1550,6 +1564,7 @@ Write 2 sentences: the moment the last party member falls, and what the enemy do
 
 async function exitCombat(won){
   if(!gState)return;
+  if(window.PluginRegistry)window.PluginRegistry.invoke('onCombatEnd',gState,won);
   try{
   const sz=gState.partySize||partySize;
   // Resurrect downed players and sync myChar
@@ -1804,8 +1819,6 @@ function updateVoiceBtn(){
   });
 }
 
-function toggleAutoSpeak(){}
-function updateAutoSpeakBtn(){}
 
 function setVoice(voiceVal){
   localStorage.setItem('sc_voice',voiceVal);

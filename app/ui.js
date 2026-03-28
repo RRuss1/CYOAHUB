@@ -538,10 +538,8 @@ function genNPC(slot){
   const stats={};STAT_KEYS.forEach(k=>stats[k]=Math.min(20,r4d6()+(cls.bonus[k]||0)));
   const hp=12+stats.pre;
   const gender=isFemale?'she/her':'he/him';
-  const physDef=10+Math.floor(((stats.str||0)+(stats.spd||0))/2);
-  const cogDef=10+Math.floor(((stats.int||0)+(stats.wil||0))/2);
-  const spirDef=10+Math.floor(((stats.awa||0)+(stats.pre||0))/2);
-  return{name,className:cls.name,classId:cls.id,color,stats,hp,maxHp:hp,abilities:cls.abilities,spren:cls.spren,slot,isNPC:true,isRadiant:false,isPlaceholder:false,downed:false,gender,role:npcRole,conditions:{},injuries:[],deflect:0,focus:2,maxFocus:2,weapons:[],fragments:0,physDef,cogDef,spirDef};
+  const _npcDefs=window.ConfigResolver?window.ConfigResolver.calcDefensesFromConfig(stats,{}):{physDef:10+Math.floor(((stats.str||0)+(stats.spd||0))/2),cogDef:10+Math.floor(((stats.int||0)+(stats.wil||0))/2),spirDef:10+Math.floor(((stats.awa||0)+(stats.pre||0))/2)};
+  return{name,className:cls.name,classId:cls.id,color,stats,hp,maxHp:hp,abilities:cls.abilities,spren:cls.spren,slot,isNPC:true,isRadiant:false,isPlaceholder:false,downed:false,gender,role:npcRole,conditions:{},injuries:[],deflect:0,focus:2,maxFocus:2,weapons:[],fragments:0,..._npcDefs};
 }
 
 // ══ SLOT RENDERING ══
@@ -637,47 +635,91 @@ function setTitleStatus(m){const el=document.getElementById('title-status');if(e
 // ══ CHARACTER CREATION ══
 // ══ ENHANCED CREATOR ══
 function renderCreate(){
-  createStep=1;isRadiant=true;selAncestry='human';selCultures=[];
+  createStep=1;selAncestry='human';selCultures=[];
   selRole=null;selWeapon=null;selKit=null;
   charOrigin='';charMotivation='';charObstacle='';charBackstory='';charAppearance='';
 
-  // System-aware labels for character creation
+  // ── Config-driven character creation ──
   const sys = window.SystemData || {};
-  const sysId = sys.id || 'stormlight';
+  const cc = (sys.charCreation) || (window.ConfigDefaults && window.ConfigDefaults.charCreation) || {};
+  const paths = cc.paths || [{id:'class',label:'Class',icon:'⚔',desc:'',sublabel:''},{id:'background',label:'Background',icon:'✦',desc:'',sublabel:''}];
+
+  // Default path selection: class path (replaces hardcoded isRadiant=true)
+  isRadiant = true;
+
+  // Initialize point-buy allocation from current system's stat keys
+  const keys = (sys.statKeys || ['str','spd','int','wil','awa','pre']);
+  const pts = Math.floor((cc.attributePoints || 12) / keys.length);
+  _pbAlloc = {};
+  keys.forEach(k => { _pbAlloc[k] = pts; });
+  // Distribute remainder
+  let remaining = (cc.attributePoints || 12) - keys.length * pts;
+  for (let i = 0; remaining > 0 && i < keys.length; i++) { _pbAlloc[keys[i]]++; remaining--; }
+
+  // Apply labels from config to the two path cards
   const typeR = document.getElementById('type-radiant');
   const typeH = document.getElementById('type-hero');
   if (typeR) {
-    if (sysId === 'dnd5e') {
-      typeR.querySelector('.text-3xl').textContent = '⚔';
-      typeR.querySelector('.font-display').textContent = 'Class';
-      typeR.querySelector('.italic').textContent = '"Fighter, Cleric, Rogue, or Wizard."';
-      typeR.querySelector('[style*="text5"]').textContent = 'Hit dice · Abilities · Subclass';
-    } else if (sysId !== 'stormlight') {
-      typeR.querySelector('.text-3xl').textContent = sys.glyph || '⚔';
-      typeR.querySelector('.font-display').textContent = 'Class';
-      typeR.querySelector('.italic').textContent = '"Choose your combat role."';
-      typeR.querySelector('[style*="text5"]').textContent = 'Primary path · Abilities · Progression';
-    }
+    const p = paths[0];
+    const iconEl = typeR.querySelector('.text-3xl');
+    const nameEl = typeR.querySelector('.font-display');
+    const descEl = typeR.querySelector('.italic');
+    const subEl = typeR.querySelector('[style*="text5"]');
+    if (iconEl) iconEl.textContent = p.icon || '⚔';
+    if (nameEl) nameEl.textContent = p.label || 'Class';
+    if (descEl) descEl.textContent = p.desc || '';
+    if (subEl) subEl.textContent = p.sublabel || '';
   }
   if (typeH) {
-    if (sysId === 'dnd5e') {
-      typeH.querySelector('.text-3xl').textContent = '📜';
-      typeH.querySelector('.font-display').textContent = 'Background';
-      typeH.querySelector('.italic').textContent = '"Where you came from shapes where you\'re going."';
-      typeH.querySelector('[style*="text5"]').textContent = 'Acolyte · Criminal · Folk Hero · Noble · Sage · Soldier';
-    } else if (sysId !== 'stormlight') {
-      typeH.querySelector('.text-3xl').textContent = '✦';
-      typeH.querySelector('.font-display').textContent = 'Background';
-      typeH.querySelector('.italic').textContent = '"Your past defines your skills."';
-      typeH.querySelector('[style*="text5"]').textContent = (sys.heroRoles||[]).map(r=>r.name).join(' · ');
+    const p = paths[1];
+    const iconEl = typeH.querySelector('.text-3xl');
+    const nameEl = typeH.querySelector('.font-display');
+    const descEl = typeH.querySelector('.italic');
+    const subEl = typeH.querySelector('[style*="text5"]');
+    if (iconEl) iconEl.textContent = p.icon || '✦';
+    if (nameEl) nameEl.textContent = p.label || 'Background';
+    if (descEl) descEl.textContent = p.desc || '';
+    if (subEl) subEl.textContent = p.sublabel || (sys.heroRoles||[]).map(r=>r.name).join(' · ');
+  }
+
+  // Ancestry label from config
+  const ancestryLabel = document.getElementById('ancestry-label');
+  if (ancestryLabel) ancestryLabel.textContent = cc.ancestryLabel || 'Ancestry';
+
+  // Class/Background headings from config
+  const classHeading = document.getElementById('class-heading');
+  if (classHeading) classHeading.textContent = cc.classHeading || 'Your Class';
+  const classFlavor = document.getElementById('class-flavor');
+  if (classFlavor) classFlavor.textContent = cc.classFlavor || 'Choose carefully.';
+
+  // Name placeholder from config
+  const nameInput = document.getElementById('in-name');
+  if (nameInput) nameInput.placeholder = cc.namePlaceholder || 'What do they call you?';
+
+  // Origin grid from config
+  const originGrid = document.getElementById('origin-grid');
+  if (originGrid) {
+    const origins = cc.origins;
+    if (origins && origins.length) {
+      originGrid.innerHTML = origins.map(o =>
+        `<button class="origin-btn" onclick="pickOrigin(this,'${o.replace(/'/g,"\\'")}')"> ${o}</button>`
+      ).join('');
+      originGrid.closest('.mb-7').style.display = '';
+    } else {
+      originGrid.closest('.mb-7').style.display = 'none';
     }
   }
 
-  // Ancestry label
-  const ancestryLabel = document.getElementById('ancestry-label');
-  if (ancestryLabel) ancestryLabel.textContent = sysId==='dnd5e'?'Race':'Ancestry';
+  // Party label from config
+  const partyLabel = document.getElementById('party-label');
+  if (partyLabel) partyLabel.textContent = cc.partyLabel || 'Adventuring Party';
 
-  // System-aware submit button
+  // Blade/Weapon visibility from config
+  const bladeSection = document.getElementById('create-s4-blade');
+  const weaponSection = document.getElementById('create-s4-weapon');
+  if (bladeSection) bladeSection.style.display = cc.showBlade ? '' : 'none';
+  if (weaponSection) weaponSection.style.display = cc.showWeapon ? '' : 'none';
+
   showCreateStep(1);
   renderAncestryGrid();
   renderColors();renderClasses();renderRoles();renderWeapons();renderCultureGrid();renderKits();
@@ -712,7 +754,7 @@ function renderKits(){
       ${k.weapons.length?'⚔ '+k.weapons.map(w=>WEAPONS[w]?WEAPONS[w].name:w).join(', '):'No weapons'} &nbsp;|&nbsp;
       ${k.armor?'🛡 '+(ARMORS[k.armor]?ARMORS[k.armor].name:k.armor):'No armor'}
     </div>
-    <div style="font-size:11px;color:var(--amber2);margin-top:3px;">💰 ${k.spheres} marks${k.bonus?' · '+k.bonus:''}</div>
+    <div style="font-size:11px;color:var(--amber2);margin-top:3px;">💰 ${k.spheres}${k.bonus?' · '+k.bonus:''}</div>
     ${k.expertise?`<div style="font-size:11px;color:var(--teal2);margin-top:2px;">Expertise: ${k.expertise}</div>`:''}
     ${k.extras&&k.extras.length?`<div style="font-size:10px;color:var(--text5);margin-top:2px;">${k.extras.join(', ')}</div>`:''}
   </div>`).join('');
@@ -776,8 +818,9 @@ function showCreateStep(step){
   else if(step===3)document.getElementById('create-s3').style.display='block';
   else if(step===4){
     document.getElementById('create-s4').style.display='block';
-    document.getElementById('create-s4-weapon').style.display=isRadiant?'none':'block';
-    document.getElementById('create-s4-blade').style.display=isRadiant?'block':'none';
+    const _cc4 = (window.SystemData && window.SystemData.charCreation) || {};
+    document.getElementById('create-s4-weapon').style.display=(!isRadiant && _cc4.showWeapon !== false)?'block':'none';
+    document.getElementById('create-s4-blade').style.display=(isRadiant && _cc4.showBlade !== false)?'block':'none';
     updateCreateSubmitBtn();
     rollStats();
     renderKits();
@@ -796,9 +839,9 @@ function createNext(){
   if(createStep===1){
     showCreateStep(2);
   } else if(createStep===2){
-    const _sys2 = (window.SystemData && window.SystemData.id) || 'stormlight';
-    const _classLabel = _sys2==='stormlight'?'Order':_sys2==='dnd5e'?'Class':'Class';
-    const _roleLabel = _sys2==='stormlight'?'Role':_sys2==='dnd5e'?'Background':'Background';
+    const _cc2 = (window.SystemData && window.SystemData.charCreation) || {};
+    const _classLabel = _cc2.classLabel || 'Class';
+    const _roleLabel = _cc2.backgroundLabel || 'Background';
     if(isRadiant&&!selClass){if(err){err.textContent='Choose your '+_classLabel+'.';err.style.display='block';}return;}
     if(!isRadiant&&!selRole){if(err){err.textContent='Choose your '+_roleLabel+'.';err.style.display='block';}return;}
     showCreateStep(3);
@@ -824,14 +867,10 @@ function updateCreateSubmitBtn(){
   const hasClass=!isRadiant||!!selClass;
   const hasRole=isRadiant||!!selRole;
   const ready=hasName&&hasClass&&hasRole&&!!selColor;
-  const _sId = (window.SystemData && window.SystemData.id) || 'stormlight';
-  const _submitTexts = {
-    stormlight: { r: 'Speak the First Oath →', h: 'Enter the Storm →' },
-    dnd5e:      { r: 'Begin Your Adventure →', h: 'Begin Your Adventure →' },
-    wretcheddeep: { r: 'Descend into the Deep →', h: 'Descend into the Deep →' },
-  };
-  const _st = _submitTexts[_sId] || { r: 'Create Character →', h: 'Create Character →' };
-  btn.textContent = isRadiant ? _st.r : _st.h;
+  // Read submit text from config
+  const cc = (window.SystemData && window.SystemData.charCreation) || (window.ConfigDefaults && window.ConfigDefaults.charCreation) || {};
+  const _st = cc.submitText || { class: 'Create Character →', background: 'Create Character →' };
+  btn.textContent = isRadiant ? (_st.class || _st.r || 'Create Character →') : (_st.background || _st.h || 'Create Character →');
   btn.style.opacity=ready?'1':'0.55';
   btn.style.borderColor=ready?'var(--amber2)':'var(--border2)';
 }
@@ -872,7 +911,8 @@ function renderColors(){
 function pickColor(h,t){if(t)return;selColor=h;renderColors();updateCreateSubmitBtn();}
 
 function renderClasses(){
-  document.getElementById('class-grid').innerHTML=CLASSES.map(c=>`<div class="ccard${selClass&&selClass.id===c.id?' sel':''}" onclick="pickClass('${c.id}')"><div class="ccard-name">${c.name}</div><div class="ccard-ideal">"${c.ideal}"</div><div class="ccard-desc">${c.desc}</div><div class="ccard-bonus">Spren: ${c.spren}</div><div class="ccard-bonus">Bonus: ${Object.entries(c.bonus).filter(e=>e[1]>0).map(e=>e[0].toUpperCase()+'+'+e[1]).join(' ')}</div></div>`).join('');
+  const _sprenLabel=((window.SystemData||{}).id)==='stormlight'?'Spren':((window.SystemData||{}).id)==='dnd5e'?'Subclass':'Bond';
+  document.getElementById('class-grid').innerHTML=CLASSES.map(c=>`<div class="ccard${selClass&&selClass.id===c.id?' sel':''}" onclick="pickClass('${c.id}')"><div class="ccard-name">${c.name}</div><div class="ccard-ideal">"${c.philosophy||c.ideal||''}"</div><div class="ccard-desc">${c.desc}</div>${c.spren?`<div class="ccard-bonus">${_sprenLabel}: ${c.spren}</div>`:''}<div class="ccard-bonus">Bonus: ${Object.entries(c.bonus).filter(e=>e[1]>0).map(e=>e[0].toUpperCase()+'+'+e[1]).join(' ')}</div></div>`).join('');
 }
 function pickClass(id){selClass=CLASSES.find(c=>c.id===id);renderClasses();rollStats();renderStatsPointBuy();updateCreateSubmitBtn();}
 
@@ -918,8 +958,15 @@ function getPointsSpent(){return Object.values(_pbAlloc).reduce((a,v)=>a+v,0);}
 function getPointsLeft(){return ATTR_POINTS_START-getPointsSpent();}
 
 function rollStats(){
-  // "Rebalance" — reset to an even 2/2/2/2/2/2 spread
-  _pbAlloc={str:2,spd:2,int:2,wil:2,awa:2,pre:2};
+  // "Rebalance" — reset to even spread across current system's stats
+  const keys = (window.SystemData && window.SystemData.statKeys) || ['str','spd','int','wil','awa','pre'];
+  const cc = (window.SystemData && window.SystemData.charCreation) || {};
+  const totalPts = cc.attributePoints || ATTR_POINTS_START;
+  const pts = Math.floor(totalPts / keys.length);
+  _pbAlloc = {};
+  keys.forEach(k => { _pbAlloc[k] = pts; });
+  let remaining = totalPts - keys.length * pts;
+  for (let i = 0; remaining > 0 && i < keys.length; i++) { _pbAlloc[keys[i]]++; remaining--; }
   rolledStats=getTotalStats();
   renderStatsPointBuy();
   const btn=document.querySelector('[onclick="rollStats()"]');
@@ -976,16 +1023,33 @@ function renderStatsPointBuy(){
 function r4d6(){const d=[0,0,0,0].map(()=>Math.ceil(Math.random()*6));d.sort((a,b)=>a-b);return d.slice(1).reduce((a,v)=>a+v,0);}
 function modStr(v){return'+'+(v||0);} // Official: attribute score IS the modifier
 function renderStats(s){
-  // renderStats now handles ONLY the derived stats panel (not the grid)
-  // Grid is managed by renderStatsPointBuy
-  // Show derived stats below
-  const hp=10+(s.str||0);
-  const focus=2+(s.wil||0);
-  const physDef=10+(s.str||0)+(s.spd||0);
-  const cogDef=10+(s.int||0)+(s.wil||0);
-  const spirDef=10+(s.awa||0)+(s.pre||0);
-  const maxInv=getMaxInvestiture(s);
-  const recovDie=getRecoveryDie(s.wil||0);
+  // Config-driven derived stats panel
+  const rules = (window.SystemData && window.SystemData.rules) || {};
+  const defenses = window.ConfigResolver
+    ? window.ConfigResolver.calcDefensesFromConfig(s, {})
+    : { physDef: 10+(s.str||0)+(s.spd||0), cogDef: 10+(s.int||0)+(s.wil||0), spirDef: 10+(s.awa||0)+(s.pre||0) };
+
+  const hpCfg = rules.hp || { base:10, stat:'str' };
+  const focusCfg = rules.focus || { base:2, stat:'wil' };
+  const hp = hpCfg.base + (s[hpCfg.stat] || 0);
+  const focus = focusCfg.base + (s[focusCfg.stat] || 0);
+  const maxInv = getMaxInvestiture(s, {isRadiant, stats:s});
+  const recovStat = (rules.recoveryDie && rules.recoveryDie.stat) || 'wil';
+  const recovDie = getRecoveryDie(s[recovStat] || 0);
+  const mpLabel = (rules.magicPool && rules.magicPool.label) || 'Investiture';
+
+  // Build defense cards dynamically from config
+  const defConfigs = rules.defenses || [
+    { id:'physDef', label:'Physical Defense' },
+    { id:'cogDef', label:'Cognitive Defense' },
+    { id:'spirDef', label:'Spiritual Defense' },
+  ];
+  const defCards = defConfigs.map(d => `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
+      <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">${(d.label||d.id).toUpperCase()}</div>
+      <div style="color:var(--text);">${defenses[d.id]||10}</div>
+    </div>`).join('');
+
   const derived=document.getElementById('stats-derived');
   if(derived)derived.innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;font-size:12px;">
@@ -997,20 +1061,9 @@ function renderStats(s){
         <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">FOCUS</div>
         <div style="color:var(--amber2);font-weight:600;">${focus}</div>
       </div>
+      ${defCards}
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
-        <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">PHYS DEF</div>
-        <div style="color:var(--text);">${physDef}</div>
-      </div>
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
-        <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">COG DEF</div>
-        <div style="color:var(--text);">${cogDef}</div>
-      </div>
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
-        <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">SPIR DEF</div>
-        <div style="color:var(--text);">${spirDef}</div>
-      </div>
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
-        <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">MAX INVESTITURE</div>
+        <div style="color:var(--text4);font-family:var(--font-d);font-size:9px;letter-spacing:1px;">MAX ${mpLabel.toUpperCase()}</div>
         <div style="color:var(--teal2);">${maxInv} ✦</div>
       </div>
     </div>
@@ -1040,9 +1093,9 @@ async function onCreateChar(){
     charAppearance=appearEl?appearEl.value.trim():charAppearance||'';
 
     // ── Validate ──
-    const _s3 = (window.SystemData && window.SystemData.id) || 'stormlight';
-    const _cl = _s3==='stormlight'?'Order':_s3==='dnd5e'?'Class':'Class';
-    const _rl = _s3==='stormlight'?'Role':_s3==='dnd5e'?'Background':'Background';
+    const _cc3 = (window.SystemData && window.SystemData.charCreation) || {};
+    const _cl = _cc3.classLabel || 'Class';
+    const _rl = _cc3.backgroundLabel || 'Background';
     if(!name){err.textContent='Enter your name first.';err.style.display='block';return;}
     if(isRadiant&&!selClass){err.textContent='Choose your '+_cl+'.';err.style.display='block';return;}
     if(!isRadiant&&!selRole){err.textContent='Choose your '+_rl+'.';err.style.display='block';return;}
@@ -1060,14 +1113,20 @@ async function onCreateChar(){
       err.textContent=`Distribute all 12 attribute points before continuing (${pLeft} remaining).`;
       err.style.display='block';return;
     }
-    // ── Compute all derived stats locally (official Ch.1-3 formulas) ──
-    const physDef=10+(stats.str||0)+(stats.spd||0);
-    const cogDef=10+(stats.int||0)+(stats.wil||0);
-    const spirDef=10+(stats.awa||0)+(stats.pre||0);
-    const maxInv=getMaxInvestiture(stats);
-    const recovDie=getRecoveryDie(stats.wil||0);
-    const deflect=window._kitDeflect||0;
-    const hp=Math.max(1, 10+(stats.str||0)); // Official: HP = 10 + Strength
+    // ── Compute all derived stats from config ──
+    const _defenses = window.ConfigResolver
+      ? window.ConfigResolver.calcDefensesFromConfig(stats, {})
+      : { physDef: 10+(stats.str||0)+(stats.spd||0), cogDef: 10+(stats.int||0)+(stats.wil||0), spirDef: 10+(stats.awa||0)+(stats.pre||0) };
+    const physDef = _defenses.physDef || 10;
+    const cogDef = _defenses.cogDef || 10;
+    const spirDef = _defenses.spirDef || 10;
+    const maxInv = getMaxInvestiture(stats, {isRadiant, stats});
+    const _rulesCfg = (window.SystemData && window.SystemData.rules) || {};
+    const _recovStat = (_rulesCfg.recoveryDie && _rulesCfg.recoveryDie.stat) || 'wil';
+    const recovDie = getRecoveryDie(stats[_recovStat] || 0);
+    const deflect = window._kitDeflect || 0;
+    const _hpCfg = _rulesCfg.hp || { base: 10, stat: 'str' };
+    const hp = Math.max(1, _hpCfg.base + (stats[_hpCfg.stat] || 0));
 
     // ── Build character ──
     const base={name,color:selColor,stats,hp,maxHp:hp,slot:mySlot,
@@ -1537,25 +1596,34 @@ function openingPrompt(){
   const sz=gState.partySize||partySize;
   const names=gState.players.slice(0,sz).map(p=>`${p.name} the ${p.className}${p.isNPC?' (NPC — acts via D4 dice, no AI decisions)':' (human player)'}`).join(', ');
   const a1=ACTS[0],a2=ACTS[1],a3=ACTS[2];
-  const gctx=getGenderContext();const wmctx=getWorldMemoryContext();const cctx=getCharContext();
+  const gctx=getGenderContext();const cctx=getCharContext();
   const _gc = window.SystemData?.gmContext || {};
-  return`You are the Game Master for ${_gc.combatFlavor||'a'} RPG set in ${_gc.worldName||'an epic world'}. 180-turn epic saga across 3 acts.
+  const _worldName = _gc.worldName || 'an epic world';
+  const _magicName = _gc.magicName || 'power';
+  const _tone = _gc.toneInstruction || 'Epic and immersive';
+  const _lore = _gc.worldLore || '';
+  const _npc = _gc.npcFlavor || '';
+  const _tags = window.ActionEngine ? window.ActionEngine.getActionTagsString() : '[COMBAT], [DISCOVERY], [DECISION]';
+  return`You are the Game Master for a ${_gc.combatFlavor||'tabletop'} RPG set in ${_worldName}. 180-turn saga across 3 acts.
+
+WORLD: ${_lore}
+${_npc ? 'NPCs: ' + _npc : ''}
+Tone: ${_tone}
 
 ACTS: I (1-60): ${a1.location} | II (61-120): ${a2.location} | III (121-180): ${a3.location}
-PARTY: ${names}${gctx}
+PARTY: ${names}${gctx}${cctx}
 
-STORYTELLING RULES — follow every turn without exception:
-1. SHOW don't tell. No "you sense danger" — show the crumbling wall, the spren flickering.
-2. VARY sentence structure. Mix short punchy lines with long atmospheric ones.
-3. EACH SCENE CHANGES SOMETHING. End every narration with the world in a different state.
-4. NO repeated weapon draws to open scenes. Find other ways to establish action.
-5. LOCATION SPECIFIC. ${a1.location} has unique features — smells, sounds, architecture, spren behavior.
-6. USE assigned pronouns consistently — never switch mid-scene.
+OPENING SCENE RULES:
+1. SHOW don't tell. No "you sense danger." Show the specific thing that's wrong — crumbling stone, distant screaming, ${_magicName} flickering.
+2. This is ${_worldName}, not generic fantasy. Use its specific geography, cultures, creatures, sensory textures. Every detail must belong to THIS world.
+3. VARY sentence rhythm. Short punches mixed with atmospheric flow.
+4. The opening must present an IMMEDIATE situation — danger, mystery, or moral choice. Not "you arrive at a camp." Something is ALREADY happening.
+5. USE assigned pronouns consistently.
 
-Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between). Immediate crisis in ${a1.location} — specific, sensory, urgent. Not a generic camp scene.
+Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between). An immediate crisis in ${a1.location} — specific to this world, sensory, urgent.
 
 [CHOICES]
-4 first-person choices ("I [verb]..."), one sentence each, tagged [COMBAT], [DISCOVERY], or [DECISION]. Specific to ${a1.location} and ${gState.players[0].className}. Four distinct approaches.${getLangInstruction()}`;
+4 first-person choices ("I [verb]..."), one sentence each, tagged ${_tags}. Specific to ${a1.location} and ${gState.players[0]?gState.players[0].className:'the party'}. Four distinct approaches — no generic RPG cliches.${getLangInstruction()}`;
 }
 
 
@@ -1577,6 +1645,14 @@ async function refreshGame(){
   const prev=gState&&gState.lastGM?{...gState.lastGM}:null;
   gState=await loadState();
   if(!gState)return;
+  // Ensure system is loaded from campaign state
+  if(gState.system&&typeof loadSystem==='function'&&(!window.SystemData||window.SystemData.id!==gState.system)){
+    loadSystem(gState.system);
+    // Update game screen header
+    const _sys=window.SystemData||{};
+    const _gLogo=document.getElementById('game-logo-name');
+    if(_gLogo)_gLogo.textContent=_sys.name||gState.system;
+  }
   if(gState.locationSeed)buildActs(gState.locationSeed);
   if(gState.phase==='playing'){
     if(gState.beatsUntilCombat==null)gState.beatsUntilCombat=COMBAT_BEATS_MIN+Math.floor(Math.random()*(COMBAT_BEATS_MAX-COMBAT_BEATS_MIN+1));
@@ -1618,7 +1694,9 @@ function renderPartyStrip(){
     if(!ppip)return; // full rebuild needed
     const infoEl=ppip.querySelector('.ppip-info');
     if(!infoEl)return;
-    const newText=p.className+(p.level?' Lv.'+p.level:'')+' · '+p.hp+'/'+p.maxHp+' HP · ◈ '+(p.focus||0)+'/'+(p.maxFocus||3)+' Focus'+(p.isRadiant&&p.maxInvestiture?' · ✦ '+(p.investiture||0)+'/'+p.maxInvestiture+' Inv':'')+(p.deflect?' · DEF '+p.deflect:'')+(p.nextRollAdvantage==='advantage'?' ▲ ADV':p.nextRollAdvantage==='disadvantage'?' ▼ DIS':'')+(p.conditions&&Object.keys(p.conditions).some(k=>p.conditions[k])?' ⚠':'');
+    const _mpLbl=window.ConfigResolver?window.ConfigResolver.getMagicPoolLabel():'Inv';
+    const _hasMP=window.ConfigResolver?window.ConfigResolver.hasClassPath(p):p.isRadiant;
+    const newText=p.className+(p.level?' Lv.'+p.level:'')+' · '+p.hp+'/'+p.maxHp+' HP · ◈ '+(p.focus||0)+'/'+(p.maxFocus||3)+' Focus'+(_hasMP&&p.maxInvestiture?' · ✦ '+(p.investiture||0)+'/'+p.maxInvestiture+' '+_mpLbl:'')+(p.deflect?' · DEF '+p.deflect:'')+(p.nextRollAdvantage==='advantage'?' ▲ ADV':p.nextRollAdvantage==='disadvantage'?' ▼ DIS':'')+(p.conditions&&Object.keys(p.conditions).some(k=>p.conditions[k])?' ⚠':'');
     if(infoEl.textContent!==newText)infoEl.textContent=newText;
   });
 }
@@ -1975,7 +2053,7 @@ function renderParty(){
     return`<div class="ppip-pair">
       <div class="ppip${gState.turn===i?' active':''}${p.isNPC?' npc':''}" id="ppip-${p.name.replace(/\s/g,'_')}">
         <div class="ppip-top"><div class="ppip-dot" style="background:${p.color};"></div><span class="ppip-name">${p.name}</span></div>
-        <div class="ppip-info">${p.className}${p.level?' Lv.'+p.level:''} · ${p.hp}/${p.maxHp} HP · ◈ ${p.focus||0}/${p.maxFocus||3} Focus${p.isRadiant&&p.maxInvestiture?` · ✦ ${p.investiture||0}/${p.maxInvestiture} Inv`:''}${p.deflect?` · DEF ${p.deflect}`:''}${p.nextRollAdvantage==='advantage'?' ▲ ADV':p.nextRollAdvantage==='disadvantage'?' ▼ DIS':''}${(p.conditions&&Object.keys(p.conditions).some(k=>p.conditions[k]))?' ⚠':''}</div>
+        <div class="ppip-info">${p.className}${p.level?' Lv.'+p.level:''} · ${p.hp}/${p.maxHp} HP · ◈ ${p.focus||0}/${p.maxFocus||3} Focus${(window.ConfigResolver?window.ConfigResolver.hasClassPath(p):p.isRadiant)&&p.maxInvestiture?` · ✦ ${p.investiture||0}/${p.maxInvestiture} ${window.ConfigResolver?window.ConfigResolver.getMagicPoolLabel():'Inv'}`:''}${p.deflect?` · DEF ${p.deflect}`:''}${p.nextRollAdvantage==='advantage'?' ▲ ADV':p.nextRollAdvantage==='disadvantage'?' ▼ DIS':''}${(p.conditions&&Object.keys(p.conditions).some(k=>p.conditions[k]))?' ⚠':''}</div>
         ${p.nextRollAdvantage?`<div class="ppip-tag" style="color:${p.nextRollAdvantage==='advantage'?'var(--teal2)':'var(--coral2)'};">${p.nextRollAdvantage==='advantage'?'▲ ADVANTAGE':'▼ DISADVANTAGE'}</div>`:''}
         ${bond?`<div class="ppip-tag" style="color:${bond.color};">✦ ${bond.nick} Oath ${p.oathStage||1}/5</div>`:''}
         ${p.isNPC?'<div class="ppip-tag" style="color:var(--teal2);">AI COMPANION</div>':''}
@@ -2244,7 +2322,7 @@ async function handleNPC(log){
   const _npcGMText=gState&&gState.lastGM&&gState.lastGM.text||'';
   if(_npcGMText){
     const sz_oath=gState.partySize||partySize;
-    gState.players.slice(0,sz_oath).filter(p=>p&&p.isRadiant&&!p.isNPC).forEach(p=>{
+    gState.players.slice(0,sz_oath).filter(p=>p&&(window.ConfigResolver?window.ConfigResolver.hasClassPath(p):p.isRadiant)&&!p.isNPC).forEach(p=>{
       checkOathMoment(_npcGMText,p).catch(()=>{});
     });
     updateWorldMemory(_npcGMText,pick,gState.totalMoves||0).catch(()=>{});
@@ -2425,9 +2503,13 @@ async function onSubmitAction(){
 }
 
 function getActionBucket(a){
-  // Returns {bucket, stat, skill} — 18 official skills + 10 surges + Stormlight actions
+  // Delegate to ActionEngine if available (config-driven resolution)
+  if (window.ActionEngine) {
+    const resolved = window.ActionEngine.resolve(a);
+    return { bucket: resolved.bucket, stat: resolved.stat, skill: resolved.skill, restAction: resolved.restAction, stormlightAction: resolved.stormlightAction };
+  }
+  // Legacy fallback below — only runs if ActionEngine is not loaded
   const t=a.toLowerCase();
-  // ── PRIORITY: Explicit action tags override all keyword matching ──
   if(/^\[heal\]/.test(t))return{bucket:'heal',stat:'wil',skill:'medicine'};
   if(/^\[defend\]/.test(t))return{bucket:'defend',stat:'pre',skill:'athletics'};
   if(/^\[attack\]/.test(t))return{bucket:'attack',stat:'str',skill:'athletics'};
@@ -2437,37 +2519,30 @@ function getActionBucket(a){
   // ── Short rest (Ch.9) — triggers doShortRest ──
   if(/\[rest\]|short rest|take a rest|rest and recover|catch.*breath|bind.*wound|tend.*wound/.test(t))
     return{bucket:'heal',stat:'wil',skill:'medicine',restAction:true};
-  // ── Stormlight actions (Ch.5, Radiants only) ──
-  if(/breathe.*stormlight|inhale.*stormlight|draw.*stormlight/.test(t))
-    return{bucket:'skill',stat:'awa',skill:'perception',stormlightAction:'breathe'};
-  if(/stormlight.*enhance|enhance.*str|enhance.*spd/.test(t))
-    return{bucket:'skill',stat:'wil',skill:'discipline',stormlightAction:'enhance'};
-  if(/stormlight.*regen|regenerate.*stormlight/.test(t))
-    return{bucket:'heal',stat:'awa',skill:'progression',stormlightAction:'regenerate'};
-  // ── Surge detection (Ch.6) — specific surge skills ──
-  if(/basic lashing|reverse lashing|full lashing|gravitation surge/.test(t))
-    return{bucket:'surge',stat:'awa',skill:'gravitation'};
-  if(/abrasion|frictionless|skate along|slide frict/.test(t))
-    return{bucket:'surge',stat:'spd',skill:'abrasion'};
-  if(/adhesion|full lash|bind.*together|stick.*surface/.test(t))
-    return{bucket:'surge',stat:'pre',skill:'adhesion'};
-  if(/stoneshap|cohesion|mold.*stone|reshape.*stone|stone surge/.test(t))
-    return{bucket:'surge',stat:'wil',skill:'cohesion'};
-  if(/division|disintegrat|decay.*surge|destroy.*surge/.test(t))
-    return{bucket:'surge',stat:'int',skill:'division'};
-  if(/lightweav|illumination|illusion surge/.test(t))
-    return{bucket:'surge',stat:'pre',skill:'illumination'};
-  if(/regrowth|progression surge|grow.*plant/.test(t))
-    return{bucket:'surge',stat:'awa',skill:'progression'};
-  if(/tension surge|harden.*cloth|rigidity surge/.test(t))
-    return{bucket:'surge',stat:'str',skill:'tension'};
-  if(/soulcast|transformation surge/.test(t))
-    return{bucket:'surge',stat:'wil',skill:'transformation'};
-  if(/elsecall|cognitive realm|shadesmar|transportation surge/.test(t))
-    return{bucket:'surge',stat:'int',skill:'transportation'};
+  // ── Magic resource actions (system-aware) ──
+  const _magicN5=((_SD&&_SD().gmContext)||{}).magicName||'magic';
+  const _magicRe=new RegExp('breathe.*'+_magicN5.toLowerCase()+'|inhale.*'+_magicN5.toLowerCase()+'|draw.*'+_magicN5.toLowerCase()+'|channel.*'+_magicN5.toLowerCase(),'i');
+  if(_magicRe.test(t))
+    return{bucket:'skill',stat:(STAT_KEYS[4]||'awa'),skill:'perception',stormlightAction:'breathe'};
+  const _enhRe=new RegExp(_magicN5.toLowerCase()+'.*enhance|enhance.*str|enhance.*power','i');
+  if(_enhRe.test(t))
+    return{bucket:'skill',stat:(STAT_KEYS[3]||'wil'),skill:'discipline',stormlightAction:'enhance'};
+  const _regRe=new RegExp(_magicN5.toLowerCase()+'.*regen|regenerate.*'+_magicN5.toLowerCase(),'i');
+  if(_regRe.test(t))
+    return{bucket:'heal',stat:(STAT_KEYS[4]||'awa'),skill:'progression',stormlightAction:'regenerate'};
+  // ── Ability/Surge detection (reads from current system's surges) ──
+  const _sysSurges=(_SD&&_SD().surges)||[];
+  for(const surge of _sysSurges){
+    const sName=surge.name.toLowerCase();
+    const sId=surge.id.toLowerCase();
+    if(t.includes(sName)||t.includes(sId)){
+      const attrKey=surge.attr||'int';
+      return{bucket:'surge',stat:attrKey,skill:surge.id};
+    }
+  }
   // ── Official 18 skills (physical group) ──
   const isRevive=/revive|stabilize|pull.*back|save.*downed|rouse|wake.*up|bring.*back|resuscitate/.test(t)&&/ally|companion|downed|fallen|hobber|friend|party/.test(t);
-  const isHeal=/\[heal\]|heal|regrow|mend|restore|tend|bandage|cure|knit|medicine|patch.*wound|stitch|treat.*injur|fix.*wound|channel.*stormlight.*into|mend.*bone|check.*breathing|check.*wound|check.*on|pull.*behind.*shelter|drag.*to.*safety|yank.*behind|nurse|aid.*allie|triage|infuse.*with.*light|pour.*stormlight|ease.*pain|soothe/.test(t);
+  const isHeal=/\[heal\]|heal|regrow|mend|restore|tend|bandage|cure|knit|medicine|patch.*wound|stitch|treat.*injur|fix.*wound|channel.*into|mend.*bone|check.*breathing|check.*wound|check.*on|pull.*behind.*shelter|drag.*to.*safety|yank.*behind|nurse|aid.*allie|triage|infuse.*with|pour.*energy|ease.*pain|soothe/.test(t);
   if(isRevive)return{bucket:'revive',stat:'wil',skill:'medicine'};
   if(isHeal)return{bucket:'heal',stat:'wil',skill:'medicine'};
   if(/sneak|stealth|hide|conceal|shadow.*move/.test(t))return{bucket:'skill',stat:'spd',skill:'stealth'};
@@ -2549,7 +2624,9 @@ function getOpportunityEffect(bucket, actor){
     const officialOpp=COMBAT_OPPS[roll];
     // Apply mechanical effects for specific opps
     if(officialOpp.includes('recover 1 focus')&&p){applyFocusChange(actor,1);}
-    if(officialOpp.includes('Stormlight')&&p&&p.isRadiant){
+    // Magic pool recovery on opportunity
+    const _hasCP2=window.ConfigResolver?window.ConfigResolver.hasClassPath(p):p.isRadiant;
+    if((officialOpp.includes('recover')||officialOpp.includes('Stormlight'))&&p&&_hasCP2&&p.maxInvestiture){
       p.investiture=Math.min(p.maxInvestiture||0,(p.investiture||0)+2);
     }
     // Advantage effect tracked via existing system
@@ -2590,11 +2667,13 @@ function getComplicationEffect(bucket, actor){
     // Apply mechanical effects
     if(officialComp.includes('fall Prone')&&p){applyCondition(p,'prone');}
     if(officialComp.includes('go dun')&&gState){
-      // Narrative — Radiant loses Stormlight access this round
-      if(p&&p.isRadiant){
+      // Narrative — class-path character loses magic resource this round
+      const _hasCP3=window.ConfigResolver?window.ConfigResolver.hasClassPath(p):p&&p.isRadiant;
+      if(p&&_hasCP3&&p.maxInvestiture){
+        const _mpLbl3=window.ConfigResolver?window.ConfigResolver.getMagicPoolLabel():'Investiture';
         const oldInv=p.investiture||0;
         p.investiture=Math.max(0,oldInv-2);
-        return officialComp+` (${p.name} loses 2 Investiture)`;
+        return officialComp+` (${p.name} loses 2 ${_mpLbl3})`;
       }
     }
     if(officialComp.includes('lose')&&p){applyFocusChange(actor,-1);}
@@ -2610,10 +2689,12 @@ function getComplicationEffect(bucket, actor){
       return`${actor} overextends — loses ${focLoss} Focus from the effort`;
     }
   }
-  if(bucket==='surge'&&p&&p.isRadiant){
+  if((bucket==='surge'||bucket==='magic'||bucket==='corruption')&&p&&(window.ConfigResolver?window.ConfigResolver.hasClassPath(p):p.isRadiant)){
+    const _mpLbl4=window.ConfigResolver?window.ConfigResolver.getMagicPoolLabel():'Investiture';
+    const _magicN4=((_SD&&_SD().gmContext)||{}).magicName||'power';
     const invLoss=1;
     p.investiture=Math.max(0,(p.investiture||0)-invLoss);
-    return`${actor} surges too hard — loses ${invLoss} Investiture as Stormlight escapes`;
+    return`${actor} overextends — loses ${invLoss} ${_mpLbl4} as ${_magicN4} escapes`;
   }
   if(roll<0.33){
     applyFocusChange(actor,-1);
@@ -2858,37 +2939,61 @@ function stormIntensify(intense=true){
 // ── AMBIENT AUDIO PRESETS ──────────────────────────────────
 // Each preset configures the procedural audio engine differently.
 // All use the same mkWind/mkRain/mkThunder/mkHum primitives.
+// ── Data-driven ambient presets ──
+// Each preset is parameterized: w1-w4 [freq, gain, gustSpeed, pan], rain gain, thunder, hum
+function _setupPreset(p) {
+  if(p.w1) audioNodes.w1 = mkWind(...p.w1);
+  if(p.w2) audioNodes.w2 = mkWind(...p.w2);
+  if(p.w3) audioNodes.w3 = mkWind(...p.w3);
+  if(p.w4) audioNodes.w4 = mkWind(...p.w4);
+  if(p.rain != null) audioNodes.rain = mkRain(p.rain);
+  if(p.thunder) audioNodes.thunder = mkThunder();
+  if(p.hum) audioNodes.hum = mkHum();
+}
 const AMBIENT_PRESETS = {
-  storm:      { icon:'🌩', label:'STORM',     desc:'Howling highstorm winds, rain, and thunder',
-    setup(){ audioNodes.w1=mkWind(380,0.11,0.07,-0.3); audioNodes.w2=mkWind(780,0.07,0.12,0.3); audioNodes.w3=mkWind(180,0.14,0.04,0.0); audioNodes.w4=mkWind(1200,0.04,0.18,-0.6); audioNodes.rain=mkRain(0.055); audioNodes.thunder=mkThunder(); audioNodes.hum=mkHum(); }},
-  forge:      { icon:'🔥', label:'FORGE',     desc:'Blacksmith anvil, bellows, crackling fire',
-    setup(){ audioNodes.w1=mkWind(120,0.06,0.03,0.0); audioNodes.w2=mkWind(2200,0.03,0.08,-0.4); audioNodes.w3=mkWind(1800,0.02,0.10,0.4); audioNodes.w4=mkWind(90,0.05,0.02,0.0); audioNodes.rain=mkRain(0.02); audioNodes.hum=mkHum(); }},
-  ocean:      { icon:'🌊', label:'OCEAN',     desc:'Rolling waves, distant gulls, sea breeze',
-    setup(){ audioNodes.w1=mkWind(180,0.10,0.015,0.0); audioNodes.w2=mkWind(420,0.06,0.02,0.3); audioNodes.w3=mkWind(90,0.12,0.01,-0.2); audioNodes.w4=mkWind(3000,0.015,0.04,0.5); audioNodes.rain=mkRain(0.015); audioNodes.hum=mkHum(); }},
-  forest:     { icon:'🌲', label:'FOREST',    desc:'Wind through leaves, birdsong, rustling',
-    setup(){ audioNodes.w1=mkWind(600,0.05,0.04,-0.3); audioNodes.w2=mkWind(1400,0.03,0.06,0.4); audioNodes.w3=mkWind(200,0.04,0.02,0.0); audioNodes.w4=mkWind(2800,0.02,0.08,-0.5); audioNodes.rain=mkRain(0.01); audioNodes.hum=mkHum(); }},
-  dungeon:    { icon:'🕯', label:'DUNGEON',   desc:'Dripping water, echoing stone, distant moans',
-    setup(){ audioNodes.w1=mkWind(60,0.08,0.01,0.0); audioNodes.w2=mkWind(3200,0.02,0.12,-0.6); audioNodes.w3=mkWind(1600,0.015,0.08,0.5); audioNodes.w4=mkWind(45,0.06,0.01,0.0); audioNodes.rain=mkRain(0.03); }},
-  tavern:     { icon:'🍺', label:'TAVERN',    desc:'Warm fire, murmuring crowd, clinking mugs',
-    setup(){ audioNodes.w1=mkWind(160,0.07,0.03,0.0); audioNodes.w2=mkWind(800,0.03,0.05,-0.3); audioNodes.w3=mkWind(1200,0.02,0.06,0.4); audioNodes.w4=mkWind(100,0.04,0.02,0.0); audioNodes.rain=mkRain(0.02); audioNodes.hum=mkHum(); }},
-  desert:     { icon:'🏜', label:'DESERT',    desc:'Dry wind, shifting sand, scorching silence',
-    setup(){ audioNodes.w1=mkWind(500,0.09,0.06,-0.2); audioNodes.w2=mkWind(1100,0.04,0.09,0.3); audioNodes.w3=mkWind(250,0.06,0.03,0.0); audioNodes.w4=mkWind(2000,0.02,0.05,0.5); }},
-  arctic:     { icon:'❄', label:'ARCTIC',    desc:'Howling blizzard, creaking ice, frozen silence',
-    setup(){ audioNodes.w1=mkWind(320,0.13,0.08,-0.4); audioNodes.w2=mkWind(900,0.08,0.14,0.3); audioNodes.w3=mkWind(150,0.10,0.05,0.0); audioNodes.w4=mkWind(1500,0.05,0.20,-0.5); audioNodes.rain=mkRain(0.04); }},
-  jungle:     { icon:'🌴', label:'JUNGLE',    desc:'Humid buzz, insects, dripping canopy, distant calls',
-    setup(){ audioNodes.w1=mkWind(400,0.04,0.05,0.0); audioNodes.w2=mkWind(2600,0.03,0.10,-0.4); audioNodes.w3=mkWind(3400,0.025,0.12,0.5); audioNodes.w4=mkWind(180,0.05,0.03,0.0); audioNodes.rain=mkRain(0.035); audioNodes.hum=mkHum(); }},
-  volcanic:   { icon:'🌋', label:'VOLCANIC',  desc:'Deep rumbling, hissing vents, molten glow',
-    setup(){ audioNodes.w1=mkWind(55,0.14,0.02,0.0); audioNodes.w2=mkWind(40,0.10,0.015,-0.2); audioNodes.w3=mkWind(800,0.04,0.06,0.3); audioNodes.w4=mkWind(2400,0.02,0.08,0.5); audioNodes.rain=mkRain(0.025); audioNodes.thunder=mkThunder(); }},
-  cathedral:  { icon:'⛪', label:'CATHEDRAL', desc:'Reverberant hum, distant bells, sacred stillness',
-    setup(){ audioNodes.w1=mkWind(110,0.03,0.01,0.0); audioNodes.w2=mkWind(440,0.02,0.03,-0.3); audioNodes.w3=mkWind(660,0.015,0.02,0.3); audioNodes.hum=mkHum(); }},
-  battlefield:{ icon:'⚔', label:'BATTLE',    desc:'Distant war drums, marching, horns on the wind',
-    setup(){ audioNodes.w1=mkWind(80,0.10,0.04,0.0); audioNodes.w2=mkWind(260,0.06,0.05,-0.3); audioNodes.w3=mkWind(520,0.04,0.03,0.3); audioNodes.w4=mkWind(1000,0.03,0.07,0.0); audioNodes.rain=mkRain(0.02); audioNodes.thunder=mkThunder(); }},
-  cosmic:     { icon:'✨', label:'COSMIC',    desc:'Ethereal drones, shimmering tones, vast emptiness',
-    setup(){ audioNodes.w1=mkWind(60,0.06,0.008,0.0); audioNodes.w2=mkWind(220,0.04,0.012,-0.4); audioNodes.w3=mkWind(330,0.03,0.015,0.4); audioNodes.hum=mkHum(); }},
-  swamp:      { icon:'🐸', label:'SWAMP',     desc:'Bubbling muck, croaking, thick humid drone',
-    setup(){ audioNodes.w1=mkWind(140,0.07,0.03,0.0); audioNodes.w2=mkWind(1800,0.025,0.09,-0.4); audioNodes.w3=mkWind(2400,0.02,0.07,0.5); audioNodes.w4=mkWind(70,0.05,0.02,0.0); audioNodes.rain=mkRain(0.03); }},
-  clockwork:  { icon:'⚙', label:'CLOCKWORK', desc:'Mechanical ticking, steam hiss, grinding gears',
-    setup(){ audioNodes.w1=mkWind(2000,0.03,0.14,-0.3); audioNodes.w2=mkWind(3000,0.025,0.18,0.3); audioNodes.w3=mkWind(100,0.05,0.03,0.0); audioNodes.w4=mkWind(4000,0.02,0.20,-0.5); audioNodes.rain=mkRain(0.02); }},
+  storm:      { icon:'🌩', label:'STORM',      desc:'Howling winds, rain, and thunder',
+    w1:[380,.11,.07,-.3], w2:[780,.07,.12,.3], w3:[180,.14,.04,0], w4:[1200,.04,.18,-.6], rain:.055, thunder:true, hum:true },
+  forge:      { icon:'🔥', label:'FORGE',      desc:'Crackling fire, bellows, radiant heat',
+    w1:[120,.06,.03,0], w2:[2200,.03,.08,-.4], w3:[1800,.02,.10,.4], w4:[90,.05,.02,0], rain:.02, hum:true },
+  ocean:      { icon:'🌊', label:'OCEAN',      desc:'Rolling waves, sea breeze, distant gulls',
+    w1:[180,.10,.015,0], w2:[420,.06,.02,.3], w3:[90,.12,.01,-.2], w4:[3000,.015,.04,.5], rain:.015, hum:true },
+  forest:     { icon:'🌲', label:'FOREST',     desc:'Wind through leaves, birdsong, rustling',
+    w1:[600,.05,.04,-.3], w2:[1400,.03,.06,.4], w3:[200,.04,.02,0], w4:[2800,.02,.08,-.5], rain:.01, hum:true },
+  dungeon:    { icon:'🕯', label:'DUNGEON',    desc:'Dripping water, echoing stone, distant moans',
+    w1:[60,.08,.01,0], w2:[3200,.02,.12,-.6], w3:[1600,.015,.08,.5], w4:[45,.06,.01,0], rain:.03 },
+  tavern:     { icon:'🍺', label:'TAVERN',     desc:'Warm fire, murmuring crowd, clinking mugs',
+    w1:[160,.07,.03,0], w2:[800,.03,.05,-.3], w3:[1200,.02,.06,.4], w4:[100,.04,.02,0], rain:.02, hum:true },
+  desert:     { icon:'🏜', label:'DESERT',     desc:'Dry wind, shifting sand, scorching silence',
+    w1:[500,.09,.06,-.2], w2:[1100,.04,.09,.3], w3:[250,.06,.03,0], w4:[2000,.02,.05,.5] },
+  arctic:     { icon:'❄', label:'ARCTIC',     desc:'Howling blizzard, creaking ice, frozen silence',
+    w1:[320,.13,.08,-.4], w2:[900,.08,.14,.3], w3:[150,.10,.05,0], w4:[1500,.05,.20,-.5], rain:.04 },
+  jungle:     { icon:'🌴', label:'JUNGLE',     desc:'Humid buzz, insects, dripping canopy',
+    w1:[400,.04,.05,0], w2:[2600,.03,.10,-.4], w3:[3400,.025,.12,.5], w4:[180,.05,.03,0], rain:.035, hum:true },
+  volcanic:   { icon:'🌋', label:'VOLCANIC',   desc:'Deep rumbling, hissing vents, molten heat',
+    w1:[55,.14,.02,0], w2:[40,.10,.015,-.2], w3:[800,.04,.06,.3], w4:[2400,.02,.08,.5], rain:.025, thunder:true },
+  cathedral:  { icon:'⛪', label:'CATHEDRAL',  desc:'Reverberant hum, distant bells, sacred stillness',
+    w1:[110,.03,.01,0], w2:[440,.02,.03,-.3], w3:[660,.015,.02,.3], hum:true },
+  battlefield:{ icon:'⚔', label:'BATTLE',     desc:'War drums, marching, horns on the wind',
+    w1:[80,.10,.04,0], w2:[260,.06,.05,-.3], w3:[520,.04,.03,.3], w4:[1000,.03,.07,0], rain:.02, thunder:true },
+  cosmic:     { icon:'✨', label:'COSMIC',     desc:'Ethereal drones, shimmering tones, vast emptiness',
+    w1:[60,.06,.008,0], w2:[220,.04,.012,-.4], w3:[330,.03,.015,.4], hum:true },
+  swamp:      { icon:'🐸', label:'SWAMP',      desc:'Bubbling muck, croaking, thick humid drone',
+    w1:[140,.07,.03,0], w2:[1800,.025,.09,-.4], w3:[2400,.02,.07,.5], w4:[70,.05,.02,0], rain:.03 },
+  clockwork:  { icon:'⚙', label:'CLOCKWORK',  desc:'Mechanical ticking, steam hiss, grinding gears',
+    w1:[2000,.03,.14,-.3], w2:[3000,.025,.18,.3], w3:[100,.05,.03,0], w4:[4000,.02,.20,-.5], rain:.02 },
+  // ── New presets ──
+  cyberpunk:  { icon:'🌆', label:'NEON',       desc:'Electric hum, distant traffic, rain on chrome',
+    w1:[100,.06,.02,0], w2:[3500,.02,.15,-.4], w3:[1800,.03,.08,.4], w4:[60,.04,.01,0], rain:.04, hum:true },
+  wasteland:  { icon:'☢', label:'WASTELAND',  desc:'Dead wind, distant rumble, crackling static',
+    w1:[200,.08,.04,0], w2:[1500,.03,.06,-.3], w3:[80,.06,.02,0], w4:[4500,.01,.10,.5] },
+  spaceship:  { icon:'🚀', label:'SHIP',       desc:'Engine drone, hull creaks, ventilation hiss',
+    w1:[85,.07,.005,0], w2:[170,.04,.008,-.2], w3:[2800,.015,.03,.3], w4:[50,.05,.003,0], hum:true },
+  underwater: { icon:'🫧', label:'DEEP SEA',   desc:'Muffled currents, whale song, pressure hum',
+    w1:[90,.08,.01,0], w2:[350,.05,.015,-.3], w3:[150,.06,.008,.2], w4:[40,.04,.005,0], hum:true },
+  ruins:      { icon:'🏛', label:'RUINS',      desc:'Wind through broken columns, settling dust',
+    w1:[250,.06,.03,-.2], w2:[1000,.03,.05,.3], w3:[500,.04,.02,0], w4:[2200,.015,.04,-.4] },
+  market:     { icon:'🏪', label:'MARKET',     desc:'Bustling crowd, hawkers, exotic instruments',
+    w1:[300,.04,.05,0], w2:[1600,.03,.08,-.3], w3:[900,.025,.06,.4], w4:[2200,.02,.07,-.4], rain:.01, hum:true },
 };
 
 // Registry for wizard UI
@@ -2908,7 +3013,7 @@ function startAudio(){
   if (!AMBIENT_PRESETS[presetId]) presetId = 'storm';
   const preset = AMBIENT_PRESETS[presetId];
 
-  preset.setup();
+  _setupPreset(preset);
   audioOn=true;
 
   // Theme the audio bar
@@ -3025,7 +3130,8 @@ async function batchTranslate(strings){
   const uncached=strings.filter(s=>!thaiCache[s]);
   if(uncached.length){
     try{
-      const prompt='Translate each numbered item to Thai. Keep character names, Rosharan place names, and game terms (Radiant, Stormlight, Shardblade, Spren, etc) in English. Return ONLY a numbered list:\n\n'+
+      const _sysTerms=((window.SystemData&&window.SystemData.gmContext)||{}).worldName||'the world';
+      const prompt='Translate each numbered item to Thai. Keep character names, place names, and game-specific terms in English. Return ONLY a numbered list:\n\n'+
         uncached.map((s,i)=>`${i+1}. ${s}`).join('\\n');
       const res=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:4000,
@@ -3125,7 +3231,7 @@ async function translateToThai(text){
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',
         max_tokens:2000,
-        messages:[{role:'user',content:`Translate the following text to Thai. Keep all character names, place names (Roshar, Shattered Plains, etc), and game terms (Radiant, Stormlight, Shardblade, etc) in their original English form. Return ONLY the translated text with no explanation or preamble:
+        messages:[{role:'user',content:`Translate the following text to Thai. Keep all character names, place names, and game-specific terms in their original English form. Return ONLY the translated text with no explanation or preamble:
 
 ${text}`}]
       })

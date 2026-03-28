@@ -302,9 +302,20 @@ function updatePreview(){
 }
 
 function finishWizard(publish){
-  const name   = document.getElementById('wiz-name')?.value.trim()||'My World';
+  const name   = document.getElementById('wiz-name')?.value.trim()||'';
   const desc   = document.getElementById('wiz-desc')?.value.trim()||'';
   const color  = document.getElementById('cp')?.value||'#C9A84C';
+
+  // ── Validation ──
+  if (!name) {
+    const errEl = document.getElementById('wiz-err') || document.querySelector('.wiz-err');
+    if (errEl) { errEl.textContent = 'Your world needs a name.'; errEl.style.display = 'block'; }
+    else alert('Your world needs a name.');
+    return;
+  }
+  if (color && !/^#[0-9A-Fa-f]{6}$/.test(color)) {
+    alert('Invalid primary color hex. Use format: #RRGGBB'); return;
+  }
   const tier   = publish?'community':'mine';
 
   // Read all text inputs
@@ -388,7 +399,7 @@ Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Tim
       bgTone: 'dark', titleFont: titleFont, bodyFont: 'Crimson Pro',
       uiStyle, buttonStyle, bgEffect, cardStyle,
     },
-    magic: { name: magicName, resource: magicResource, source: magicSource, risk: magicRisk, exists: magicExists },
+    magic: { name: magicName, resource: magicResource, source: magicSource, risk: magicRisk, exists: magicExists, rules: magicRules },
     statSystem, // pass the raw selection ID to custom.js _resolveStats()
     gm: {
       worldName: name,
@@ -667,7 +678,7 @@ function openFAQ() {
   const modal = document.getElementById('faq-modal');
   modal.style.display = 'flex';
   // Parse markdown FAQ into HTML (simple parser — handles ##, **, *, -, ---)
-  fetch('CYOAHUB_FAQ.md').then(r => r.text()).then(md => {
+  fetch('MARKDOWNS/CYOAHUB_FAQ.md').then(r => r.text()).then(md => {
     const html = md
       .replace(/^# (.+)$/gm, '<h1>$1</h1>')
       .replace(/^## (.+)$/gm, '<h2>$1</h2>')
@@ -722,10 +733,7 @@ function pickWorld(worldId) {
   const name = sys.name || worldId;
   const sub = sys.subtitle || '';
   const tag = sys.tagline || '';
-  const thinkLabel = worldId === 'dnd5e' ? '⚔ The Dungeon Master deliberates'
-                   : worldId === 'stormlight' ? '⟁ The Stormfather deliberates'
-                   : worldId === 'wretcheddeep' ? '👁 The Crown whispers'
-                   : glyph + ' The Game Master deliberates';
+  const thinkLabel = glyph + ' The Game Master deliberates';
   // Campaign screen
   const campGlyph = document.getElementById('camp-glyph');
   const campTitle = document.getElementById('camp-title');
@@ -742,7 +750,11 @@ function pickWorld(worldId) {
   if (titleQuote && tag) titleQuote.innerHTML = `${tag}`;
   // Game screen header
   const gameLogo = document.getElementById('game-logo');
-  if (gameLogo) gameLogo.textContent = glyph + ' ' + name;
+  if (gameLogo) {
+    const logoName = document.getElementById('game-logo-name');
+    if (logoName) logoName.textContent = name;
+    else gameLogo.textContent = glyph + ' ' + name;
+  }
   // Thinking bar
   const thinkEl = document.getElementById('thinking-label');
   if (thinkEl) thinkEl.textContent = thinkLabel;
@@ -753,11 +765,17 @@ function pickWorld(worldId) {
   const partyLabel = document.getElementById('party-label');
   const classHeading = document.getElementById('class-heading');
   const classFlavor = document.getElementById('class-flavor');
-  if (partyLabel) partyLabel.textContent = worldId==='stormlight'?'Radiant Company':worldId==='dnd5e'?'Adventuring Party':'Your Party';
+  // Config-driven labels
+  const cc = sys.charCreation || {};
+  if (partyLabel) partyLabel.textContent = cc.partyLabel || 'Adventuring Party';
+  const lobbyPartyLabel = document.getElementById('lobby-party-label');
+  if (lobbyPartyLabel) lobbyPartyLabel.textContent = cc.partyLabel || 'Adventuring Party';
   const enterText = document.getElementById('enter-btn-text');
-  if (enterText) enterText.textContent = worldId==='stormlight'?'⟁ Enter the Storm':worldId==='dnd5e'?'⚔ Begin Campaign':glyph+' Begin Campaign';
-  if (classHeading) classHeading.textContent = worldId==='stormlight'?'Your Order':worldId==='dnd5e'?'Your Class':'Your Class';
-  if (classFlavor) classFlavor.textContent = worldId==='stormlight'?'The Stormfather watches. Choose carefully.':worldId==='dnd5e'?'The dungeon awaits. Choose your path.':'Choose wisely.';
+  if (enterText) enterText.textContent = glyph + ' Begin Campaign';
+  if (classHeading) classHeading.textContent = cc.classHeading || 'Your Class';
+  if (classFlavor) classFlavor.textContent = cc.classFlavor || 'Choose wisely.';
+  const bgFlavor = document.getElementById('bg-flavor');
+  if (bgFlavor) bgFlavor.textContent = cc.backgroundFlavor || 'What shaped you?';
 
   window.location.hash = '#campaign';
   showScreen('campaign');

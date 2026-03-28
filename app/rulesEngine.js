@@ -27,12 +27,14 @@
    ───────────────────────────────────────────────────────────── */
 
 /**
- * Derive the three defenses from raw attribute scores.
- * Physical  = 10 + STR + SPD + bonuses
- * Cognitive = 10 + INT + WIL + bonuses
- * Spiritual = 10 + AWA + PRE + bonuses
+ * Derive defenses from config — reads SystemData.rules.defenses.
+ * Falls back to Cosmere defaults if no config present.
  */
 function calcDefenses(attrs, bonuses = {}) {
+  if (window.ConfigResolver) {
+    return window.ConfigResolver.calcDefensesFromConfig(attrs, bonuses);
+  }
+  // Fallback: original Cosmere formulas
   const s = attrs;
   return {
     physDef: 10 + (s.str || 0) + (s.spd || 0) + (bonuses.physDef || 0),
@@ -42,21 +44,27 @@ function calcDefenses(attrs, bonuses = {}) {
 }
 
 /**
- * Derive secondary stats from attributes and level info.
- * HP          = 10 + STR + level bonuses
- * Focus       = 2 + WIL + bonuses
- * Investiture = 2 + max(AWA, PRE)   [Radiants only — 0 otherwise]
+ * Derive secondary stats from config — reads SystemData.rules.
+ * The isRadiant parameter is kept for backward compatibility but
+ * the config-driven path uses hasClassPath() instead.
  */
 function calcSecondaryStats(attrs, level = 1, bonuses = {}, isRadiant = false) {
+  if (window.ConfigResolver) {
+    // Build a minimal character object for the resolver
+    const pseudoChar = { stats: attrs, level, bonuses, isRadiant, classId: bonuses.classId };
+    const derived = window.ConfigResolver.calculateDerivedStats(attrs, level, pseudoChar);
+    return {
+      maxHp: derived.maxHp,
+      maxFocus: derived.maxFocus,
+      maxInvestiture: derived.maxMagicPool, // alias for backward compat
+    };
+  }
+  // Fallback: original Cosmere formulas
   const s = attrs;
-  // Health grows with level per tier table (Ch.1)
-  // Tier 1 (lvl 1-5): base 10+STR, +5/level after 1
-  // Simplified: base = 10+STR, per level after 1 = 5 (tier 1 default)
   const hpPerLevel = bonuses.hpPerLevel || 5;
   const maxHp = 10 + (s.str || 0) + Math.max(0, level - 1) * hpPerLevel + (bonuses.maxHp || 0);
   const maxFocus = 2 + (s.wil || 0) + (bonuses.maxFocus || 0);
   const maxInvestiture = isRadiant ? 2 + Math.max(s.awa || 0, s.pre || 0) + (bonuses.maxInvestiture || 0) : 0;
-
   return { maxHp, maxFocus, maxInvestiture };
 }
 
@@ -65,19 +73,20 @@ function calcSecondaryStats(attrs, level = 1, bonuses = {}, isRadiant = false) {
  * modifier = attribute_score + skill_ranks + misc_bonus
  */
 function skillModifier(attrs, skillId, skillRanks, miscBonus = 0) {
-  // Map skill → governing attribute (matches SKILLS table in gameState.js)
-  const SKILL_ATTR = {
-    agility: 'spd', athletics: 'str', heavyWeapon: 'str', lightWeapon: 'spd',
-    stealth: 'spd', thievery: 'spd', crafting: 'int', deduction: 'int',
-    discipline: 'wil', intimidation: 'wil', lore: 'int', medicine: 'int',
-    deception: 'pre', insight: 'awa', leadership: 'pre', perception: 'awa',
-    persuasion: 'pre', survival: 'awa',
-    // Surges
-    abrasion: 'spd', adhesion: 'pre', cohesion: 'wil', division: 'int',
-    gravitation: 'awa', illumination: 'pre', progression: 'awa',
-    tension: 'str', transformation: 'wil', transportation: 'int',
-  };
-  const attrKey = SKILL_ATTR[skillId] || 'int';
+  // Read skill → attribute map from config (falls back to hardcoded Cosmere)
+  const skillAttrMap = window.ConfigResolver
+    ? window.ConfigResolver.getSkillAttrMap()
+    : {
+        agility:'spd', athletics:'str', heavyWeapon:'str', lightWeapon:'spd',
+        stealth:'spd', thievery:'spd', crafting:'int', deduction:'int',
+        discipline:'wil', intimidation:'wil', lore:'int', medicine:'int',
+        deception:'pre', insight:'awa', leadership:'pre', perception:'awa',
+        persuasion:'pre', survival:'awa',
+        abrasion:'spd', adhesion:'pre', cohesion:'wil', division:'int',
+        gravitation:'awa', illumination:'pre', progression:'awa',
+        tension:'str', transformation:'wil', transportation:'int',
+      };
+  const attrKey = skillAttrMap[skillId] || 'int';
   return (attrs[attrKey] || 0) + (skillRanks || 0) + miscBonus;
 }
 
@@ -287,22 +296,22 @@ function resolveAttack(attacker, defender, raiseStakes = false) {
 function resolveSurgeAttack(caster, surgeId, target, investiture = 1, advantages = 0) {
   // Surge die scales with rank
   const SURGE_DICE = ['d4', 'd6', 'd8', 'd10', 'd12'];
-  const SURGE_ATTRS = {
-    abrasion: 'spd', adhesion: 'pre', cohesion: 'wil', division: 'int',
-    gravitation: 'awa', illumination: 'pre', progression: 'awa',
-    tension: 'str', transformation: 'wil', transportation: 'int',
-  };
-  const SURGE_DEF = {
-    division: 'spirDef', transformation: 'spirDef', transportation: 'cogDef',
-    illumination: 'cogDef',
-  };
+
+  // Read surge definition from config if available
+  const _sd = window.SystemData || {};
+  const surgeDef = (_sd.surges || []).find(s => s.id === surgeId);
+  const skillMap = window.ConfigResolver
+    ? window.ConfigResolver.getSkillAttrMap()
+    : { abrasion:'spd', adhesion:'pre', cohesion:'wil', division:'int',
+        gravitation:'awa', illumination:'pre', progression:'awa',
+        tension:'str', transformation:'wil', transportation:'int' };
 
   const ranks = (caster.surgeRanks || {})[surgeId] || 1;
-  const attrKey = SURGE_ATTRS[surgeId] || 'awa';
+  const attrKey = (surgeDef && surgeDef.attr) || skillMap[surgeId] || 'awa';
   const surgeModifier = (caster.attrs?.[attrKey] || 0) + ranks;
   const dieSize = parseInt(SURGE_DICE[Math.min(ranks - 1, 4)].slice(1));
-  const dmgType = { division: 'spirit', transformation: 'spirit' }[surgeId] || 'impact';
-  const targetDefKey = SURGE_DEF[surgeId] || 'physDef';
+  const dmgType = (surgeDef && surgeDef.dmgType) || ({ division:'spirit', transformation:'spirit' }[surgeId]) || 'impact';
+  const targetDefKey = (surgeDef && surgeDef.targetDef) || ({ division:'spirDef', transformation:'spirDef', transportation:'cogDef', illumination:'cogDef' }[surgeId]) || 'physDef';
   const targetDef = target[targetDefKey] || target.physDef || 10;
 
   const testResult = rollSkillTest(surgeModifier, advantages, false);
@@ -400,17 +409,8 @@ function canTakeFastTurn(character) {
    Source: Chapter 9 — "Conditions"
    ───────────────────────────────────────────────────────────── */
 
-// These are already defined in gameState.js; mirror here for engine use
-function applyCondition(player, condId, value = true) {
-  if (!player.conditions) player.conditions = {};
-  player.conditions[condId] = value;
-}
-function removeCondition(player, condId) {
-  if (player.conditions) delete player.conditions[condId];
-}
-function hasCondition(player, condId) {
-  return !!(player.conditions && player.conditions[condId]);
-}
+// applyCondition, removeCondition, hasCondition are defined in gameState.js
+// and available globally. Referenced here for the Rules export below.
 
 /**
  * Process end-of-turn condition ticks.
@@ -634,7 +634,7 @@ function doLongRest(player) {
     );
   }
 
-  // Radiant: if they had a full long rest, they can re-breathe Stormlight before scenes
+  // Class-path characters: full long rest restores magic pool
   if (player.maxInvestiture) {
     player.investiture = player.maxInvestiture;
   }
@@ -864,31 +864,10 @@ window.Rules.dnd_skillCheck  = dnd_skillCheck;
 window.Rules.dnd_attackRoll  = dnd_attackRoll;
 
 // ── System-aware wrappers ──
-// Override calcDefenses to branch by system
-const _origCalcDefenses = calcDefenses;
-window.Rules.calcDefenses = function(attrs, bonuses) {
-  const sys = (typeof gState !== 'undefined' && gState && gState.system) || 'stormlight';
-  if (sys === 'dnd5e') {
-    const ac = dnd_calcAC(attrs, bonuses && bonuses.armorDeflect || 0);
-    return { physDef: ac, cogDef: ac, spirDef: ac }; // D&D uses single AC
-  }
-  return _origCalcDefenses(attrs, bonuses);
-};
-
-const _origCalcSecondary = calcSecondaryStats;
-window.Rules.calcSecondaryStats = function(attrs, level, bonuses, isRadiant) {
-  const sys = (typeof gState !== 'undefined' && gState && gState.system) || 'stormlight';
-  if (sys === 'dnd5e') {
-    const cls = window.SystemData && window.SystemData.classes && window.SystemData.classes.find(c => c.id === (bonuses && bonuses.classId));
-    const hitDie = cls ? cls.hitDie || 'd8' : 'd8';
-    const maxHp = dnd_calcHP(hitDie, attrs.con || 10, level);
-    const maxFocus = 2 + dnd_abilityMod(attrs.wis || 10); // wisdom-based focus
-    const slots = dnd_spellSlots(level);
-    const maxInvestiture = isRadiant ? slots.reduce((a,b)=>a+b, 0) : 0; // spell slots as investiture
-    return { maxHp, maxFocus, maxInvestiture };
-  }
-  return _origCalcSecondary(attrs, level, bonuses, isRadiant);
-};
+// calcDefenses and calcSecondaryStats are now config-driven at their source.
+// These D&D functions remain available on Rules for direct use if needed,
+// but the main calcDefenses/calcSecondaryStats read from SystemData.rules
+// automatically — no more system-branching needed here.
 
 /* ─────────────────────────────────────────────────────────────
    INTEGRATION HOOKS

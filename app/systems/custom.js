@@ -32,6 +32,96 @@ function _resolveStats(statsOverride, systemId) {
   return { statKeys: preset.keys, statNames: preset.names, statFull: preset.full };
 }
 
+// ── Helper: build rules block from wizard config ──
+function _buildRules(cfg) {
+  const magic = cfg.magic || {};
+  const stats = _resolveStats(null, cfg.statSystem);
+  const keys = stats.statKeys || ['str','dex','con','int','wis','cha'];
+
+  // Build defense pairs from stat keys
+  const defenses = [];
+  if (keys.length >= 6) {
+    defenses.push({ id: 'physDef', label: 'Physical Defense', base: 10, stats: [keys[0], keys[1]] });
+    defenses.push({ id: 'cogDef',  label: 'Mental Defense',   base: 10, stats: [keys[2], keys[3]] });
+    defenses.push({ id: 'spirDef', label: 'Spirit Defense',   base: 10, stats: [keys[4], keys[5]] });
+  } else if (keys.length >= 4) {
+    defenses.push({ id: 'physDef', label: 'Physical Defense', base: 10, stats: [keys[0], keys[1]] });
+    defenses.push({ id: 'cogDef',  label: 'Mental Defense',   base: 10, stats: [keys[2], keys[3]] });
+  } else if (keys.length >= 2) {
+    defenses.push({ id: 'physDef', label: 'Defense', base: 10, stats: [keys[0], keys[1]] });
+  } else {
+    defenses.push({ id: 'physDef', label: 'Defense', base: 10, stats: [keys[0] || 'str'] });
+  }
+
+  return {
+    defenses,
+    hp: { base: 10, stat: keys[0] || 'str', perLevel: 5 },
+    focus: { base: 2, stat: keys.length >= 4 ? keys[3] : keys[0] },
+    magicPool: {
+      enabled: magic.exists !== false,
+      label: magic.resource || magic.name || 'Mana',
+      formula: 'max',
+      base: 2,
+      stats: keys.length >= 6 ? [keys[4], keys[5]] : [keys[keys.length - 1]],
+      classGated: true,
+    },
+    recoveryDie: {
+      stat: keys.length >= 4 ? keys[3] : keys[0],
+      table: [
+        { maxStat:0, die:4 }, { maxStat:2, die:6 }, { maxStat:4, die:8 },
+        { maxStat:6, die:10 }, { maxStat:8, die:12 }, { maxStat:999, die:20 },
+      ],
+    },
+    skillAttrMap: _buildSkillMap(keys),
+    deflectableTypes: ['energy','impact','keen'],
+    currency: { name: cfg.currencyName || 'gold', symbol: cfg.currencySymbol || 'gp', tiers: null },
+    progressionType: magic.exists !== false ? 'oaths' : 'milestones',
+    progressionLabel: magic.exists !== false ? 'Oath' : 'Milestone',
+    maxProgression: 5,
+    turnOrder: 'fast-slow',
+    healClassMultipliers: {},
+    equipmentDrops: {
+      enabled: true, fragmentName: 'fragment', craftCost: 3, upgradeCost: 5,
+      legendaryName: 'Legendary Weapon', armorName: 'Legendary Armor',
+    },
+  };
+}
+
+function _buildSkillMap(keys) {
+  const base = {};
+  const skillDefaults = ['athletics','stealth','arcana','insight','persuasion','survival','perception','intimidation','medicine','deception','lightWeapon','heavyWeapon'];
+  skillDefaults.forEach((sk, i) => { base[sk] = keys[i % keys.length]; });
+  return base;
+}
+
+// ── Helper: build charCreation block from wizard config ──
+function _buildCharCreation(cfg) {
+  const magic = cfg.magic || {};
+  return {
+    paths: [
+      { id: 'class', label: 'Class', icon: '⚔',
+        desc: '"Choose your combat role."',
+        sublabel: 'Primary path · Abilities · Progression' },
+      { id: 'background', label: 'Background', icon: '✦',
+        desc: '"Your past defines your skills."',
+        sublabel: 'Explorer · Scholar · Outlaw · Noble · Soldier · Mystic' },
+    ],
+    classLabel: 'Class', backgroundLabel: 'Background',
+    classHeading: 'Your Class', backgroundHeading: 'Your Background',
+    classFlavor: 'Choose your path in ' + (cfg.name || 'this world') + '.',
+    backgroundFlavor: 'What shaped you?',
+    ancestryLabel: (cfg.races && cfg.races.length) ? 'Race' : 'Ancestry',
+    partyLabel: 'Adventuring Party',
+    submitText: { class: 'Create Character →', background: 'Create Character →' },
+    origins: cfg.locations || null,
+    startMessage: 'The party forms. The adventure begins in {location}.',
+    actNames: ['The {loc}', 'Secrets of {loc}', 'The Reckoning of {loc}'],
+    attributePoints: 12, maxPerAttribute: 3,
+    showBlade: false, showWeapon: true, showCompanion: false,
+    namePlaceholder: 'What do they call you?',
+  };
+}
+
 window.CustomSystem = {
   /**
    * Build a complete SystemData object from wizard worldConfig.
@@ -110,7 +200,7 @@ window.CustomSystem = {
         magicName:       magic.name          || 'Magic',
         magicResource:   magic.resource      || 'Mana',
         combatFlavor:    name,
-        healFlavor:      magic.healFlavor    || 'Healing magic',
+        healFlavor:      magic.healFlavor    || (magic.name ? magic.name + ' healing' : 'Healing magic'),
         errorFlavor:     'Something went wrong in ' + name + '.',
         worldLore:       gm.worldLore        || 'A world of adventure and mystery.',
         toneInstruction: gm.tone             || 'Epic fantasy — mythic stakes, personal cost.',
@@ -118,6 +208,33 @@ window.CustomSystem = {
         npcFlavor:       gm.npcFlavor        || 'Fantasy names and cultures. Tavern keepers, guild masters, mysterious travelers.',
         choiceTagRules:  '[COMBAT] [DISCOVERY] [DECISION] [MAGIC] — tag every player choice.',
       },
+
+      // ── Rules Config (generated from wizard) ──
+      rules: _buildRules(cfg),
+
+      // ── Character Creation Config (generated from wizard) ──
+      charCreation: _buildCharCreation(cfg),
+
+      // ── Combat Actions ──
+      combatActions: (magic.exists !== false) ? [
+        { id: 'attack', tag: 'ATTACK', label: 'Attack', icon: '⚔', cost: null },
+        { id: 'defend', tag: 'DEFEND', label: 'Defend', icon: '🛡', cost: null },
+        { id: 'heal',   tag: 'HEAL',   label: 'Heal',   icon: '✦', cost: null },
+        { id: 'magic',  tag: 'MAGIC',  label: magic.name || 'Cast', icon: '✨', cost: 'magicPool:1' },
+      ] : [
+        { id: 'attack', tag: 'ATTACK', label: 'Attack', icon: '⚔', cost: null },
+        { id: 'defend', tag: 'DEFEND', label: 'Defend', icon: '🛡', cost: null },
+        { id: 'heal',   tag: 'HEAL',   label: 'Heal',   icon: '✦', cost: null },
+        { id: 'flee',   tag: 'FLEE',   label: 'Flee',   icon: '🏃', cost: null },
+      ],
+
+      // ── Story Actions ──
+      storyActions: [
+        { id: 'combat',    tag: 'COMBAT',    label: 'Combat' },
+        { id: 'discovery', tag: 'DISCOVERY', label: 'Discovery' },
+        { id: 'decision',  tag: 'DECISION',  label: 'Decision' },
+        { id: 'magic',     tag: 'MAGIC',     label: magic.name || 'Magic' },
+      ],
 
       // Use generic fantasy defaults for all data tables
       // These provide a playable baseline for any custom world
