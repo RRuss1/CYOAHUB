@@ -1343,13 +1343,35 @@ async function callGM(prompt){
       .trim();
   }
   try{
+    // Detect Safari — fallback to non-streaming if ReadableStream is unreliable
+    const _isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const _useStream = !_isSafari;
+
     const res=await fetch(PROXY_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1800,stream:true,
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1800,stream:_useStream,
         system:_currentSystemPrompt(),
         messages:[{role:'user',content:prompt}]})
     });
+
+    // ── Non-streaming fallback (Safari) ──
+    if(!_useStream && res.ok){
+      const data = await res.json();
+      const fullText = (data.content && data.content[0]) ? data.content[0].text : '';
+      const scene = cleanScene(fullText.split(/\[CHOICES/i)[0] || '');
+      const choiceBlock = fullText.split(/\[CHOICES[^\]]*\]/i)[1] || '';
+      const choices = parseChoices(choiceBlock);
+      if(stEl) stEl.innerHTML = '<p>' + renderText(scene) + '</p>';
+      if(tb){tb.style.display='none';tb.classList.remove('thinking-active');}
+      await addLog({type:'gm',who:'',text:scene,choices});
+      gState.lastGM={text:scene,choices,ts:new Date().toISOString()};
+      await saveState(gState);
+      setBottomFromState(await loadLog(false));
+      if(lang==='th')setTimeout(maybeTranslateStory,200);
+      return;
+    }
+
     if(res.ok&&res.body){
       const reader=res.body.getReader();
       const dec=new TextDecoder();

@@ -660,7 +660,7 @@ let _logCacheTs = 0;
 const LOG_CACHE_TTL = 3000;
 
 // JWT token cache
-let _tok = null, _tokExp = 0;
+// _tok/_tokExp removed — Sheets auth no longer needed (Neon via Worker)
 
 // Lang
 let lang = localStorage.getItem('sc_lang') || 'en';

@@ -747,78 +747,148 @@ function pickWorld(worldId) {
   const bgFlavor = document.getElementById('bg-flavor');
   if (bgFlavor) bgFlavor.textContent = cc.backgroundFlavor || 'What shaped you?';
 
-  window.location.hash = '#campaign';
+  window.location.hash = '#campaign/' + (worldId || 'stormlight');
   showScreen('campaign');
-  // Load campaigns filtered for this world
   if (typeof initCampaignPicker === 'function') initCampaignPicker();
 }
 
 // ── HASH ROUTER ──────────────────────────────────────────
-const HUB_ROUTES = {
-  '':          'landing',
-  '#landing':  'landing',
-  '#worlds':   'worlds',
-  '#wizard':   'wizard',
-};
+// URL format: #screen/worldId/campaignId
+// Examples: #campaign/dnd5e, #game/dnd5e/my-campaign-abc, #lobby/wretcheddeep/deep-run-xyz
+const HUB_ROUTES = { '': 'landing', '#landing': 'landing', '#worlds': 'worlds', '#wizard': 'wizard' };
+const GAME_SCREENS = ['campaign','title','create','lobby','game','combat','join'];
+
+function parseHash() {
+  const raw = (window.location.hash || '').split('?')[0];
+  // Handle legacy invite links: #campaign?world=X&id=Y
+  if (raw === '#campaign' && (window.location.hash || '').includes('world=')) {
+    const params = new URLSearchParams((window.location.hash || '').split('?')[1] || '');
+    return { screen: 'campaign', worldId: params.get('world'), campId: params.get('id') };
+  }
+  const parts = raw.replace('#', '').split('/');
+  return { screen: parts[0] || '', worldId: parts[1] || '', campId: parts[2] || '' };
+}
+
+function setGameHash(screen, worldId, campId) {
+  const wid = worldId || (window.SystemData && window.SystemData.id) || localStorage.getItem('cyoa_active_world') || '';
+  const cid = campId || (typeof campaignId !== 'undefined' ? campaignId : '') || '';
+  let hash = '#' + screen;
+  if (wid) hash += '/' + wid;
+  if (cid) hash += '/' + cid;
+  if (window.location.hash !== hash) window.location.hash = hash;
+}
+
+function _loadWorldFromId(worldId) {
+  if (!worldId || !typeof loadSystem === 'function') return;
+  if (window.SystemData && window.SystemData.id === worldId) return; // already loaded
+  if (worldId.startsWith('custom-')) {
+    const saved = _getSavedWorlds().find(w => w.id === worldId);
+    if (saved) window._pendingWorldConfig = saved;
+  }
+  localStorage.setItem('cyoa_active_world', worldId);
+  loadSystem(worldId);
+  // Apply titles
+  const sys = window.SystemData || {};
+  const campTitle = document.getElementById('camp-title');
+  if (campTitle) campTitle.textContent = sys.name || 'Choose Your Campaign';
+  const campGlyph = document.getElementById('camp-glyph');
+  if (campGlyph) campGlyph.textContent = sys.glyph || '⟁';
+  const logoName = document.getElementById('game-logo-name');
+  if (logoName) logoName.textContent = sys.name || 'CYOAhub';
+}
 
 function routeFromHash() {
-  const hash = (window.location.hash || '').split('?')[0];
-  const screenId = HUB_ROUTES[hash];
-  if (screenId) {
-    showScreen(screenId);
-    if (screenId === 'landing') animateLanding(false);
-    if (screenId === 'worlds') animateHub();
+  const { screen, worldId, campId } = parseHash();
+
+  // Hub screens
+  if (HUB_ROUTES['#' + screen] || HUB_ROUTES[screen] || !screen) {
+    const sid = HUB_ROUTES['#' + screen] || HUB_ROUTES[screen] || 'landing';
+    showScreen(sid);
+    if (sid === 'landing') animateLanding(false);
+    if (sid === 'worlds') animateHub();
+    return;
+  }
+
+  // Join via invite link: #join/TOKEN
+  if (screen === 'join' && worldId) {
+    const token = worldId; // in #join/TOKEN, the "worldId" slot holds the token
+    if (window.Auth && window.Auth.validateInvite) {
+      window.Auth.validateInvite(token).then(info => {
+        if (info && info.valid) {
+          _loadWorldFromId(info.worldId);
+          if (typeof campaignId !== 'undefined') campaignId = info.campaignId;
+          // If logged in, join directly. If guest, show join modal.
+          if (window.Auth.isLoggedIn()) {
+            window.Auth.joinViaInvite(token, window.Auth.getCurrentUser().displayName).then(() => {
+              showScreen('lobby');
+              if (typeof renderLobby === 'function') renderLobby();
+            });
+          } else {
+            // Show a join dialog for guests
+            const name = prompt('Enter your name to join as a guest:');
+            if (name) {
+              window.Auth.joinViaInvite(token, name).then(() => {
+                showScreen('lobby');
+                if (typeof renderLobby === 'function') renderLobby();
+              });
+            } else {
+              showScreen('landing');
+              animateLanding(false);
+            }
+          }
+        } else {
+          alert('This invite link is invalid or expired.');
+          showScreen('landing');
+          animateLanding(false);
+        }
+      }).catch(() => { showScreen('landing'); animateLanding(false); });
+    }
+    return;
+  }
+
+  // Game screens — need a world loaded
+  if (GAME_SCREENS.includes(screen)) {
+    const wid = worldId || localStorage.getItem('cyoa_active_world') || 'stormlight';
+    _loadWorldFromId(wid);
+
+    if (screen === 'campaign') {
+      showScreen('campaign');
+      if (typeof initCampaignPicker === 'function') initCampaignPicker();
+    } else if (campId && (screen === 'game' || screen === 'lobby' || screen === 'combat')) {
+      // Restore campaign context
+      if (typeof campaignId !== 'undefined') campaignId = campId;
+      showScreen(screen);
+      if (screen === 'game' && typeof showGameScreen === 'function') showGameScreen();
+      else if (screen === 'lobby' && typeof renderLobby === 'function') { renderLobby(); if (typeof startLobbyPolling === 'function') startLobbyPolling(); }
+      else if (screen === 'combat' && typeof enterCombat === 'function') enterCombat();
+    } else {
+      showScreen(screen);
+    }
+    return;
   }
 }
 window.addEventListener('hashchange', routeFromHash);
 
 /* ── HUB BOOT ── */
 function hubBoot() {
-  const hash = window.location.hash || '';
-  const hashBase = hash.split('?')[0];
+  const { screen, worldId, campId } = parseHash();
 
-  // Handle invite links: #campaign?world=X&id=Y
-  if (hashBase === '#campaign' && hash.includes('world=') && hash.includes('id=')) {
-    const params = new URLSearchParams(hash.split('?')[1] || '');
-    const worldId = params.get('world');
-    const campId = params.get('id');
-    if (worldId && campId) {
-      pickWorld(worldId);
-      setTimeout(() => selectCampaign(campId), 500);
-      return;
-    }
+  // Legacy invite link handling
+  if (screen === 'campaign' && worldId && campId) {
+    pickWorld(worldId);
+    setTimeout(() => { if (typeof selectCampaign === 'function') selectCampaign(campId); }, 500);
+    return;
   }
 
-  if (!hashBase || hashBase === '#landing' || hashBase === '#worlds' || hashBase === '#wizard') {
+  // Initialize auth on every boot
+  if (window.Auth && window.Auth.init) window.Auth.init();
+
+  if (!screen || screen === 'landing' || screen === 'worlds' || screen === 'wizard') {
     showScreen('landing');
     animateLanding(true);
     initTilt();
     initHubParticles();
     prefetchWorldLibrary();
-  } else if (hashBase === '#campaign' || hashBase === '#title' || hashBase === '#create' || hashBase === '#lobby' || hashBase === '#game' || hashBase === '#combat') {
-    // Restore active world on refresh (game screens need a system loaded)
-    const savedWorld = localStorage.getItem('cyoa_active_world');
-    if (savedWorld && typeof loadSystem === 'function') {
-      // For custom worlds, try to restore config from localStorage
-      if (savedWorld.startsWith('custom-')) {
-        const saved = _getSavedWorlds().find(w => w.id === savedWorld);
-        if (saved) window._pendingWorldConfig = saved;
-      }
-      loadSystem(savedWorld);
-      // Re-apply screen titles from loaded system
-      const sys = window.SystemData || {};
-      const campTitle = document.getElementById('camp-title');
-      if (campTitle) campTitle.textContent = sys.name || 'Choose Your Campaign';
-      const campGlyph = document.getElementById('camp-glyph');
-      if (campGlyph) campGlyph.textContent = sys.glyph || '⟁';
-    }
-    // Show the appropriate screen
-    if (hashBase === '#campaign') {
-      showScreen('campaign');
-      if (typeof initCampaignPicker === 'function') initCampaignPicker();
-    } else {
-      routeFromHash();
-    }
   } else {
     routeFromHash();
   }

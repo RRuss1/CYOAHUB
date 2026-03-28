@@ -1029,6 +1029,7 @@ window.addEventListener('load', () => {
 (async () => {
   applyLang();
   loadVoicePreference();
+  if(window.Auth) Auth.init();
 
   // If on a hub screen (landing, worlds, wizard), let hub.js handle boot — don't load campaigns
   const _bootHash = (window.location.hash || '').split('?')[0];

@@ -6,10 +6,13 @@
  *   1. Anthropic API proxy (POST /)
  *   2. WebSocket sessions via Durable Objects (GET /session)
  *   3. Database API via Neon Postgres (GET/POST/PUT/DELETE /db/*)
+ *   4. Auth API (POST /db/auth/*)
+ *   5. Invite API (POST /db/invite/*)
  *
  * Secrets (set via wrangler secret put):
  *   ANTHROPIC_KEY  — Anthropic API key
  *   DATABASE_URL   — Neon Postgres connection string
+ *   JWT_SECRET     — Secret for signing JWTs (generate a random 64-char string)
  * ============================================================
  */
 
@@ -18,6 +21,82 @@ import { neon } from '@neondatabase/serverless';
 // ── Neon connection (lazy, per-request) ──────────────────────
 function getDb(env) {
   return neon(env.DATABASE_URL);
+}
+
+// ══════════════════════════════════════════════════════════════
+// AUTH UTILITIES
+// ══════════════════════════════════════════════════════════════
+
+// ── Password hashing (PBKDF2 — available in Workers natively) ──
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const hash = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial, 256
+  );
+  const saltB64 = btoa(String.fromCharCode(...salt));
+  const hashB64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
+  return saltB64 + ':' + hashB64;
+}
+
+async function verifyPassword(password, stored) {
+  const [saltB64, hashB64] = stored.split(':');
+  const salt = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const hash = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial, 256
+  );
+  const hashB64Check = btoa(String.fromCharCode(...new Uint8Array(hash)));
+  return hashB64Check === hashB64;
+}
+
+// ── JWT (HMAC-SHA256 — native Web Crypto) ──
+async function createJWT(payload, secret, expiresInHours = 72) {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
+  const claims = { ...payload, iat: now, exp: now + expiresInHours * 3600, jti: crypto.randomUUID() };
+  const b64 = (obj) => btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const unsigned = b64(header) + '.' + b64(claims);
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(unsigned));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return unsigned + '.' + sigB64;
+}
+
+async function verifyJWT(token, secret) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+    const data = new TextEncoder().encode(parts[0] + '.' + parts[1]);
+    const sig = Uint8Array.from(atob(parts[2].replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify('HMAC', key, sig, data);
+    if (!valid) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload;
+  } catch { return null; }
+}
+
+// ── Extract user from Authorization header ──
+async function getAuthUser(request, env) {
+  const auth = request.headers.get('Authorization') || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (!token) return null;
+  return verifyJWT(token, env.JWT_SECRET || 'cyoahub-dev-secret');
+}
+
+// ── Generate invite token ──
+function generateToken(length = 8) {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let result = '';
+  const values = crypto.getRandomValues(new Uint8Array(length));
+  for (let i = 0; i < length; i++) result += chars[values[i] % chars.length];
+  return result;
 }
 
 // ── CORS ─────────────────────────────────────────────────────
@@ -337,7 +416,233 @@ export default {
       return json({ ok: true });
     }
 
-    // ── USERS (future — routes ready) ─────────────────────
+    // ══════════════════════════════════════════════════════
+    // AUTH ROUTES
+    // ══════════════════════════════════════════════════════
+
+    const jwtSecret = env.JWT_SECRET || 'cyoahub-dev-secret';
+
+    // POST /db/auth/register — create account
+    if (pathname === '/db/auth/register' && method === 'POST') {
+      const { username, email, password, displayName } = await request.json();
+      if (!username || !password) return json({ error: 'Username and password required' }, 400);
+      if (password.length < 6) return json({ error: 'Password must be at least 6 characters' }, 400);
+      if (username.length < 2 || username.length > 24) return json({ error: 'Username must be 2-24 characters' }, 400);
+
+      // Check if username or email already taken
+      const [existing] = await sql`SELECT id FROM users WHERE username = ${username}`;
+      if (existing) return json({ error: 'Username already taken' }, 409);
+      if (email) {
+        const [emailTaken] = await sql`SELECT id FROM users WHERE email = ${email}`;
+        if (emailTaken) return json({ error: 'Email already registered' }, 409);
+      }
+
+      const id = crypto.randomUUID();
+      const hash = await hashPassword(password);
+      await sql`
+        INSERT INTO users (id, username, display_name, email, password_hash, provider)
+        VALUES (${id}, ${username}, ${displayName || username}, ${email || null}, ${hash}, 'local')
+      `;
+
+      const token = await createJWT({ sub: id, username }, jwtSecret);
+      return json({ ok: true, user: { id, username, displayName: displayName || username }, token });
+    }
+
+    // POST /db/auth/login — sign in
+    if (pathname === '/db/auth/login' && method === 'POST') {
+      const { username, password } = await request.json();
+      if (!username || !password) return json({ error: 'Username and password required' }, 400);
+
+      const [user] = await sql`
+        SELECT id, username, display_name, email, password_hash, login_attempts, locked_until
+        FROM users WHERE username = ${username} OR email = ${username}
+      `;
+      if (!user) return json({ error: 'Invalid username or password' }, 401);
+
+      // Rate limiting — check lockout
+      if (user.locked_until && new Date(user.locked_until) > new Date()) {
+        const mins = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
+        return json({ error: `Account locked. Try again in ${mins} minute${mins !== 1 ? 's' : ''}.` }, 429);
+      }
+
+      const valid = await verifyPassword(password, user.password_hash);
+      if (!valid) {
+        const attempts = (user.login_attempts || 0) + 1;
+        const lockUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60000).toISOString() : null;
+        await sql`UPDATE users SET login_attempts = ${attempts}, locked_until = ${lockUntil} WHERE id = ${user.id}`;
+        return json({ error: 'Invalid username or password' }, 401);
+      }
+
+      // Success — reset attempts, update last_login
+      await sql`UPDATE users SET login_attempts = 0, locked_until = NULL, last_login = NOW() WHERE id = ${user.id}`;
+
+      const token = await createJWT({ sub: user.id, username: user.username }, jwtSecret);
+      return json({
+        ok: true,
+        user: { id: user.id, username: user.username, displayName: user.display_name, email: user.email },
+        token,
+      });
+    }
+
+    // GET /db/auth/me — validate token + return user
+    if (pathname === '/db/auth/me' && method === 'GET') {
+      const payload = await getAuthUser(request, env);
+      if (!payload) return json({ error: 'Not authenticated' }, 401);
+
+      const [user] = await sql`
+        SELECT id, username, display_name, email, avatar_url, created_at
+        FROM users WHERE id = ${payload.sub}
+      `;
+      if (!user) return json({ error: 'User not found' }, 404);
+      return json({ user });
+    }
+
+    // POST /db/auth/change-password
+    if (pathname === '/db/auth/change-password' && method === 'POST') {
+      const payload = await getAuthUser(request, env);
+      if (!payload) return json({ error: 'Not authenticated' }, 401);
+
+      const { currentPassword, newPassword } = await request.json();
+      if (!newPassword || newPassword.length < 6) return json({ error: 'New password must be at least 6 characters' }, 400);
+
+      const [user] = await sql`SELECT password_hash FROM users WHERE id = ${payload.sub}`;
+      if (!user) return json({ error: 'User not found' }, 404);
+
+      const valid = await verifyPassword(currentPassword, user.password_hash);
+      if (!valid) return json({ error: 'Current password is incorrect' }, 401);
+
+      const hash = await hashPassword(newPassword);
+      await sql`UPDATE users SET password_hash = ${hash} WHERE id = ${payload.sub}`;
+      return json({ ok: true });
+    }
+
+    // POST /db/auth/forgot-password — stub (needs email service to fully work)
+    if (pathname === '/db/auth/forgot-password' && method === 'POST') {
+      const { email } = await request.json();
+      // For now, just confirm the email exists. Real implementation needs SendGrid/Mailgun.
+      const [user] = await sql`SELECT id FROM users WHERE email = ${email}`;
+      // Always return success to prevent email enumeration
+      return json({ ok: true, message: 'If that email is registered, a reset link has been sent.' });
+    }
+
+    // DELETE /db/auth/account — delete own account
+    if (pathname === '/db/auth/account' && method === 'DELETE') {
+      const payload = await getAuthUser(request, env);
+      if (!payload) return json({ error: 'Not authenticated' }, 401);
+
+      // Remove user — cascades will handle campaign_members, preferences
+      await sql`DELETE FROM users WHERE id = ${payload.sub}`;
+      return json({ ok: true });
+    }
+
+    // PUT /db/auth/profile — update display name / avatar
+    if (pathname === '/db/auth/profile' && method === 'PUT') {
+      const payload = await getAuthUser(request, env);
+      if (!payload) return json({ error: 'Not authenticated' }, 401);
+
+      const { displayName, avatarUrl } = await request.json();
+      await sql`
+        UPDATE users SET
+          display_name = COALESCE(${displayName}, display_name),
+          avatar_url = COALESCE(${avatarUrl}, avatar_url)
+        WHERE id = ${payload.sub}
+      `;
+      return json({ ok: true });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // INVITE / PUBLIC JOIN ROUTES
+    // ══════════════════════════════════════════════════════
+
+    // POST /db/invite/create — generate invite link (auth required)
+    if (pathname === '/db/invite/create' && method === 'POST') {
+      const payload = await getAuthUser(request, env);
+      if (!payload) return json({ error: 'Not authenticated' }, 401);
+
+      const { campaignId, maxUses = 5, expiresInHours = 48 } = await request.json();
+      if (!campaignId) return json({ error: 'campaignId required' }, 400);
+
+      const token = generateToken(8);
+      const expiresAt = new Date(Date.now() + expiresInHours * 3600000).toISOString();
+      await sql`
+        INSERT INTO invite_tokens (token, campaign_id, created_by, max_uses, expires_at)
+        VALUES (${token}, ${campaignId}, ${payload.sub}, ${maxUses}, ${expiresAt})
+      `;
+
+      return json({ ok: true, token, expiresAt, maxUses });
+    }
+
+    // GET /db/invite/:token — validate invite (no auth needed — guests use this)
+    if (pathname.startsWith('/db/invite/') && !pathname.includes('/create') && method === 'GET') {
+      const token = pathname.split('/db/invite/')[1];
+      const [invite] = await sql`
+        SELECT t.token, t.campaign_id, t.max_uses, t.uses, t.expires_at,
+               c.name as campaign_name, c.system, c.world_id
+        FROM invite_tokens t
+        JOIN campaigns c ON c.id = t.campaign_id
+        WHERE t.token = ${token}
+      `;
+      if (!invite) return json({ error: 'Invalid invite link' }, 404);
+      if (new Date(invite.expires_at) < new Date()) return json({ error: 'Invite link has expired' }, 410);
+      if (invite.uses >= invite.max_uses) return json({ error: 'Invite link has been fully used' }, 410);
+
+      return json({
+        valid: true,
+        campaignId: invite.campaign_id,
+        campaignName: invite.campaign_name,
+        worldId: invite.world_id,
+        system: invite.system,
+        usesLeft: invite.max_uses - invite.uses,
+      });
+    }
+
+    // POST /db/invite/:token/join — use invite to join campaign (no auth needed)
+    if (pathname.match(/^\/db\/invite\/[^/]+\/join$/) && method === 'POST') {
+      const token = pathname.split('/db/invite/')[1].split('/join')[0];
+      const { displayName, userId } = await request.json();
+
+      const [invite] = await sql`
+        SELECT token, campaign_id, max_uses, uses, expires_at FROM invite_tokens WHERE token = ${token}
+      `;
+      if (!invite) return json({ error: 'Invalid invite' }, 404);
+      if (new Date(invite.expires_at) < new Date()) return json({ error: 'Invite expired' }, 410);
+      if (invite.uses >= invite.max_uses) return json({ error: 'Invite fully used' }, 410);
+
+      // Increment uses
+      await sql`UPDATE invite_tokens SET uses = uses + 1 WHERE token = ${token}`;
+
+      // If user is logged in, add as campaign member
+      if (userId) {
+        await sql`
+          INSERT INTO campaign_members (campaign_id, user_id, role)
+          VALUES (${invite.campaign_id}, ${userId}, 'player')
+          ON CONFLICT (campaign_id, user_id) DO NOTHING
+        `;
+      } else {
+        // Guest player — generate a guest ID
+        const guestId = 'guest-' + crypto.randomUUID().slice(0, 8);
+        await sql`
+          INSERT INTO guest_players (id, campaign_id, display_name)
+          VALUES (${guestId}, ${invite.campaign_id}, ${displayName || 'Guest'})
+        `;
+        return json({ ok: true, guestId, campaignId: invite.campaign_id });
+      }
+
+      return json({ ok: true, campaignId: invite.campaign_id });
+    }
+
+    // DELETE /db/invite/:token — revoke invite (auth required)
+    if (pathname.startsWith('/db/invite/') && method === 'DELETE') {
+      const payload = await getAuthUser(request, env);
+      if (!payload) return json({ error: 'Not authenticated' }, 401);
+      const token = pathname.split('/db/invite/')[1];
+      await sql`DELETE FROM invite_tokens WHERE token = ${token} AND created_by = ${payload.sub}`;
+      return json({ ok: true });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // USER PROFILE
+    // ══════════════════════════════════════════════════════
 
     // GET /db/users/:id
     if (pathname.startsWith('/db/users/') && method === 'GET') {
@@ -347,18 +652,33 @@ export default {
       return json(user);
     }
 
-    // POST /db/users — create/upsert user
-    if (pathname === '/db/users' && method === 'POST') {
-      const { id, username, displayName, email, avatarUrl, provider, providerId } = await request.json();
-      await sql`
-        INSERT INTO users (id, username, display_name, email, avatar_url, provider, provider_id)
-        VALUES (${id}, ${username}, ${displayName ?? ''}, ${email ?? null}, ${avatarUrl ?? ''}, ${provider ?? 'local'}, ${providerId ?? ''})
-        ON CONFLICT (id) DO UPDATE SET
-          display_name = EXCLUDED.display_name,
-          avatar_url = EXCLUDED.avatar_url,
-          last_login = NOW()
-      `;
-      return json({ ok: true, id });
+    // POST /db/auth/claim — claim browser-owned campaigns to user account
+    if (pathname === '/db/auth/claim' && method === 'POST') {
+      const payload = await getAuthUser(request, env);
+      if (!payload) return json({ error: 'Not authenticated' }, 401);
+
+      const { campaignIds, worldIds } = await request.json();
+      let claimedCampaigns = 0, claimedWorlds = 0;
+
+      if (campaignIds && Array.isArray(campaignIds)) {
+        for (const cid of campaignIds) {
+          await sql`UPDATE campaigns SET owner_id = ${payload.sub} WHERE id = ${cid} AND owner_id IS NULL`;
+          await sql`
+            INSERT INTO campaign_members (campaign_id, user_id, role)
+            VALUES (${cid}, ${payload.sub}, 'owner')
+            ON CONFLICT (campaign_id, user_id) DO UPDATE SET role = 'owner'
+          `;
+          claimedCampaigns++;
+        }
+      }
+      if (worldIds && Array.isArray(worldIds)) {
+        for (const wid of worldIds) {
+          await sql`UPDATE world_library SET owner_id = ${payload.sub} WHERE world_id = ${wid} AND owner_id IS NULL`;
+          claimedWorlds++;
+        }
+      }
+
+      return json({ ok: true, claimedCampaigns, claimedWorlds });
     }
 
     // ── HEALTH CHECK ──────────────────────────────────────

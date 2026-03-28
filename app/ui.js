@@ -249,6 +249,11 @@ function showScreen(id){
     _applyFullTheme(window.SystemData);
   }
 
+  // Update URL hash with world + campaign context for game screens
+  if (isGameScreen && typeof setGameHash === 'function') {
+    setGameHash(id);
+  }
+
 // ══ FULL THEME INJECTION ══
 function _applyFullTheme(sys) {
   const t = sys.theme || {};
@@ -367,7 +372,7 @@ function renderCampaigns(camps){
     const isOwned = _isOwnedCampaign(cam.id);
     return`<div class="camp-card${phase==='playing'?' active-camp':''}" onclick="selectCampaign('${cam.id}')" style="border-color:${themeColor}18;">
       <div class="camp-actions">
-        ${isOwned?`<button class="camp-del" onclick="event.stopPropagation();deleteCampaign('${cam.id}')" title="Delete">✕</button>`:''}
+        ${isOwned?`<button class="camp-del" onclick="event.stopPropagation();onDeleteCampaign('${cam.id}')" title="Delete">✕</button>`:''}
         <button class="camp-share" onclick="event.stopPropagation();shareCampaign('${cam.id}','${activeWorld}')" title="Copy invite link">🔗</button>
       </div>
       <div class="camp-num">${cam.id.startsWith('Campaign_')?'Campaign':cam.id.replace('Campaign','Campaign ')}</div>
@@ -470,7 +475,16 @@ function _ownCampaign(id) {
   localStorage.setItem('cyoa_owned_campaigns', JSON.stringify(owned));
 }
 function _isOwnedCampaign(id) {
-  return !!_getOwnedCampaigns()[id];
+  // Check browser-local ownership first
+  if(_getOwnedCampaigns()[id]) return true;
+  // If logged in, check user_id match on campaign metadata
+  if(window.Auth && Auth.isLoggedIn()){
+    const user = Auth.getCurrentUser();
+    if(user && window._campaignMeta && window._campaignMeta[id]){
+      return window._campaignMeta[id].user_id === user.id;
+    }
+  }
+  return false;
 }
 function _disownCampaign(id) {
   const owned = _getOwnedCampaigns();
@@ -478,18 +492,30 @@ function _disownCampaign(id) {
   localStorage.setItem('cyoa_owned_campaigns', JSON.stringify(owned));
 }
 
-function shareCampaign(campId, worldId) {
-  const url = window.location.origin + window.location.pathname + `#campaign?world=${encodeURIComponent(worldId)}&id=${encodeURIComponent(campId)}`;
+async function shareCampaign(campId, worldId) {
+  // Generate a proper invite token if logged in, otherwise use direct link
+  let url;
+  if (window.Auth && window.Auth.isLoggedIn() && window.Auth.createInvite) {
+    try {
+      const invite = await window.Auth.createInvite(campId, 5, 48);
+      if (invite && invite.token) {
+        url = window.location.origin + window.location.pathname + `#join/${invite.token}`;
+      }
+    } catch(e) {}
+  }
+  if (!url) {
+    url = window.location.origin + window.location.pathname + `#campaign/${encodeURIComponent(worldId)}/${encodeURIComponent(campId)}`;
+  }
   navigator.clipboard.writeText(url).then(() => {
     const toast = document.createElement('div');
     toast.textContent = 'Invite link copied!';
-    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--gold);color:var(--gold);padding:8px 20px;border-radius:20px;font-family:var(--font-d);font-size:11px;letter-spacing:2px;z-index:999;';
+    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--primary,var(--gold));color:var(--primary,var(--gold));padding:8px 20px;border-radius:20px;font-family:var(--font-d);font-size:11px;letter-spacing:2px;z-index:999;';
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2000);
   }).catch(() => { prompt('Copy this invite link:', url); });
 }
 
-async function deleteCampaign(id){
+async function onDeleteCampaign(id){
   if (!_isOwnedCampaign(id)) {
     alert('You can only delete campaigns you created on this device.');
     return;
