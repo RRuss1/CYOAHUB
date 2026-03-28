@@ -24,13 +24,19 @@
  * ============================================================
  */
 
-(function() {
+(function () {
   'use strict';
 
   // Shorthand for current system data with defaults applied
-  function _SD() { return window.SystemData || {}; }
-  function _rules() { return (_SD().rules) || (window.ConfigDefaults && window.ConfigDefaults.rules) || {}; }
-  function _cc() { return (_SD().charCreation) || (window.ConfigDefaults && window.ConfigDefaults.charCreation) || {}; }
+  function _SD() {
+    return window.SystemData || {};
+  }
+  function _rules() {
+    return _SD().rules || (window.ConfigDefaults && window.ConfigDefaults.rules) || {};
+  }
+  function _cc() {
+    return _SD().charCreation || (window.ConfigDefaults && window.ConfigDefaults.charCreation) || {};
+  }
 
   // ═══════════════════════════════════════════════════════════
   // 1. resolveStat — get a stat value with bonuses applied
@@ -57,17 +63,17 @@
   // ═══════════════════════════════════════════════════════════
   function calculateDerivedStats(attrs, level, character) {
     const rules = _rules();
-    const bonuses = character ? (character.bonuses || {}) : {};
+    const bonuses = character ? character.bonuses || {} : {};
     level = level || 1;
 
     // ── Defenses ──
     const defenses = {};
-    (rules.defenses || []).forEach(def => {
+    (rules.defenses || []).forEach((def) => {
       let val = def.base || 10;
-      (def.stats || []).forEach(statKey => {
-        val += (attrs[statKey] || 0);
+      (def.stats || []).forEach((statKey) => {
+        val += attrs[statKey] || 0;
       });
-      val += (bonuses[def.id] || 0);
+      val += bonuses[def.id] || 0;
       // Shardplate / armor bonus
       if (character && character.shardplate && def.id === 'physDef') val += 3;
       defenses[def.id] = val;
@@ -83,12 +89,12 @@
     }
     // D&D override: HP from hit dice
     else if (hpCfg.useHitDie && character && character.classId) {
-      const cls = (_SD().classes || []).find(c => c.id === character.classId);
+      const cls = (_SD().classes || []).find((c) => c.id === character.classId);
       if (cls && cls.hitDie) {
-        const dieSizes = { d6:6, d8:8, d10:10, d12:12 };
+        const dieSizes = { d6: 6, d8: 8, d10: 10, d12: 12 };
         const die = dieSizes[cls.hitDie] || 8;
-        const conMod = hpCfg.abilityModFn ? Math.floor(((attrs[hpCfg.stat] || 10) - 10) / 2) : (attrs[hpCfg.stat] || 0);
-        maxHp = die + conMod + Math.max(0, level - 1) * (Math.floor(die/2) + 1 + conMod);
+        const conMod = hpCfg.abilityModFn ? Math.floor(((attrs[hpCfg.stat] || 10) - 10) / 2) : attrs[hpCfg.stat] || 0;
+        maxHp = die + conMod + Math.max(0, level - 1) * (Math.floor(die / 2) + 1 + conMod);
       } else {
         maxHp = hpCfg.base + (attrs[hpCfg.stat] || 0) + Math.max(0, level - 1) * (hpCfg.perLevel || 5);
       }
@@ -97,7 +103,7 @@
     else {
       maxHp = (hpCfg.base || 10) + (attrs[hpCfg.stat] || 0) + Math.max(0, level - 1) * (hpCfg.perLevel || 5);
     }
-    maxHp += (bonuses.maxHp || 0);
+    maxHp += bonuses.maxHp || 0;
 
     // ── Focus ──
     const focusCfg = rules.focus || { base: 2, stat: 'wil' };
@@ -105,7 +111,7 @@
     if (focusCfg.abilityModFn) {
       maxFocus = focusCfg.base + Math.floor(((attrs[focusCfg.stat] || 10) - 10) / 2);
     }
-    maxFocus += (bonuses.maxFocus || 0);
+    maxFocus += bonuses.maxFocus || 0;
 
     // ── Magic Pool ──
     const mpCfg = rules.magicPool || {};
@@ -114,10 +120,10 @@
       const isClassPath = hasClassPath(character);
       if (!mpCfg.classGated || isClassPath) {
         if (mpCfg.formula === 'max') {
-          const vals = (mpCfg.stats || []).map(k => attrs[k] || 0);
+          const vals = (mpCfg.stats || []).map((k) => attrs[k] || 0);
           maxMagicPool = (mpCfg.base || 0) + Math.max(0, ...vals);
         } else if (mpCfg.formula === 'sum') {
-          const vals = (mpCfg.stats || []).map(k => attrs[k] || 0);
+          const vals = (mpCfg.stats || []).map((k) => attrs[k] || 0);
           maxMagicPool = (mpCfg.base || 0) + vals.reduce((a, b) => a + b, 0);
         } else if (mpCfg.formula === 'spellSlots') {
           // D&D: sum spell slots by level
@@ -127,7 +133,7 @@
         } else {
           maxMagicPool = mpCfg.base || 0;
         }
-        maxMagicPool += (bonuses.maxMagicPool || 0);
+        maxMagicPool += bonuses.maxMagicPool || 0;
       }
     }
 
@@ -170,12 +176,18 @@
       const val = resolveStat(statMatch[1], char);
       const target = parseInt(statMatch[3]);
       switch (statMatch[2]) {
-        case '>=': return val >= target;
-        case '<=': return val <= target;
-        case '>':  return val > target;
-        case '<':  return val < target;
-        case '==': return val === target;
-        case '!=': return val !== target;
+        case '>=':
+          return val >= target;
+        case '<=':
+          return val <= target;
+        case '>':
+          return val > target;
+        case '<':
+          return val < target;
+        case '==':
+          return val === target;
+        case '!=':
+          return val !== target;
       }
     }
 
@@ -189,19 +201,23 @@
 
     // flag:name
     if (condExpr.startsWith('flag:')) {
-      return !!(gs[condExpr.slice(5)]);
+      return !!gs[condExpr.slice(5)];
     }
 
     // hp < X%
     const hpMatch = condExpr.match(/^hp\s*(<|>|<=|>=)\s*(\d+)%$/);
     if (hpMatch) {
-      const pct = (char.hp || 0) / (char.maxHp || 1) * 100;
+      const pct = ((char.hp || 0) / (char.maxHp || 1)) * 100;
       const target = parseInt(hpMatch[2]);
       switch (hpMatch[1]) {
-        case '<':  return pct < target;
-        case '>':  return pct > target;
-        case '<=': return pct <= target;
-        case '>=': return pct >= target;
+        case '<':
+          return pct < target;
+        case '>':
+          return pct > target;
+        case '<=':
+          return pct <= target;
+        case '>=':
+          return pct >= target;
       }
     }
 
@@ -246,7 +262,7 @@
 
     // Check conditions
     if (actionDef.conditions) {
-      for (const cond of (Array.isArray(actionDef.conditions) ? actionDef.conditions : [actionDef.conditions])) {
+      for (const cond of Array.isArray(actionDef.conditions) ? actionDef.conditions : [actionDef.conditions]) {
         if (!evaluateCondition(cond, { character: actor })) {
           result.success = false;
           result.narrative = 'Conditions not met.';
@@ -268,12 +284,12 @@
   function calcDefensesFromConfig(attrs, bonuses) {
     const rules = _rules();
     const result = {};
-    (rules.defenses || []).forEach(def => {
+    (rules.defenses || []).forEach((def) => {
       let val = def.base || 10;
-      (def.stats || []).forEach(statKey => {
-        val += (attrs[statKey] || 0);
+      (def.stats || []).forEach((statKey) => {
+        val += attrs[statKey] || 0;
       });
-      val += (bonuses && bonuses[def.id] || 0);
+      val += (bonuses && bonuses[def.id]) || 0;
       result[def.id] = val;
     });
     return result;
@@ -286,7 +302,7 @@
     const rules = _rules();
     const rdCfg = rules.recoveryDie || {};
     const table = rdCfg.table || [{ maxStat: 999, die: 6 }];
-    const entry = table.find(r => (statVal || 0) <= r.maxStat) || table[table.length - 1];
+    const entry = table.find((r) => (statVal || 0) <= r.maxStat) || table[table.length - 1];
     return entry.die || 6;
   }
 
@@ -334,8 +350,8 @@
     if (character.roleId || character.keyTalent) return false;
     // Default: class path if classId exists in CLASSES
     if (character.classId) {
-      const classes = (_SD().classes || []);
-      return classes.some(c => c.id === character.classId);
+      const classes = _SD().classes || [];
+      return classes.some((c) => c.id === character.classId);
     }
     return false;
   }
@@ -349,7 +365,7 @@
     const paths = cc.paths || window.ConfigDefaults.charCreation.paths;
     return {
       classpath: paths[0] || { id: 'class', label: 'Class', icon: '⚔', desc: '', sublabel: '' },
-      bgpath:    paths[1] || { id: 'background', label: 'Background', icon: '✦', desc: '', sublabel: '' },
+      bgpath: paths[1] || { id: 'background', label: 'Background', icon: '✦', desc: '', sublabel: '' },
     };
   }
 
@@ -361,7 +377,7 @@
     const base = rules.skillAttrMap || {};
     // Also add surge attrs from system surges
     const surges = _SD().surges || [];
-    surges.forEach(s => {
+    surges.forEach((s) => {
       if (s.id && s.attr) base[s.id] = s.attr;
     });
     return base;
@@ -372,7 +388,7 @@
    */
   function isDeflectable(dmgType) {
     const rules = _rules();
-    return (rules.deflectableTypes || ['energy','impact','keen']).includes(dmgType);
+    return (rules.deflectableTypes || ['energy', 'impact', 'keen']).includes(dmgType);
   }
 
   /**
@@ -438,5 +454,4 @@
     getCharCreation,
     getStartMessage,
   };
-
 })();

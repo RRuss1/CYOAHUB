@@ -18,16 +18,16 @@
  * ============================================================
  */
 
-(function() {
+(function () {
   'use strict';
 
   // Allowed functions (whitelist)
   const FUNCTIONS = {
-    max:   Math.max,
-    min:   Math.min,
+    max: Math.max,
+    min: Math.min,
     floor: Math.floor,
-    ceil:  Math.ceil,
-    abs:   Math.abs,
+    ceil: Math.ceil,
+    abs: Math.abs,
     round: Math.round,
   };
 
@@ -41,12 +41,17 @@
 
     while (i < s.length) {
       // Skip whitespace
-      if (/\s/.test(s[i])) { i++; continue; }
+      if (/\s/.test(s[i])) {
+        i++;
+        continue;
+      }
 
       // Number (int or float)
       if (/[0-9.]/.test(s[i])) {
         let num = '';
-        while (i < s.length && /[0-9.]/.test(s[i])) { num += s[i++]; }
+        while (i < s.length && /[0-9.]/.test(s[i])) {
+          num += s[i++];
+        }
         tokens.push({ type: T.NUM, value: parseFloat(num) });
         continue;
       }
@@ -58,14 +63,28 @@
       }
 
       // Parens / comma
-      if (s[i] === '(') { tokens.push({ type: T.LPAREN }); i++; continue; }
-      if (s[i] === ')') { tokens.push({ type: T.RPAREN }); i++; continue; }
-      if (s[i] === ',') { tokens.push({ type: T.COMMA }); i++; continue; }
+      if (s[i] === '(') {
+        tokens.push({ type: T.LPAREN });
+        i++;
+        continue;
+      }
+      if (s[i] === ')') {
+        tokens.push({ type: T.RPAREN });
+        i++;
+        continue;
+      }
+      if (s[i] === ',') {
+        tokens.push({ type: T.COMMA });
+        i++;
+        continue;
+      }
 
       // Identifier (variable or function name)
       if (/[a-zA-Z_]/.test(s[i])) {
         let id = '';
-        while (i < s.length && /[a-zA-Z0-9_]/.test(s[i])) { id += s[i++]; }
+        while (i < s.length && /[a-zA-Z0-9_]/.test(s[i])) {
+          id += s[i++];
+        }
         if (FUNCTIONS[id]) {
           tokens.push({ type: T.FUNC, value: id });
         } else {
@@ -93,8 +112,12 @@
   function parse(tokens, context) {
     let pos = 0;
 
-    function peek() { return tokens[pos] || null; }
-    function advance() { return tokens[pos++]; }
+    function peek() {
+      return tokens[pos] || null;
+    }
+    function advance() {
+      return tokens[pos++];
+    }
     function expect(type) {
       const t = advance();
       if (!t || t.type !== type) throw new Error(`Expected ${type}, got ${t ? t.type : 'EOF'}`);
@@ -116,7 +139,7 @@
       while (peek() && peek().type === T.OP && (peek().value === '*' || peek().value === '/')) {
         const op = advance().value;
         const right = parseFactor();
-        left = op === '*' ? left * right : (right !== 0 ? left / right : 0);
+        left = op === '*' ? left * right : right !== 0 ? left / right : 0;
       }
       return left;
     }
@@ -211,5 +234,4 @@
   }
 
   window.FormulaEngine = { evaluate, isFormula, FUNCTIONS };
-
 })();

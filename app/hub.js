@@ -36,58 +36,54 @@ function initHubParticles() {
   // Three palette colors — gold, blue, teal
   // Each stored as [r, g, b] for interpolation
   const COLORS = [
-    [201, 168,  76],  // #C9A84C  gold
-    [118, 162, 232],  // #76A2E8  blue
-    [128, 209, 204],  // #80D1CC  teal
+    [201, 168, 76], // #C9A84C  gold
+    [118, 162, 232], // #76A2E8  blue
+    [128, 209, 204], // #80D1CC  teal
   ];
 
   // Interpolate between two RGB arrays by t (0-1)
-  function lerpRGB(a, b, t){
-    return [
-      Math.round(a[0] + (b[0]-a[0])*t),
-      Math.round(a[1] + (b[1]-a[1])*t),
-      Math.round(a[2] + (b[2]-a[2])*t),
-    ];
+  function lerpRGB(a, b, t) {
+    return [Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t), Math.round(a[2] + (b[2] - a[2]) * t)];
   }
 
-  function resize(){
-    W = c.width  = window.innerWidth;
+  function resize() {
+    W = c.width = window.innerWidth;
     H = c.height = window.innerHeight;
-    nodes = Array.from({length:22}, ()=>({
-      x:  Math.random()*W,
-      y:  Math.random()*H,
-      vx: (Math.random()-.5)*.2,
-      vy: (Math.random()-.5)*.2,
+    nodes = Array.from({ length: 22 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2,
       // Assign each node one of the three palette colors
-      rgb: COLORS[Math.floor(Math.random()*COLORS.length)],
+      rgb: COLORS[Math.floor(Math.random() * COLORS.length)],
     }));
   }
 
-  function tick(){
-    x.clearRect(0,0,W,H);
-    nodes.forEach(n=>{
-      n.x+=n.vx; n.y+=n.vy;
-      if(n.x<0||n.x>W) n.vx*=-1;
-      if(n.y<0||n.y>H) n.vy*=-1;
+  function tick() {
+    x.clearRect(0, 0, W, H);
+    nodes.forEach((n) => {
+      n.x += n.vx;
+      n.y += n.vy;
+      if (n.x < 0 || n.x > W) n.vx *= -1;
+      if (n.y < 0 || n.y > H) n.vy *= -1;
     });
 
     // Draw lines — blend color between the two endpoint nodes
-    for(let i=0;i<nodes.length;i++){
-      for(let j=i+1;j<nodes.length;j++){
-        const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
-        const d=Math.sqrt(dx*dx+dy*dy);
-        if(d<230){
-          const fade = 1 - d/230;
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x,
+          dy = nodes[i].y - nodes[j].y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 230) {
+          const fade = 1 - d / 230;
           const alpha = 0.16 * fade;
           // Midpoint color — blend the two node colors
           const mid = lerpRGB(nodes[i].rgb, nodes[j].rgb, 0.5);
           // Use a gradient along the line for a richer look
-          const grad = x.createLinearGradient(
-            nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y
-          );
-          grad.addColorStop(0,   `rgba(${nodes[i].rgb.join(',')},${alpha * 1.8})`);
+          const grad = x.createLinearGradient(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y);
+          grad.addColorStop(0, `rgba(${nodes[i].rgb.join(',')},${alpha * 1.8})`);
           grad.addColorStop(0.5, `rgba(${mid.join(',')},${alpha * 0.8})`);
-          grad.addColorStop(1,   `rgba(${nodes[j].rgb.join(',')},${alpha * 1.8})`);
+          grad.addColorStop(1, `rgba(${nodes[j].rgb.join(',')},${alpha * 1.8})`);
           x.beginPath();
           x.moveTo(nodes[i].x, nodes[i].y);
           x.lineTo(nodes[j].x, nodes[j].y);
@@ -99,20 +95,20 @@ function initHubParticles() {
     }
 
     // Draw vertex dots — brightest points in the system
-    nodes.forEach(n=>{
-      const [r,g,b] = n.rgb;
+    nodes.forEach((n) => {
+      const [r, g, b] = n.rgb;
       // Outer glow
       const glow = x.createRadialGradient(n.x, n.y, 0, n.x, n.y, 8);
-      glow.addColorStop(0,   `rgba(${r},${g},${b},0.30)`);
+      glow.addColorStop(0, `rgba(${r},${g},${b},0.30)`);
       glow.addColorStop(0.4, `rgba(${r},${g},${b},0.22)`);
-      glow.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+      glow.addColorStop(1, `rgba(${r},${g},${b},0)`);
       x.beginPath();
-      x.arc(n.x, n.y, 8, 0, Math.PI*2);
+      x.arc(n.x, n.y, 8, 0, Math.PI * 2);
       x.fillStyle = glow;
       x.fill();
       // Bright core dot
       x.beginPath();
-      x.arc(n.x, n.y, 1.5, 0, Math.PI*2);
+      x.arc(n.x, n.y, 1.5, 0, Math.PI * 2);
       x.fillStyle = `rgba(${r},${g},${b},1.0)`;
       x.fill();
     });
@@ -126,37 +122,41 @@ function initHubParticles() {
 }
 
 /* ── LANDING ANIM ── */
-function animateLanding(boot){
-  const d = boot ? .1 : 0;
-  gsap.fromTo('#l-eye',   {opacity:0,y:14}, {opacity:1,y:0,duration:.6,delay:d,    ease:'power2.out'});
-  gsap.fromTo('#l-title', {opacity:0,y:28}, {opacity:1,y:0,duration:.75,delay:d+.1,ease:'power3.out'});
-  gsap.fromTo('#l-sub',   {opacity:0,y:20}, {opacity:1,y:0,duration:.7, delay:d+.22,ease:'power3.out'});
-  gsap.fromTo('#l-cards', {opacity:0,y:24}, {opacity:1,y:0,duration:.65,delay:d+.34,ease:'power3.out'});
+function animateLanding(boot) {
+  const d = boot ? 0.1 : 0;
+  gsap.fromTo('#l-eye', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, delay: d, ease: 'power2.out' });
+  gsap.fromTo('#l-title', { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.75, delay: d + 0.1, ease: 'power3.out' });
+  gsap.fromTo('#l-sub', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7, delay: d + 0.22, ease: 'power3.out' });
+  gsap.fromTo('#l-cards', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.65, delay: d + 0.34, ease: 'power3.out' });
 }
 
 /* ── WORLDS ANIM ── */
-async function animateHub(){
+async function animateHub() {
   // Ensure community worlds are loaded (uses cache if fresh)
   await _fetchCommunityWorlds().catch(() => {});
   // Render all worlds (local + community)
   renderWorldsGrid();
-  gsap.fromTo('.wcard',
-    {opacity:0,y:20,scale:.97},
-    {opacity:1,y:0,scale:1,duration:.4,stagger:.07,ease:'power3.out',clearProps:'all'}
+  gsap.fromTo(
+    '.wcard',
+    { opacity: 0, y: 20, scale: 0.97 },
+    { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.07, ease: 'power3.out', clearProps: 'all' }
   );
   // Re-init tilt for world cards (may not have been bound yet)
   setTimeout(initTilt, 100);
 }
 
 /* ── FILTER ── */
-function filterWorlds(tier,btn){
-  document.querySelectorAll('.wtab').forEach(t=>t.classList.remove('on'));
+function filterWorlds(tier, btn) {
+  document.querySelectorAll('.wtab').forEach((t) => t.classList.remove('on'));
   btn.classList.add('on');
-  document.querySelectorAll('#worlds-grid .wcard:not(.wcard-new)').forEach(c=>{
-    if (tier === 'all') { c.style.display = ''; return; }
+  document.querySelectorAll('#worlds-grid .wcard:not(.wcard-new)').forEach((c) => {
+    if (tier === 'all') {
+      c.style.display = '';
+      return;
+    }
     if (tier === 'mine') {
       // "Mine" shows both private AND community worlds you own
-      c.style.display = (c.dataset.tier === 'mine' || c.dataset.tier === 'community' && c.dataset.worldId) ? '' : 'none';
+      c.style.display = c.dataset.tier === 'mine' || (c.dataset.tier === 'community' && c.dataset.worldId) ? '' : 'none';
     } else {
       c.style.display = c.dataset.tier === tier ? '' : 'none';
     }
@@ -164,48 +164,58 @@ function filterWorlds(tier,btn){
 }
 
 /* ── WIZARD ── */
-let _ws=1;
-const WS_MAX=7;
-let _selectedEnemyCategories = ['undead','beasts','goblinoids','humanEnemies']; // defaults
+let _ws = 1;
+const WS_MAX = 7;
+let _selectedEnemyCategories = ['undead', 'beasts', 'goblinoids', 'humanEnemies']; // defaults
 let _selectedAmbientAudio = 'forest'; // default for custom worlds
 
-function wizStep(dir){
-  const n=_ws+dir;
-  if(n<1||n>WS_MAX) return;
-  _ws=n; renderStep();
+function wizStep(dir) {
+  const n = _ws + dir;
+  if (n < 1 || n > WS_MAX) return;
+  _ws = n;
+  renderStep();
 }
 
-function wizBack(){
-  if(_ws<=1) goTo('worlds'); else wizStep(-1);
+function wizBack() {
+  if (_ws <= 1) goTo('worlds');
+  else wizStep(-1);
 }
 
-function renderStep(){
-  document.querySelectorAll('.wstep').forEach((s,i)=>s.classList.toggle('on',i+1===_ws));
-  document.querySelectorAll('.wdot').forEach((d,i)=>{
-    d.classList.toggle('on',  i+1===_ws);
-    d.classList.toggle('done',i+1<_ws);
+function renderStep() {
+  document.querySelectorAll('.wstep').forEach((s, i) => s.classList.toggle('on', i + 1 === _ws));
+  document.querySelectorAll('.wdot').forEach((d, i) => {
+    d.classList.toggle('on', i + 1 === _ws);
+    d.classList.toggle('done', i + 1 < _ws);
   });
-  document.getElementById('wiz-back-btn').style.visibility=_ws>1?'visible':'hidden';
-  document.getElementById('wiz-nav').style.display=_ws<WS_MAX?'flex':'none';
-  gsap.fromTo('#ws-'+_ws,{opacity:0,x:16},{opacity:1,x:0,duration:.26,ease:'power2.out'});
-  if(_ws===4 && !_wizClassRows.length) initWizClassRows();
-  if(_ws===5) { renderAmbientAudioPicker(); renderEnemyCategoryStep(); }
-  if(_ws===WS_MAX) { renderCardImagePicker(); updatePreview(); }
+  document.getElementById('wiz-back-btn').style.visibility = _ws > 1 ? 'visible' : 'hidden';
+  document.getElementById('wiz-nav').style.display = _ws < WS_MAX ? 'flex' : 'none';
+  gsap.fromTo('#ws-' + _ws, { opacity: 0, x: 16 }, { opacity: 1, x: 0, duration: 0.26, ease: 'power2.out' });
+  if (_ws === 4 && !_wizClassRows.length) initWizClassRows();
+  if (_ws === 5) {
+    renderAmbientAudioPicker();
+    renderEnemyCategoryStep();
+  }
+  if (_ws === WS_MAX) {
+    renderCardImagePicker();
+    updatePreview();
+  }
 }
 
 /* ── DYNAMIC CLASS BUILDER ── */
-const _DEFAULT_CLASSES = ['Warrior','Mage','Rogue','Healer'];
+const _DEFAULT_CLASSES = ['Warrior', 'Mage', 'Rogue', 'Healer'];
 let _wizClassRows = [];
 
-function initWizClassRows(){
-  _wizClassRows = _DEFAULT_CLASSES.map(name => ({ name, imgUrl: '' }));
+function initWizClassRows() {
+  _wizClassRows = _DEFAULT_CLASSES.map((name) => ({ name, imgUrl: '' }));
   renderWizClassRows();
 }
 
-function renderWizClassRows(){
+function renderWizClassRows() {
   const container = document.getElementById('wiz-class-rows');
-  if(!container) return;
-  container.innerHTML = _wizClassRows.map((row, i) => `
+  if (!container) return;
+  container.innerHTML = _wizClassRows
+    .map(
+      (row, i) => `
     <div class="wiz-class-row" data-idx="${i}" style="display:flex;gap:8px;align-items:center;">
       <input type="text" class="winput wiz-class-name" value="${row.name}" placeholder="Class name..."
         oninput="_wizClassRows[${i}].name=this.value"
@@ -217,33 +227,38 @@ function renderWizClassRows(){
       </label>
       ${_wizClassRows.length > 4 ? `<button onclick="removeWizClassRow(${i})" style="background:none;border:none;color:rgba(176,56,40,0.6);cursor:pointer;font-size:16px;padding:4px 8px;" title="Remove">✕</button>` : ''}
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   const addBtn = document.getElementById('wiz-add-class-btn');
-  if(addBtn) addBtn.style.display = _wizClassRows.length >= 10 ? 'none' : '';
+  if (addBtn) addBtn.style.display = _wizClassRows.length >= 10 ? 'none' : '';
 }
 
-function addWizClassRow(){
-  if(_wizClassRows.length >= 10) return;
+function addWizClassRow() {
+  if (_wizClassRows.length >= 10) return;
   _wizClassRows.push({ name: '', imgUrl: '' });
   renderWizClassRows();
   // Focus the new row's input
   setTimeout(() => {
     const inputs = document.querySelectorAll('.wiz-class-name');
-    if(inputs.length) inputs[inputs.length-1].focus();
+    if (inputs.length) inputs[inputs.length - 1].focus();
   }, 50);
 }
 
-function removeWizClassRow(idx){
-  if(_wizClassRows.length <= 4) return;
+function removeWizClassRow(idx) {
+  if (_wizClassRows.length <= 4) return;
   _wizClassRows.splice(idx, 1);
   renderWizClassRows();
 }
 
-async function uploadWizClassImg(idx, input){
+async function uploadWizClassImg(idx, input) {
   const file = input.files && input.files[0];
-  if(!file) return;
-  if(file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB.'); return; }
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    alert('Image must be under 2MB.');
+    return;
+  }
 
   const formData = new FormData();
   formData.append('file', file);
@@ -251,27 +266,27 @@ async function uploadWizClassImg(idx, input){
   try {
     const res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData });
     const data = await res.json();
-    if(data.url) {
+    if (data.url) {
       _wizClassRows[idx].imgUrl = data.url;
       renderWizClassRows();
     } else {
       alert(data.error || 'Upload failed.');
     }
-  } catch(e) { alert('Upload failed: ' + e.message); }
+  } catch (e) {
+    alert('Upload failed: ' + e.message);
+  }
 }
 
-function getWizClasses(){
-  return _wizClassRows
-    .filter(r => r.name.trim())
-    .map(r => ({ name: r.name.trim(), imgUrl: r.imgUrl || '' }));
+function getWizClasses() {
+  return _wizClassRows.filter((r) => r.name.trim()).map((r) => ({ name: r.name.trim(), imgUrl: r.imgUrl || '' }));
 }
 
 /* ── AMBIENT AUDIO PICKER ── */
-function renderAmbientAudioPicker(){
+function renderAmbientAudioPicker() {
   const grid = document.getElementById('ambient-audio-grid');
-  if(!grid || grid.children.length) return;
+  if (!grid || grid.children.length) return;
   const registry = window.AMBIENT_AUDIO_REGISTRY || [];
-  registry.forEach(a => {
+  registry.forEach((a) => {
     const selected = a.id === _selectedAmbientAudio;
     const el = document.createElement('div');
     el.className = 'ambient-opt' + (selected ? ' selected' : '');
@@ -279,7 +294,7 @@ function renderAmbientAudioPicker(){
     el.innerHTML = `<span class="ambient-icon">${a.icon}</span><span class="ambient-label">${a.label}</span>`;
     el.title = a.desc;
     el.onclick = () => {
-      grid.querySelectorAll('.ambient-opt').forEach(o => o.classList.remove('selected'));
+      grid.querySelectorAll('.ambient-opt').forEach((o) => o.classList.remove('selected'));
       el.classList.add('selected');
       _selectedAmbientAudio = a.id;
     };
@@ -288,16 +303,16 @@ function renderAmbientAudioPicker(){
 }
 
 /* ── ENEMY CATEGORY STEP ── */
-function renderEnemyCategoryStep(){
+function renderEnemyCategoryStep() {
   const grid = document.getElementById('enemy-cat-grid');
-  if(!grid || grid.children.length) return; // only render once
+  if (!grid || grid.children.length) return; // only render once
   const registry = window.ENEMY_CATEGORY_REGISTRY || [];
-  registry.forEach(cat => {
+  registry.forEach((cat) => {
     const checked = _selectedEnemyCategories.includes(cat.id);
     const el = document.createElement('label');
     el.className = 'enemy-cat-item' + (checked ? ' checked' : '');
     el.innerHTML = `
-      <input type="checkbox" value="${cat.id}" ${checked?'checked':''} onchange="toggleEnemyCat(this)">
+      <input type="checkbox" value="${cat.id}" ${checked ? 'checked' : ''} onchange="toggleEnemyCat(this)">
       <span class="enemy-cat-icon">${cat.icon}</span>
       <span class="enemy-cat-name">${cat.name}</span>
       <span class="enemy-cat-desc">${cat.desc}</span>`;
@@ -305,27 +320,30 @@ function renderEnemyCategoryStep(){
   });
 }
 
-function toggleEnemyCat(cb){
+function toggleEnemyCat(cb) {
   const id = cb.value;
   const item = cb.closest('.enemy-cat-item');
-  if(cb.checked){
-    if(!_selectedEnemyCategories.includes(id)) _selectedEnemyCategories.push(id);
+  if (cb.checked) {
+    if (!_selectedEnemyCategories.includes(id)) _selectedEnemyCategories.push(id);
     item.classList.add('checked');
   } else {
-    _selectedEnemyCategories = _selectedEnemyCategories.filter(c=>c!==id);
+    _selectedEnemyCategories = _selectedEnemyCategories.filter((c) => c !== id);
     item.classList.remove('checked');
   }
 }
 
-function renderCardImagePicker(){
+function renderCardImagePicker() {
   const grid = document.getElementById('card-image-grid');
-  if(!grid || grid.children.length) return; // only render once
+  if (!grid || grid.children.length) return; // only render once
   CARD_IMAGES.forEach((src, i) => {
     const thumb = document.createElement('div');
     thumb.className = 'card-image-thumb' + (src === _selectedCardImage ? ' selected' : '');
-    thumb.innerHTML = `<img src="${src}" alt="${src.split('/').pop().replace(/\.\w+$/,'')}">`;
+    thumb.innerHTML = `<img src="${src}" alt="${src
+      .split('/')
+      .pop()
+      .replace(/\.\w+$/, '')}">`;
     thumb.onclick = () => {
-      grid.querySelectorAll('.card-image-thumb').forEach(t => t.classList.remove('selected'));
+      grid.querySelectorAll('.card-image-thumb').forEach((t) => t.classList.remove('selected'));
       thumb.classList.add('selected');
       _selectedCardImage = src;
     };
@@ -335,125 +353,146 @@ function renderCardImagePicker(){
 
 // Track all wopt selections by data-field
 const _wizSelections = {};
-function selOpt(el){
+function selOpt(el) {
   const group = el.closest('.wopts');
-  group.querySelectorAll('.wopt').forEach(o=>o.classList.remove('on'));
+  group.querySelectorAll('.wopt').forEach((o) => o.classList.remove('on'));
   el.classList.add('on');
   // Store the selection by field name
   const field = group.dataset.field;
   if (field) _wizSelections[field] = el.dataset.val || el.textContent.trim();
-  if(_ws===WS_MAX) updatePreview();
+  if (_ws === WS_MAX) updatePreview();
 }
-function _getWizSel(field, fallback) { return _wizSelections[field] || fallback || ''; }
+function _getWizSel(field, fallback) {
+  return _wizSelections[field] || fallback || '';
+}
 
-function syncColor(val){
-  if(/^#[0-9A-Fa-f]{6}$/.test(val)){
-    document.getElementById('cp').value=val; updatePreview();
+function syncColor(val) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+    document.getElementById('cp').value = val;
+    updatePreview();
   }
 }
-function syncColorField(pickerId, val){
-  if(/^#[0-9A-Fa-f]{6}$/.test(val)){
+function syncColorField(pickerId, val) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
     const el = document.getElementById(pickerId);
-    if(el) el.value = val;
+    if (el) el.value = val;
   }
 }
 // Keep hex inputs synced with color pickers
-document.addEventListener('input', e => {
-  if(e.target.type==='color'){
-    const hex = document.getElementById(e.target.id+'-hex');
-    if(hex) hex.value = e.target.value;
-    if(e.target.id==='cp') updatePreview();
+document.addEventListener('input', (e) => {
+  if (e.target.type === 'color') {
+    const hex = document.getElementById(e.target.id + '-hex');
+    if (hex) hex.value = e.target.value;
+    if (e.target.id === 'cp') updatePreview();
   }
 });
 
-function updatePreview(){
-  const p=document.getElementById('cp').value;
-  const n=document.getElementById('wiz-name')?.value||'Your World Name';
-  const pt=document.getElementById('prev-title');
-  const pc=document.getElementById('prev-crit');
-  if(pt){pt.style.color=p; pt.textContent=n||'Your World Name';}
-  if(pc){pc.style.color=p; pc.style.borderColor=p+'44'; pc.style.background=p+'18';}
+function updatePreview() {
+  const p = document.getElementById('cp').value;
+  const n = document.getElementById('wiz-name')?.value || 'Your World Name';
+  const pt = document.getElementById('prev-title');
+  const pc = document.getElementById('prev-crit');
+  if (pt) {
+    pt.style.color = p;
+    pt.textContent = n || 'Your World Name';
+  }
+  if (pc) {
+    pc.style.color = p;
+    pc.style.borderColor = p + '44';
+    pc.style.background = p + '18';
+  }
 }
 
-function finishWizard(publish){
-  const name   = document.getElementById('wiz-name')?.value.trim()||'';
-  const desc   = document.getElementById('wiz-desc')?.value.trim()||'';
-  const color  = document.getElementById('cp')?.value||'#C9A84C';
+function finishWizard(publish) {
+  const name = document.getElementById('wiz-name')?.value.trim() || '';
+  const desc = document.getElementById('wiz-desc')?.value.trim() || '';
+  const color = document.getElementById('cp')?.value || '#C9A84C';
 
   // ── Validation ──
   if (!name) {
     const errEl = document.getElementById('wiz-err') || document.querySelector('.wiz-err');
-    if (errEl) { errEl.textContent = 'Your world needs a name.'; errEl.style.display = 'block'; }
-    else alert('Your world needs a name.');
+    if (errEl) {
+      errEl.textContent = 'Your world needs a name.';
+      errEl.style.display = 'block';
+    } else alert('Your world needs a name.');
     return;
   }
   if (color && !/^#[0-9A-Fa-f]{6}$/.test(color)) {
-    alert('Invalid primary color hex. Use format: #RRGGBB'); return;
+    alert('Invalid primary color hex. Use format: #RRGGBB');
+    return;
   }
-  const tier   = publish?'community':'mine';
+  const tier = publish ? 'community' : 'mine';
 
   // Read all text inputs
-  const magicName     = document.getElementById('wiz-magic-name')?.value.trim()||'Magic';
-  const magicResource = document.getElementById('wiz-magic-resource')?.value.trim()||'Mana';
-  const races         = document.getElementById('wiz-races')?.value.trim()||'';
-  const factions      = document.getElementById('wiz-factions')?.value.trim()||'';
-  const locations     = document.getElementById('wiz-locations')?.value.trim()||'';
-  const conflict      = document.getElementById('wiz-conflict')?.value.trim()||'';
-  const lore          = document.getElementById('wiz-lore')?.value.trim()||'';
+  const magicName = document.getElementById('wiz-magic-name')?.value.trim() || 'Magic';
+  const magicResource = document.getElementById('wiz-magic-resource')?.value.trim() || 'Mana';
+  const races = document.getElementById('wiz-races')?.value.trim() || '';
+  const factions = document.getElementById('wiz-factions')?.value.trim() || '';
+  const locations = document.getElementById('wiz-locations')?.value.trim() || '';
+  const conflict = document.getElementById('wiz-conflict')?.value.trim() || '';
+  const lore = document.getElementById('wiz-lore')?.value.trim() || '';
 
   // Read all wopt selections
-  const tone          = _getWizSel('tone', 'Epic Heroic');
-  const era           = _getWizSel('era', 'Medieval');
-  const tech          = _getWizSel('tech', 'Swords & Shields');
-  const magicExists   = _getWizSel('magicExists', 'Yes — Common');
-  const magicSource   = _getWizSel('magicSource', 'Willpower / Inner Force');
-  const magicRisk     = _getWizSel('magicRisk', 'Moderate — Mishaps');
-  const statSystem    = _getWizSel('statSystem', 'classic');
-  const progression   = _getWizSel('progression', 'Level-Based (XP)');
-  const namingStyle   = _getWizSel('namingStyle', 'Western Fantasy');
+  const tone = _getWizSel('tone', 'Epic Heroic');
+  const era = _getWizSel('era', 'Medieval');
+  const tech = _getWizSel('tech', 'Swords & Shields');
+  const magicExists = _getWizSel('magicExists', 'Yes — Common');
+  const magicSource = _getWizSel('magicSource', 'Willpower / Inner Force');
+  const magicRisk = _getWizSel('magicRisk', 'Moderate — Mishaps');
+  const statSystem = _getWizSel('statSystem', 'classic');
+  const progression = _getWizSel('progression', 'Level-Based (XP)');
+  const namingStyle = _getWizSel('namingStyle', 'Western Fantasy');
   const narratorStyle = _getWizSel('narratorStyle', 'Epic & Mythic');
-  const combatFreq    = _getWizSel('combatFrequency', 'Moderate');
-  const storyFocus    = _getWizSel('storyFocus', 'Mixed');
-  const lethality     = _getWizSel('lethality', 'Balanced — Death is possible');
-  const npcDepth      = _getWizSel('npcDepth', 'Moderate — Personalities & motives');
-  const titleFont     = _getWizSel('titleFont', 'Cinzel');
+  const combatFreq = _getWizSel('combatFrequency', 'Moderate');
+  const storyFocus = _getWizSel('storyFocus', 'Mixed');
+  const lethality = _getWizSel('lethality', 'Balanced — Death is possible');
+  const npcDepth = _getWizSel('npcDepth', 'Moderate — Personalities & motives');
+  const titleFont = _getWizSel('titleFont', 'Cinzel');
   // World Rules
-  const physics       = _getWizSel('physics', 'Cinematic');
-  const deathRules    = _getWizSel('deathRules', 'Revivable');
-  const timeFlow      = _getWizSel('timeFlow', 'Elastic — Time bends to drama');
-  const travelSpeed   = _getWizSel('travelSpeed', 'Fast Travel');
+  const physics = _getWizSel('physics', 'Cinematic');
+  const deathRules = _getWizSel('deathRules', 'Revivable');
+  const timeFlow = _getWizSel('timeFlow', 'Elastic — Time bends to drama');
+  const travelSpeed = _getWizSel('travelSpeed', 'Fast Travel');
   const dialogueStyle = _getWizSel('dialogueStyle', 'Mixed');
   // Visual Identity
-  const uiStyle       = _getWizSel('uiStyle', 'Glassmorphism');
-  const buttonStyle   = _getWizSel('buttonStyle', 'Rounded');
-  const bgEffect      = _getWizSel('bgEffect', 'Floating Particles');
-  const cardStyle     = _getWizSel('cardStyle', 'Glass');
+  const uiStyle = _getWizSel('uiStyle', 'Glassmorphism');
+  const buttonStyle = _getWizSel('buttonStyle', 'Rounded');
+  const bgEffect = _getWizSel('bgEffect', 'Floating Particles');
+  const cardStyle = _getWizSel('cardStyle', 'Glass');
   // Extended colors
   const colorSecondary = document.getElementById('cp-secondary')?.value || '#28A87A';
-  const colorBg        = document.getElementById('cp-bg')?.value || '#0F0D08';
-  const colorSurface   = document.getElementById('cp-surface')?.value || '#141109';
-  const colorText      = document.getElementById('cp-text')?.value || '#F8F3E8';
-  const colorMuted     = document.getElementById('cp-muted')?.value || '#A07830';
-  const colorGlow      = document.getElementById('cp-glow')?.value || '#C9A84C';
-  const colorDanger    = document.getElementById('cp-danger')?.value || '#B03828';
+  const colorBg = document.getElementById('cp-bg')?.value || '#0F0D08';
+  const colorSurface = document.getElementById('cp-surface')?.value || '#141109';
+  const colorText = document.getElementById('cp-text')?.value || '#F8F3E8';
+  const colorMuted = document.getElementById('cp-muted')?.value || '#A07830';
+  const colorGlow = document.getElementById('cp-glow')?.value || '#C9A84C';
+  const colorDanger = document.getElementById('cp-danger')?.value || '#B03828';
 
   // Parse locations into array
-  const locArray = locations ? locations.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  const locArray = locations
+    ? locations
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
 
   // Build GM lore string from all inputs
-  const gmLore = [
-    lore,
-    era !== 'Medieval' ? `Setting era: ${era}.` : '',
-    tech !== 'Swords & Shields' ? `Technology: ${tech}.` : '',
-    factions ? `Major factions: ${factions}.` : '',
-    conflict ? `Central conflict: ${conflict}.` : '',
-    namingStyle !== 'Western Fantasy' ? `Naming convention: ${namingStyle}.` : '',
-  ].filter(Boolean).join(' ') || `A ${tone.toLowerCase()} world of adventure and mystery.`;
+  const gmLore =
+    [
+      lore,
+      era !== 'Medieval' ? `Setting era: ${era}.` : '',
+      tech !== 'Swords & Shields' ? `Technology: ${tech}.` : '',
+      factions ? `Major factions: ${factions}.` : '',
+      conflict ? `Central conflict: ${conflict}.` : '',
+      namingStyle !== 'Western Fantasy' ? `Naming convention: ${namingStyle}.` : '',
+    ]
+      .filter(Boolean)
+      .join(' ') || `A ${tone.toLowerCase()} world of adventure and mystery.`;
 
   // Build magic rules string
   const magicRules = magicExists.startsWith('No')
     ? 'There is no magic in this world. All power comes from skill, technology, or cunning.'
-    : `${magicName} is ${magicExists.toLowerCase().replace('yes — ','')}.
+    : `${magicName} is ${magicExists.toLowerCase().replace('yes — ', '')}.
 It is powered by ${magicSource.toLowerCase()}. ${magicResource} is the resource spent to cast.
 Risk level: ${magicRisk.toLowerCase()}.`;
 
@@ -468,10 +507,21 @@ Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Tim
     name,
     tagline: desc || name,
     theme: {
-      primary: color, secondary: colorSecondary, danger: colorDanger,
-      bg: colorBg, surface: colorSurface, text: colorText, muted: colorMuted, glow: colorGlow,
-      bgTone: 'dark', titleFont: titleFont, bodyFont: 'Crimson Pro',
-      uiStyle, buttonStyle, bgEffect, cardStyle,
+      primary: color,
+      secondary: colorSecondary,
+      danger: colorDanger,
+      bg: colorBg,
+      surface: colorSurface,
+      text: colorText,
+      muted: colorMuted,
+      glow: colorGlow,
+      bgTone: 'dark',
+      titleFont: titleFont,
+      bodyFont: 'Crimson Pro',
+      uiStyle,
+      buttonStyle,
+      bgEffect,
+      cardStyle,
     },
     magic: { name: magicName, resource: magicResource, source: magicSource, risk: magicRisk, exists: magicExists, rules: magicRules },
     statSystem, // pass the raw selection ID to custom.js _resolveStats()
@@ -481,7 +531,12 @@ Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Tim
       tone: toneInstruction,
       npcFlavor: `${namingStyle} naming convention. NPC depth: ${npcDepth.toLowerCase()}.`,
     },
-    races: races ? races.split(',').map(s=>s.trim()).filter(Boolean) : [],
+    races: races
+      ? races
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [],
     locations: locArray,
     factions,
     conflict,
@@ -507,7 +562,9 @@ Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Tim
   // Always save to DB (private or published)
   try {
     _saveWorldToDb(worldConfig, publish);
-  } catch(e) { console.warn('DB save failed:', e); }
+  } catch (e) {
+    console.warn('DB save failed:', e);
+  }
 
   // Re-render the worlds grid with the new card
   goTo('worlds');
@@ -517,64 +574,62 @@ Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Tim
   setTimeout(() => {
     const newCard = document.querySelector(`.wcard[data-world-id="${worldId}"]`);
     if (newCard) {
-      gsap.fromTo(newCard,
-        {opacity:0, scale:.88, y:22},
-        {opacity:1, scale:1, y:0, duration:.5, ease:'back.out(1.6)'}
-      );
+      gsap.fromTo(newCard, { opacity: 0, scale: 0.88, y: 22 }, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'back.out(1.6)' });
     }
   }, 100);
 }
 
 /* ── 3D CARD TILT ── */
-function initTilt(){
-  document.querySelectorAll('.hero-card,.wcard:not(.wcard-new)').forEach(card=>{
+function initTilt() {
+  document.querySelectorAll('.hero-card,.wcard:not(.wcard-new)').forEach((card) => {
     if (card._tiltBound) return; // prevent duplicate listeners
     card._tiltBound = true;
-    card.addEventListener('mousemove',e=>{
-      const r=card.getBoundingClientRect();
-      const cx=(e.clientX-r.left)/r.width-.5;
-      const cy=(e.clientY-r.top)/r.height-.5;
-      gsap.to(card,{rotateY:cx*10,rotateX:-cy*8,duration:.2,overwrite:'auto'});
+    card.addEventListener('mousemove', (e) => {
+      const r = card.getBoundingClientRect();
+      const cx = (e.clientX - r.left) / r.width - 0.5;
+      const cy = (e.clientY - r.top) / r.height - 0.5;
+      gsap.to(card, { rotateY: cx * 10, rotateX: -cy * 8, duration: 0.2, overwrite: 'auto' });
     });
-    card.addEventListener('mouseleave',()=>{
-      gsap.to(card,{rotateY:0,rotateX:0,duration:.5,ease:'elastic.out(1,.5)'});
+    card.addEventListener('mouseleave', () => {
+      gsap.to(card, { rotateY: 0, rotateX: 0, duration: 0.5, ease: 'elastic.out(1,.5)' });
     });
   });
 }
 
 /* ── COLOR PICKER SYNC ── */
-(function(){
+(function () {
   const cp = document.getElementById('cp');
   if (cp) {
-    cp.addEventListener('input',function(){
-      document.getElementById('cp-hex').value=this.value;
+    cp.addEventListener('input', function () {
+      document.getElementById('cp-hex').value = this.value;
       updatePreview();
     });
   }
 })();
 
 /* ── HAMBURGER MENU ── */
-function toggleMenu(){
+function toggleMenu() {
   const menu = document.getElementById('hbmenu');
   // Toggle all hamburger buttons (landing + worlds page both have one)
-  document.querySelectorAll('.hamburger').forEach(hb => hb.classList.toggle('open'));
+  document.querySelectorAll('.hamburger').forEach((hb) => hb.classList.toggle('open'));
   if (menu) menu.classList.toggle('open');
 }
 // Close on outside click
-document.addEventListener('click', e => {
+document.addEventListener('click', (e) => {
   const menu = document.getElementById('hbmenu');
   const clickedHamburger = e.target.closest('.hamburger');
   if (!clickedHamburger && menu && !menu.contains(e.target)) {
-    document.querySelectorAll('.hamburger').forEach(hb => hb.classList.remove('open'));
+    document.querySelectorAll('.hamburger').forEach((hb) => hb.classList.remove('open'));
     menu.classList.remove('open');
   }
 });
 
 /* ── SAVE WORLD TO DATABASE ── */
 async function _saveWorldToDb(cfg, publish) {
-  const author = (window.Auth && window.Auth.getCurrentUser())
-    ? window.Auth.getCurrentUser().displayName || window.Auth.getCurrentUser().username
-    : 'Anonymous';
+  const author =
+    window.Auth && window.Auth.getCurrentUser()
+      ? window.Auth.getCurrentUser().displayName || window.Auth.getCurrentUser().username
+      : 'Anonymous';
   const headers = { 'Content-Type': 'application/json' };
   // Attach auth token if logged in
   if (window.Auth && window.Auth.isLoggedIn()) {
@@ -595,31 +650,47 @@ async function _saveWorldToDb(cfg, publish) {
         published: !!publish,
       }),
     });
-  } catch(e) { console.warn('World DB save failed:', e); }
+  } catch (e) {
+    console.warn('World DB save failed:', e);
+  }
 }
 
 /* ── WORLD OWNERSHIP & PERSISTENCE ── */
 function _getSavedWorlds() {
-  try { return JSON.parse(localStorage.getItem('cyoa_my_worlds') || '[]'); } catch(e) { return []; }
+  try {
+    return JSON.parse(localStorage.getItem('cyoa_my_worlds') || '[]');
+  } catch (e) {
+    return [];
+  }
 }
 function _saveWorld(worldConfig) {
   const worlds = _getSavedWorlds();
   // Replace if same ID, else push
-  const idx = worlds.findIndex(w => w.id === worldConfig.id);
-  if (idx >= 0) worlds[idx] = worldConfig; else worlds.push(worldConfig);
+  const idx = worlds.findIndex((w) => w.id === worldConfig.id);
+  if (idx >= 0) worlds[idx] = worldConfig;
+  else worlds.push(worldConfig);
   localStorage.setItem('cyoa_my_worlds', JSON.stringify(worlds));
 }
 function _deleteWorld(worldId) {
-  const worlds = _getSavedWorlds().filter(w => w.id !== worldId);
+  const worlds = _getSavedWorlds().filter((w) => w.id !== worldId);
   localStorage.setItem('cyoa_my_worlds', JSON.stringify(worlds));
 }
 function _isOwnedWorld(worldId) {
-  return _getSavedWorlds().some(w => w.id === worldId);
+  // DB-first: check community cache for owner_id match
+  if (window.Auth && window.Auth.isLoggedIn()) {
+    const user = window.Auth.getCurrentUser();
+    if (user) {
+      const cached = _communityWorldsCache.find((w) => w.id === worldId);
+      if (cached && cached.owner_id === user.id) return true;
+    }
+  }
+  // Fallback: localStorage
+  return _getSavedWorlds().some((w) => w.id === worldId);
 }
 
 function deleteWorld(worldId) {
   if (!_isOwnedWorld(worldId)) {
-    alert('You can only delete worlds you created on this device.');
+    alert('You can only delete worlds you created.');
     return;
   }
   if (!confirm('Delete this world permanently?')) return;
@@ -634,30 +705,36 @@ const _COMMUNITY_CACHE_MS = 60000; // 60s
 
 async function _fetchCommunityWorlds() {
   const now = Date.now();
-  if (_communityWorldsCache.length && (now - _communityFetchedAt) < _COMMUNITY_CACHE_MS) return _communityWorldsCache;
+  if (_communityWorldsCache.length && now - _communityFetchedAt < _COMMUNITY_CACHE_MS) return _communityWorldsCache;
   try {
     const headers = {};
     // Send auth token so logged-in users see their private worlds too
     const tok = localStorage.getItem('cyoa_auth_token');
     if (tok) headers['Authorization'] = 'Bearer ' + tok;
     const res = await fetch(PROXY_URL + '/db/worlds', { headers });
-    if (!res.ok) { _communityFetchedAt = now; return []; }
+    if (!res.ok) {
+      _communityFetchedAt = now;
+      return [];
+    }
     const rows = await res.json();
-    _communityWorldsCache = (Array.isArray(rows) ? rows : []).map(r => ({
-      id:      r.world_id || '',
-      tier:    r.tier || 'community',
-      name:    r.name || 'Unnamed',
-      tagline: r.tagline || '',
-      author:  r.author || 'Unknown',
-      system:  r.system || 'custom',
-      config:  (typeof r.config === 'string' ? JSON.parse(r.config) : r.config) || {},
-      rating:  parseFloat(r.rating) || 0,
-      plays:   parseInt(r.plays) || 0,
-      published: true,
-    })).filter(w => w.id);
+    _communityWorldsCache = (Array.isArray(rows) ? rows : [])
+      .map((r) => ({
+        id: r.world_id || '',
+        tier: r.tier || 'community',
+        name: r.name || 'Unnamed',
+        tagline: r.tagline || '',
+        author: r.author || 'Unknown',
+        system: r.system || 'custom',
+        config: (typeof r.config === 'string' ? JSON.parse(r.config) : r.config) || {},
+        rating: parseFloat(r.rating) || 0,
+        plays: parseInt(r.plays) || 0,
+        published: r.published !== false,
+        owner_id: r.owner_id || null,
+      }))
+      .filter((w) => w.id);
     _communityFetchedAt = now;
     return _communityWorldsCache;
-  } catch(e) {
+  } catch (e) {
     console.warn('World library fetch failed:', e);
     return _communityWorldsCache;
   }
@@ -708,15 +785,15 @@ function renderWorldsGrid() {
   if (!grid) return;
 
   // Remove all non-official cards (keep official hardcoded ones)
-  grid.querySelectorAll('.wcard:not([data-tier="official"])').forEach(el => el.remove());
+  grid.querySelectorAll('.wcard:not([data-tier="official"])').forEach((el) => el.remove());
 
   // 1. Render local worlds (yours — private + published)
   const myWorlds = _getSavedWorlds();
-  const myIds = new Set(myWorlds.map(w => w.id));
-  myWorlds.forEach(w => _renderWorldCard(w, true, grid));
+  const myIds = new Set(myWorlds.map((w) => w.id));
+  myWorlds.forEach((w) => _renderWorldCard(w, true, grid));
 
   // 2. Render community worlds from sheet (skip duplicates with your local worlds)
-  _communityWorldsCache.forEach(cw => {
+  _communityWorldsCache.forEach((cw) => {
     if (myIds.has(cw.id)) return; // already rendered as your own
     // Store config so pickWorld can load it
     const worldData = cw.config || {};
@@ -736,21 +813,24 @@ function openFAQ() {
   const modal = document.getElementById('faq-modal');
   modal.style.display = 'flex';
   // Parse markdown FAQ into HTML (simple parser — handles ##, **, *, -, ---)
-  fetch('MARKDOWNS/CYOAHUB_FAQ.md').then(r => r.text()).then(md => {
-    const html = md
-      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^---$/gm, '<hr>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>' + m + '</ul>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br>');
-    document.getElementById('faq-content').innerHTML = '<p>' + html + '</p>';
-  }).catch(() => {
-    document.getElementById('faq-content').innerHTML = '<p>FAQ could not be loaded.</p>';
-  });
+  fetch('MARKDOWNS/CYOAHUB_FAQ.md')
+    .then((r) => r.text())
+    .then((md) => {
+      const html = md
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^---$/gm, '<hr>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, (m) => '<ul>' + m + '</ul>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+      document.getElementById('faq-content').innerHTML = '<p>' + html + '</p>';
+    })
+    .catch(() => {
+      document.getElementById('faq-content').innerHTML = '<p>FAQ could not be loaded.</p>';
+    });
 }
 
 function openFeedback() {
@@ -767,12 +847,12 @@ function pickWorld(worldId) {
   if (worldId) localStorage.setItem('cyoa_active_world', worldId);
   // For custom worlds, load config from local storage or community cache
   if (worldId && worldId.startsWith('custom-')) {
-    const saved = _getSavedWorlds().find(w => w.id === worldId);
+    const saved = _getSavedWorlds().find((w) => w.id === worldId);
     if (saved) {
       window._pendingWorldConfig = saved;
     } else {
       // Check community cache (someone else's published world)
-      const community = _communityWorldsCache.find(w => w.id === worldId);
+      const community = _communityWorldsCache.find((w) => w.id === worldId);
       if (community && community.config) {
         const cfg = community.config;
         cfg.id = community.id;
@@ -846,7 +926,7 @@ function pickWorld(worldId) {
 // URL format: #screen/worldId/campaignId
 // Examples: #campaign/dnd5e, #game/dnd5e/my-campaign-abc, #lobby/wretcheddeep/deep-run-xyz
 const HUB_ROUTES = { '': 'landing', '#landing': 'landing', '#worlds': 'worlds', '#wizard': 'wizard' };
-const GAME_SCREENS = ['campaign','title','create','lobby','game','combat','join'];
+const GAME_SCREENS = ['campaign', 'title', 'create', 'lobby', 'game', 'combat', 'join'];
 
 function parseHash() {
   const raw = (window.location.hash || '').split('?')[0];
@@ -872,7 +952,7 @@ function _loadWorldFromId(worldId) {
   if (!worldId || !typeof loadSystem === 'function') return;
   if (window.SystemData && window.SystemData.id === worldId) return; // already loaded
   if (worldId.startsWith('custom-')) {
-    const saved = _getSavedWorlds().find(w => w.id === worldId);
+    const saved = _getSavedWorlds().find((w) => w.id === worldId);
     if (saved) window._pendingWorldConfig = saved;
   }
   localStorage.setItem('cyoa_active_world', worldId);
@@ -903,35 +983,40 @@ function routeFromHash() {
   if (screen === 'join' && worldId) {
     const token = worldId; // in #join/TOKEN, the "worldId" slot holds the token
     if (window.Auth && window.Auth.validateInvite) {
-      window.Auth.validateInvite(token).then(info => {
-        if (info && info.valid) {
-          _loadWorldFromId(info.worldId);
-          if (typeof campaignId !== 'undefined') campaignId = info.campaignId;
-          // If logged in, join directly. If guest, show join modal.
-          if (window.Auth.isLoggedIn()) {
-            window.Auth.joinViaInvite(token, window.Auth.getCurrentUser().displayName).then(() => {
-              showScreen('lobby');
-              if (typeof renderLobby === 'function') renderLobby();
-            });
-          } else {
-            // Show a join dialog for guests
-            const name = prompt('Enter your name to join as a guest:');
-            if (name) {
-              window.Auth.joinViaInvite(token, name).then(() => {
+      window.Auth.validateInvite(token)
+        .then((info) => {
+          if (info && info.valid) {
+            _loadWorldFromId(info.worldId);
+            if (typeof campaignId !== 'undefined') campaignId = info.campaignId;
+            // If logged in, join directly. If guest, show join modal.
+            if (window.Auth.isLoggedIn()) {
+              window.Auth.joinViaInvite(token, window.Auth.getCurrentUser().displayName).then(() => {
                 showScreen('lobby');
                 if (typeof renderLobby === 'function') renderLobby();
               });
             } else {
-              showScreen('landing');
-              animateLanding(false);
+              // Show a join dialog for guests
+              const name = prompt('Enter your name to join as a guest:');
+              if (name) {
+                window.Auth.joinViaInvite(token, name).then(() => {
+                  showScreen('lobby');
+                  if (typeof renderLobby === 'function') renderLobby();
+                });
+              } else {
+                showScreen('landing');
+                animateLanding(false);
+              }
             }
+          } else {
+            alert('This invite link is invalid or expired.');
+            showScreen('landing');
+            animateLanding(false);
           }
-        } else {
-          alert('This invite link is invalid or expired.');
+        })
+        .catch(() => {
           showScreen('landing');
           animateLanding(false);
-        }
-      }).catch(() => { showScreen('landing'); animateLanding(false); });
+        });
     }
     return;
   }
@@ -949,8 +1034,10 @@ function routeFromHash() {
       if (typeof campaignId !== 'undefined') campaignId = campId;
       showScreen(screen);
       if (screen === 'game' && typeof showGameScreen === 'function') showGameScreen();
-      else if (screen === 'lobby' && typeof renderLobby === 'function') { renderLobby(); if (typeof startLobbyPolling === 'function') startLobbyPolling(); }
-      else if (screen === 'combat' && typeof enterCombat === 'function') enterCombat();
+      else if (screen === 'lobby' && typeof renderLobby === 'function') {
+        renderLobby();
+        if (typeof startLobbyPolling === 'function') startLobbyPolling();
+      } else if (screen === 'combat' && typeof enterCombat === 'function') enterCombat();
     } else {
       showScreen(screen);
     }
@@ -966,7 +1053,9 @@ function hubBoot() {
   // Legacy invite link handling
   if (screen === 'campaign' && worldId && campId) {
     pickWorld(worldId);
-    setTimeout(() => { if (typeof selectCampaign === 'function') selectCampaign(campId); }, 500);
+    setTimeout(() => {
+      if (typeof selectCampaign === 'function') selectCampaign(campId);
+    }, 500);
     return;
   }
 

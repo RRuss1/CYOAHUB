@@ -359,13 +359,13 @@ export default {
       let rows;
       if (worldId) {
         rows = await sql`
-          SELECT id, name, system, world_id, party_size, created_at
+          SELECT id, name, system, world_id, party_size, owner_id, created_at
           FROM campaigns WHERE world_id = ${worldId}
           ORDER BY updated_at DESC
         `;
       } else {
         rows = await sql`
-          SELECT id, name, system, world_id, party_size, created_at
+          SELECT id, name, system, world_id, party_size, owner_id, created_at
           FROM campaigns ORDER BY updated_at DESC
         `;
       }

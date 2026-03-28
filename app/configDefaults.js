@@ -12,14 +12,13 @@
  */
 
 window.ConfigDefaults = {
-
   // ── Default rules block — Cosmere-flavored baseline ────────
   rules: {
     // Defense computation: array of {id, label, base, stats[]}
     defenses: [
-      { id: 'physDef', label: 'Physical Defense', base: 10, stats: ['str','spd'] },
-      { id: 'cogDef',  label: 'Cognitive Defense', base: 10, stats: ['int','wil'] },
-      { id: 'spirDef', label: 'Spiritual Defense', base: 10, stats: ['awa','pre'] },
+      { id: 'physDef', label: 'Physical Defense', base: 10, stats: ['str', 'spd'] },
+      { id: 'cogDef', label: 'Cognitive Defense', base: 10, stats: ['int', 'wil'] },
+      { id: 'spirDef', label: 'Spiritual Defense', base: 10, stats: ['awa', 'pre'] },
     ],
 
     // HP formula: base + stat + perLevel * (level - 1)
@@ -32,51 +31,67 @@ window.ConfigDefaults = {
     magicPool: {
       enabled: true,
       label: 'Investiture',
-      formula: 'max',         // 'max' = base + max(stat1, stat2), 'sum' = sum array, 'flat' = base only
+      formula: 'max', // 'max' = base + max(stat1, stat2), 'sum' = sum array, 'flat' = base only
       base: 2,
-      stats: ['awa','pre'],   // which stats contribute
-      classGated: true,       // only class-path characters get this
+      stats: ['awa', 'pre'], // which stats contribute
+      classGated: true, // only class-path characters get this
     },
 
     // Recovery die table: [{maxStat, die}]
     recoveryDie: {
       stat: 'wil',
       table: [
-        { maxStat: 0,   die: 4  },
-        { maxStat: 2,   die: 6  },
-        { maxStat: 4,   die: 8  },
-        { maxStat: 6,   die: 10 },
-        { maxStat: 8,   die: 12 },
+        { maxStat: 0, die: 4 },
+        { maxStat: 2, die: 6 },
+        { maxStat: 4, die: 8 },
+        { maxStat: 6, die: 10 },
+        { maxStat: 8, die: 12 },
         { maxStat: 999, die: 20 },
       ],
     },
 
     // Skill → attribute mapping
     skillAttrMap: {
-      agility:'spd', athletics:'str', heavyWeapon:'str', lightWeapon:'spd',
-      stealth:'spd', thievery:'spd', crafting:'int', deduction:'int',
-      discipline:'wil', intimidation:'wil', lore:'int', medicine:'int',
-      deception:'pre', insight:'awa', leadership:'pre', perception:'awa',
-      persuasion:'pre', survival:'awa',
+      agility: 'spd',
+      athletics: 'str',
+      heavyWeapon: 'str',
+      lightWeapon: 'spd',
+      stealth: 'spd',
+      thievery: 'spd',
+      crafting: 'int',
+      deduction: 'int',
+      discipline: 'wil',
+      intimidation: 'wil',
+      lore: 'int',
+      medicine: 'int',
+      deception: 'pre',
+      insight: 'awa',
+      leadership: 'pre',
+      perception: 'awa',
+      persuasion: 'pre',
+      survival: 'awa',
     },
 
     // Damage types that deflect blocks
-    deflectableTypes: ['energy','impact','keen'],
+    deflectableTypes: ['energy', 'impact', 'keen'],
 
     // Currency display
     currency: { name: 'marks', symbol: 'mk', tiers: null },
 
     // Progression system
-    progressionType: 'oaths',   // 'oaths' | 'levels' | 'corruption' | 'milestones'
+    progressionType: 'oaths', // 'oaths' | 'levels' | 'corruption' | 'milestones'
     progressionLabel: 'Oath',
     maxProgression: 5,
 
     // Combat turn structure
-    turnOrder: 'fast-slow',     // 'fast-slow' | 'initiative' | 'round-robin'
+    turnOrder: 'fast-slow', // 'fast-slow' | 'initiative' | 'round-robin'
 
     // Damage scaling per outcome
     damageScale: {
-      miss: 0, graze: 'dice', hit: 'dice+mod', crit: 'max+mod',
+      miss: 0,
+      graze: 'dice',
+      hit: 'dice+mod',
+      crit: 'max+mod',
     },
 
     // Healing class overrides: { classId: multiplier }
@@ -97,10 +112,14 @@ window.ConfigDefaults = {
   charCreation: {
     // The two creation paths
     paths: [
-      { id: 'class', label: 'Class', icon: '⚔', sublabel: 'Primary path · Abilities · Progression',
-        desc: '"Choose your combat role."' },
-      { id: 'background', label: 'Background', icon: '✦', sublabel: 'Skills · Talent · Starting gear',
-        desc: '"Your past defines your skills."' },
+      { id: 'class', label: 'Class', icon: '⚔', sublabel: 'Primary path · Abilities · Progression', desc: '"Choose your combat role."' },
+      {
+        id: 'background',
+        label: 'Background',
+        icon: '✦',
+        sublabel: 'Skills · Talent · Starting gear',
+        desc: '"Your past defines your skills."',
+      },
     ],
 
     // Dynamic labels
@@ -140,18 +159,18 @@ window.ConfigDefaults = {
 
   // ── Default combat actions ─────────────────────────────────
   combatActions: [
-    { id: 'attack',  tag: 'ATTACK', label: 'Attack',  icon: '⚔', cost: null },
-    { id: 'defend',  tag: 'DEFEND', label: 'Defend',  icon: '🛡', cost: null },
-    { id: 'heal',    tag: 'HEAL',   label: 'Heal',    icon: '✦', cost: null },
-    { id: 'surge',   tag: 'SURGE',  label: 'Ability', icon: '◈', cost: 'magicPool:1' },
+    { id: 'attack', tag: 'ATTACK', label: 'Attack', icon: '⚔', cost: null },
+    { id: 'defend', tag: 'DEFEND', label: 'Defend', icon: '🛡', cost: null },
+    { id: 'heal', tag: 'HEAL', label: 'Heal', icon: '✦', cost: null },
+    { id: 'surge', tag: 'SURGE', label: 'Ability', icon: '◈', cost: 'magicPool:1' },
   ],
 
   // ── Default story action tags ──────────────────────────────
   storyActions: [
-    { id: 'combat',    tag: 'COMBAT',    label: 'Combat' },
+    { id: 'combat', tag: 'COMBAT', label: 'Combat' },
     { id: 'discovery', tag: 'DISCOVERY', label: 'Discovery' },
-    { id: 'decision',  tag: 'DECISION',  label: 'Decision' },
-    { id: 'magic',     tag: 'MAGIC',     label: 'Magic' },
+    { id: 'decision', tag: 'DECISION', label: 'Decision' },
+    { id: 'magic', tag: 'MAGIC', label: 'Magic' },
   ],
 };
 
@@ -159,7 +178,7 @@ window.ConfigDefaults = {
  * Deep-merge a system's config with defaults.
  * System values always win over defaults.
  */
-window.resolveWithDefaults = function(systemData) {
+window.resolveWithDefaults = function (systemData) {
   if (!systemData) return { ...window.ConfigDefaults };
 
   const defaults = window.ConfigDefaults;
@@ -170,8 +189,12 @@ window.resolveWithDefaults = function(systemData) {
     for (const key of Object.keys(source)) {
       if (source[key] === undefined) continue;
       if (
-        source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) &&
-        target[key] && typeof target[key] === 'object' && !Array.isArray(target[key])
+        source[key] &&
+        typeof source[key] === 'object' &&
+        !Array.isArray(source[key]) &&
+        target[key] &&
+        typeof target[key] === 'object' &&
+        !Array.isArray(target[key])
       ) {
         out[key] = deepMerge(target[key], source[key]);
       } else {

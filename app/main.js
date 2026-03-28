@@ -24,18 +24,24 @@ function startLenis() {
   if (lenis || typeof Lenis === 'undefined') return;
   lenis = new Lenis({
     duration: 1.2,
-    easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
     orientation: 'vertical',
     smoothWheel: true,
   });
-  function raf(time) { lenis.raf(time); _lenisRaf = requestAnimationFrame(raf); }
+  function raf(time) {
+    lenis.raf(time);
+    _lenisRaf = requestAnimationFrame(raf);
+  }
   _lenisRaf = requestAnimationFrame(raf);
 }
 function destroyLenis() {
   if (!lenis) return;
   lenis.destroy();
   lenis = null;
-  if (_lenisRaf) { cancelAnimationFrame(_lenisRaf); _lenisRaf = null; }
+  if (_lenisRaf) {
+    cancelAnimationFrame(_lenisRaf);
+    _lenisRaf = null;
+  }
 }
 // Only start Lenis on game screens — hub screens use native scroll
 document.addEventListener('sc:screenChange', (e) => {
@@ -66,7 +72,7 @@ window.addEventListener('load', () => {
   if (!window.showScreen) return;
 
   const _orig = window.showScreen;
-  window.showScreen = function(id) {
+  window.showScreen = function (id) {
     _orig(id);
     const el = document.getElementById('s-' + id);
     if (!el) return;
@@ -74,22 +80,37 @@ window.addEventListener('load', () => {
     // Kill any in-progress animation on this element
     gsap.killTweensOf(el);
     // Force-clear residual inline styles from interrupted animations
-    el.style.filter = ''; el.style.opacity = ''; el.style.transform = '';
+    el.style.filter = '';
+    el.style.opacity = '';
+    el.style.transform = '';
 
     // Entrance animation — blur + fade + lift (cinematic depth reveal)
-    gsap.fromTo(el,
+    gsap.fromTo(
+      el,
       { opacity: 0, y: 14, filter: 'blur(5px)' },
-      { opacity: 1, y: 0,  filter: 'blur(0px)', duration: 0.42, ease: 'power2.out', clearProps: 'all' }
+      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.42, ease: 'power2.out', clearProps: 'all' }
     );
 
     // Screen-specific entrance sequences
     switch (id) {
-      case 'campaign': _animateCampaignScreen(); break;
-      case 'title':    _animateTitleScreen();    break;
-      case 'create':   _animateCreateScreen();   break;
-      case 'lobby':    _animateLobbyScreen();    break;
-      case 'game':     _animateGameScreen();     break;
-      case 'combat':   _animateCombatScreen();   break;
+      case 'campaign':
+        _animateCampaignScreen();
+        break;
+      case 'title':
+        _animateTitleScreen();
+        break;
+      case 'create':
+        _animateCreateScreen();
+        break;
+      case 'lobby':
+        _animateLobbyScreen();
+        break;
+      case 'game':
+        _animateGameScreen();
+        break;
+      case 'combat':
+        _animateCombatScreen();
+        break;
     }
 
     // Dispatch sc:screenChange so NL-7 weather/audio/spren hooks fire
@@ -100,18 +121,26 @@ window.addEventListener('load', () => {
   // Slight compress on mousedown, spring back on mouseup
   const INTERACTIVE = '.btn, .btn-act, .btn-continue, .btn-gold, .achoice, .camp-card, .type-card, .ccard, .origin-btn, .resolve-btn';
 
-  document.addEventListener('mousedown', (e) => {
-    const btn = e.target.closest(INTERACTIVE);
-    if (!btn || btn.disabled) return;
-    gsap.to(btn, { scale: 0.965, duration: 0.08, ease: 'power2.in', overwrite: 'auto' });
-  }, { passive: true });
+  document.addEventListener(
+    'mousedown',
+    (e) => {
+      const btn = e.target.closest(INTERACTIVE);
+      if (!btn || btn.disabled) return;
+      gsap.to(btn, { scale: 0.965, duration: 0.08, ease: 'power2.in', overwrite: 'auto' });
+    },
+    { passive: true }
+  );
 
-  document.addEventListener('mouseup', () => {
-    document.querySelectorAll(INTERACTIVE).forEach(btn => {
-      if (gsap.isTweening(btn)) return;
-      gsap.to(btn, { scale: 1, duration: 0.25, ease: 'elastic.out(1.2, 0.5)', overwrite: 'auto' });
-    });
-  }, { passive: true });
+  document.addEventListener(
+    'mouseup',
+    () => {
+      document.querySelectorAll(INTERACTIVE).forEach((btn) => {
+        if (gsap.isTweening(btn)) return;
+        gsap.to(btn, { scale: 1, duration: 0.25, ease: 'elastic.out(1.2, 0.5)', overwrite: 'auto' });
+      });
+    },
+    { passive: true }
+  );
 });
 
 // ── 4. SCREEN-SPECIFIC ENTRANCE ANIMATIONS ───────────────────
@@ -119,15 +148,19 @@ window.addEventListener('load', () => {
 function _animateCampaignScreen() {
   const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-  tl.from('#s-campaign .title-h1',   { opacity: 0, y: 32, filter: 'blur(4px)', duration: 0.75, delay: 0.08 })
-    .from('#s-campaign .title-h2',   { opacity: 0, y: 20, duration: 0.5 }, '-=0.42')
+  tl.from('#s-campaign .title-h1', { opacity: 0, y: 32, filter: 'blur(4px)', duration: 0.75, delay: 0.08 })
+    .from('#s-campaign .title-h2', { opacity: 0, y: 20, duration: 0.5 }, '-=0.42')
     .from('#s-campaign .title-line', { opacity: 0, scaleX: 0, duration: 0.6, transformOrigin: 'center' }, '-=0.32');
 
   // Idle float on title glyph
   const glyph = document.querySelector('#s-campaign .title-glyph');
   if (glyph) {
     gsap.to(glyph, {
-      y: -5, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1,
+      y: -5,
+      duration: 3.2,
+      ease: 'sine.inOut',
+      yoyo: true,
+      repeat: -1,
     });
   }
 
@@ -157,12 +190,12 @@ function _animateCampaignScreen() {
 function _animateTitleScreen() {
   const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
   tl.from('#s-title .title-glyph', { opacity: 0, scale: 0.75, filter: 'blur(6px)', duration: 0.65, delay: 0.06 })
-    .from('#s-title .title-h1',    { opacity: 0, y: 22,  filter: 'blur(3px)', duration: 0.55 }, '-=0.30')
-    .from('#s-title .title-h2',    { opacity: 0, y: 16,  duration: 0.42 }, '-=0.28')
-    .from('#s-title .title-line',  { opacity: 0, scaleX: 0, duration: 0.50, transformOrigin: 'center' }, '-=0.24')
-    .from('#s-title .title-quote', { opacity: 0, y: 12,  duration: 0.42 }, '-=0.20')
-    .from('#s-title .psz-wrap',    { opacity: 0, y: 10,  duration: 0.40, clearProps:'all' }, '-=0.10')
-    .from('#s-title .btn',         { opacity: 0, y: 8,   duration: 0.35, stagger: 0.09, clearProps:'all' }, '-=0.18');
+    .from('#s-title .title-h1', { opacity: 0, y: 22, filter: 'blur(3px)', duration: 0.55 }, '-=0.30')
+    .from('#s-title .title-h2', { opacity: 0, y: 16, duration: 0.42 }, '-=0.28')
+    .from('#s-title .title-line', { opacity: 0, scaleX: 0, duration: 0.5, transformOrigin: 'center' }, '-=0.24')
+    .from('#s-title .title-quote', { opacity: 0, y: 12, duration: 0.42 }, '-=0.20')
+    .from('#s-title .psz-wrap', { opacity: 0, y: 10, duration: 0.4, clearProps: 'all' }, '-=0.10')
+    .from('#s-title .btn', { opacity: 0, y: 8, duration: 0.35, stagger: 0.09, clearProps: 'all' }, '-=0.18');
 
   // Idle float on title glyph
   const glyph = document.querySelector('#s-title .title-glyph');
@@ -173,16 +206,32 @@ function _animateTitleScreen() {
 
 function _animateCreateScreen() {
   gsap.from('#s-create .create-wrap', {
-    opacity: 0, y: 18, filter: 'blur(4px)', duration: 0.44, ease: 'power2.out', delay: 0.06,
+    opacity: 0,
+    y: 18,
+    filter: 'blur(4px)',
+    duration: 0.44,
+    ease: 'power2.out',
+    delay: 0.06,
   });
   gsap.from('#create-steps .step-dot', {
-    opacity: 0, scale: 0, duration: 0.32, stagger: 0.055, ease: 'back.out(2)', delay: 0.18,
+    opacity: 0,
+    scale: 0,
+    duration: 0.32,
+    stagger: 0.055,
+    ease: 'back.out(2)',
+    delay: 0.18,
   });
 }
 
 function _animateLobbyScreen() {
   gsap.from('#s-lobby .lobby-wrap > *', {
-    opacity: 0, y: 16, filter: 'blur(2px)', duration: 0.42, stagger: 0.07, ease: 'power2.out', delay: 0.06,
+    opacity: 0,
+    y: 16,
+    filter: 'blur(2px)',
+    duration: 0.42,
+    stagger: 0.07,
+    ease: 'power2.out',
+    delay: 0.06,
   });
 }
 
@@ -190,14 +239,16 @@ function _animateGameScreen() {
   // Kill any stale tweens on game elements before re-animating
   gsap.killTweensOf('.game-top, .party-strip, .chronicle-card, .side-panel');
   // Force-clear any residual blur/opacity from interrupted animations
-  document.querySelectorAll('.game-top, .party-strip, .chronicle-card, .side-panel').forEach(el => {
-    el.style.filter = ''; el.style.opacity = ''; el.style.transform = '';
+  document.querySelectorAll('.game-top, .party-strip, .chronicle-card, .side-panel').forEach((el) => {
+    el.style.filter = '';
+    el.style.opacity = '';
+    el.style.transform = '';
   });
   const tl = gsap.timeline({ defaults: { ease: 'power2.out', clearProps: 'all' } });
-  tl.from('.game-top',       { opacity: 0, y: -10, filter: 'blur(4px)', duration: 0.38, delay: 0.05 })
-    .from('.party-strip',    { opacity: 0, y: -8,  duration: 0.32 }, '-=0.18')
-    .from('.chronicle-card', { opacity: 0, y: 18,  filter: 'blur(5px)', duration: 0.52 }, '-=0.16')
-    .from('.side-panel',     { opacity: 0, x: -12, filter: 'blur(3px)', duration: 0.42, stagger: 0.10 }, '-=0.30');
+  tl.from('.game-top', { opacity: 0, y: -10, filter: 'blur(4px)', duration: 0.38, delay: 0.05 })
+    .from('.party-strip', { opacity: 0, y: -8, duration: 0.32 }, '-=0.18')
+    .from('.chronicle-card', { opacity: 0, y: 18, filter: 'blur(5px)', duration: 0.52 }, '-=0.16')
+    .from('.side-panel', { opacity: 0, x: -12, filter: 'blur(3px)', duration: 0.42, stagger: 0.1 }, '-=0.30');
 
   // Init chronicle tilt parallax after layout settles
   setTimeout(_initChronicleTilt, 400);
@@ -216,14 +267,30 @@ function _animateCombatScreen() {
   });
 
   const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-  tl.from('.combat-top',       { opacity: 0, y: -14, filter: 'blur(4px)', duration: 0.36, delay: 0.05 })
-    .from('.combat-party-col .char-combat-card', {
-      opacity: 0, x: -26, filter: 'blur(4px)', duration: 0.48, stagger: 0.09,
-    }, '-=0.10')
-    .from('.combat-enemy-col .char-combat-card', {
-      opacity: 0, x: 26, filter: 'blur(4px)', duration: 0.48, stagger: 0.09,
-    }, '-=0.48')
-    .from('.combat-narrative', { opacity: 0, y: 14, filter: 'blur(3px)', duration: 0.40 }, '-=0.22');
+  tl.from('.combat-top', { opacity: 0, y: -14, filter: 'blur(4px)', duration: 0.36, delay: 0.05 })
+    .from(
+      '.combat-party-col .char-combat-card',
+      {
+        opacity: 0,
+        x: -26,
+        filter: 'blur(4px)',
+        duration: 0.48,
+        stagger: 0.09,
+      },
+      '-=0.10'
+    )
+    .from(
+      '.combat-enemy-col .char-combat-card',
+      {
+        opacity: 0,
+        x: 26,
+        filter: 'blur(4px)',
+        duration: 0.48,
+        stagger: 0.09,
+      },
+      '-=0.48'
+    )
+    .from('.combat-narrative', { opacity: 0, y: 14, filter: 'blur(3px)', duration: 0.4 }, '-=0.22');
 }
 
 // ── 5. COMBAT FEEDBACK ANIMATIONS ────────────────────────────
@@ -231,7 +298,7 @@ function _animateCombatScreen() {
 /**
  * Float a damage/heal number over a character pip.
  */
-window.animateFloatText = function(element, text, isHeal) {
+window.animateFloatText = function (element, text, isHeal) {
   if (!element) return;
   const float = document.createElement('div');
   float.textContent = text;
@@ -251,7 +318,8 @@ window.animateFloatText = function(element, text, isHeal) {
   element.style.position = 'relative';
   element.appendChild(float);
 
-  gsap.fromTo(float,
+  gsap.fromTo(
+    float,
     { opacity: 1, y: 0, scale: 1.1 },
     {
       opacity: 0,
@@ -267,9 +335,10 @@ window.animateFloatText = function(element, text, isHeal) {
 /**
  * Shake a combat card when taking damage.
  */
-window.shakeCombatCard = function(cardEl) {
+window.shakeCombatCard = function (cardEl) {
   if (!cardEl) return;
-  gsap.fromTo(cardEl,
+  gsap.fromTo(
+    cardEl,
     { x: 0 },
     {
       keyframes: { x: [-7, 6, -5, 5, -3, 2, 0] },
@@ -283,9 +352,10 @@ window.shakeCombatCard = function(cardEl) {
 /**
  * Heal shimmer on a combat card.
  */
-window.healShimmerCard = function(cardEl) {
+window.healShimmerCard = function (cardEl) {
   if (!cardEl) return;
-  gsap.fromTo(cardEl,
+  gsap.fromTo(
+    cardEl,
     { boxShadow: '0 0 0 0 rgba(29,122,92,0)' },
     {
       boxShadow: '0 0 0 4px rgba(29,122,92,0.55), 0 0 28px rgba(29,122,92,0.25)',
@@ -301,9 +371,10 @@ window.healShimmerCard = function(cardEl) {
 /**
  * Critical hit — white-gold burst then fade, combined with shake.
  */
-window.animateCritHit = function(cardEl) {
+window.animateCritHit = function (cardEl) {
   if (!cardEl) return;
-  gsap.timeline()
+  gsap
+    .timeline()
     .to(cardEl, {
       filter: 'brightness(3.0) saturate(0.15)',
       boxShadow: '0 0 50px rgba(255,248,200,0.65), 0 0 100px rgba(201,168,76,0.3)',
@@ -313,7 +384,7 @@ window.animateCritHit = function(cardEl) {
     .to(cardEl, {
       filter: 'brightness(1) saturate(1)',
       boxShadow: 'none',
-      duration: 0.50,
+      duration: 0.5,
       ease: 'power3.out',
       clearProps: 'filter,boxShadow',
     });
@@ -323,20 +394,17 @@ window.animateCritHit = function(cardEl) {
 /**
  * Full-screen edge-flash for taking damage in combat.
  */
-window.animateDamageFlash = function() {
+window.animateDamageFlash = function () {
   const flash = document.createElement('div');
   flash.style.cssText = 'position:fixed;inset:0;background:rgba(176,56,40,0.22);pointer-events:none;z-index:9998;';
   document.body.appendChild(flash);
-  gsap.fromTo(flash,
-    { opacity: 1 },
-    { opacity: 0, duration: 0.55, ease: 'power2.out', onComplete: () => flash.remove() }
-  );
+  gsap.fromTo(flash, { opacity: 1 }, { opacity: 0, duration: 0.55, ease: 'power2.out', onComplete: () => flash.remove() });
 };
 
 /**
  * Spawn heal particles above a card.
  */
-window.animateHealParticles = function(cardEl) {
+window.animateHealParticles = function (cardEl) {
   if (!cardEl) return;
   for (let i = 0; i < 4; i++) {
     const p = document.createElement('div');
@@ -352,7 +420,8 @@ window.animateHealParticles = function(cardEl) {
     `;
     cardEl.style.position = 'relative';
     cardEl.appendChild(p);
-    gsap.fromTo(p,
+    gsap.fromTo(
+      p,
       { opacity: 0.85, y: 0, x: (Math.random() - 0.5) * 14 },
       {
         opacity: 0,
@@ -367,7 +436,7 @@ window.animateHealParticles = function(cardEl) {
 };
 
 // ── 6. CHOICE REVEAL ANIMATION ───────────────────────────────
-window.animateChoicesIn = function(container) {
+window.animateChoicesIn = function (container) {
   if (!container) return;
   const choices = container.querySelectorAll('.achoice');
   if (!choices.length) return;
@@ -384,11 +453,12 @@ window.animateChoicesIn = function(container) {
 };
 
 // ── 7. STORY TEXT REVEAL ──────────────────────────────────────
-window.animateStoryReveal = function(el) {
+window.animateStoryReveal = function (el) {
   if (!el) return;
-  gsap.fromTo(el,
+  gsap.fromTo(
+    el,
     { opacity: 0, y: 10, filter: 'blur(3px)' },
-    { opacity: 1, y: 0,  filter: 'blur(0px)', duration: 0.48, ease: 'power2.out', clearProps: 'all' }
+    { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.48, ease: 'power2.out', clearProps: 'all' }
   );
 };
 
@@ -401,18 +471,22 @@ function _initChronicleTilt() {
   card.onmousemove = null;
   card.onmouseleave = null;
 
-  card.addEventListener('mousemove', (e) => {
-    const rect = card.getBoundingClientRect();
-    const cx = (e.clientX - rect.left) / rect.width  - 0.5;  // -0.5 → 0.5
-    const cy = (e.clientY - rect.top)  / rect.height - 0.5;
-    gsap.to(card, {
-      rotateX: cy * -3.5,
-      rotateY: cx * 3.5,
-      transformPerspective: 1400,
-      duration: 0.55,
-      ease: 'power2.out',
-    });
-  }, { passive: true });
+  card.addEventListener(
+    'mousemove',
+    (e) => {
+      const rect = card.getBoundingClientRect();
+      const cx = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 → 0.5
+      const cy = (e.clientY - rect.top) / rect.height - 0.5;
+      gsap.to(card, {
+        rotateX: cy * -3.5,
+        rotateY: cx * 3.5,
+        transformPerspective: 1400,
+        duration: 0.55,
+        ease: 'power2.out',
+      });
+    },
+    { passive: true }
+  );
 
   card.addEventListener('mouseleave', () => {
     gsap.to(card, { rotateX: 0, rotateY: 0, duration: 0.5, ease: 'power2.out', clearProps: 'rotateX,rotateY' });
@@ -420,24 +494,26 @@ function _initChronicleTilt() {
 }
 
 // Keep old initParallax for legacy calls from ui.js
-function initParallax() { _initChronicleTilt(); }
+function initParallax() {
+  _initChronicleTilt();
+}
 
 // ── 9. TURN CHANGE ANIMATION ──────────────────────────────────
 /**
  * Animate the turn-pill when ownership switches.
  * Call this from ui.js whenever the active turn changes.
  */
-window.animateTurnChange = function(pillEl) {
+window.animateTurnChange = function (pillEl) {
   if (!pillEl) return;
-  gsap.fromTo(pillEl,
+  gsap.fromTo(
+    pillEl,
     { scale: 1.0 },
-    { scale: 1.12, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 1,
-      onComplete: () => gsap.set(pillEl, { clearProps: 'scale' }) }
+    { scale: 1.12, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 1, onComplete: () => gsap.set(pillEl, { clearProps: 'scale' }) }
   );
 };
 
 // ── 10. TOAST NOTIFICATION ────────────────────────────────────
-window.showToastGSAP = function(message) {
+window.showToastGSAP = function (message) {
   const existing = document.querySelector('.sc-toast');
   if (existing) {
     gsap.to(existing, { opacity: 0, y: 8, duration: 0.2, onComplete: () => existing.remove() });
@@ -465,10 +541,10 @@ window.showToastGSAP = function(message) {
   toast.textContent = message;
   document.body.appendChild(toast);
 
-  gsap.timeline()
+  gsap
+    .timeline()
     .to(toast, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' })
-    .to(toast, { opacity: 0, y: -8, duration: 0.3, ease: 'power2.in', delay: 2.4,
-        onComplete: () => toast.remove() });
+    .to(toast, { opacity: 0, y: -8, duration: 0.3, ease: 'power2.in', delay: 2.4, onComplete: () => toast.remove() });
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -481,8 +557,12 @@ window.showToastGSAP = function(message) {
 // Usage: stormlightParticles.activate(cardEl) / .deactivate()
 (function _initStormlightParticles() {
   const PARTICLE_COUNT = 55;
-  const COLORS = ['#b8eaff','#d4f4ff','#e8faff','#9fd8f8','#c0f0ff'];
-  let canvas, ctx, particles = [], raf = null, _active = false;
+  const COLORS = ['#b8eaff', '#d4f4ff', '#e8faff', '#9fd8f8', '#c0f0ff'];
+  let canvas,
+    ctx,
+    particles = [],
+    raf = null,
+    _active = false;
 
   function _mkCanvas() {
     if (canvas) return;
@@ -497,7 +577,7 @@ window.showToastGSAP = function(message) {
 
   function _resize() {
     if (!canvas) return;
-    canvas.width  = window.innerWidth;
+    canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   }
 
@@ -528,11 +608,7 @@ window.showToastGSAP = function(message) {
 
       // Fade in / fade out
       const progress = p.life / p.maxLife;
-      p.alpha = progress < 0.2
-        ? (progress / 0.2) * p.targetAlpha
-        : progress > 0.8
-          ? ((1 - progress) / 0.2) * p.targetAlpha
-          : p.targetAlpha;
+      p.alpha = progress < 0.2 ? (progress / 0.2) * p.targetAlpha : progress > 0.8 ? ((1 - progress) / 0.2) * p.targetAlpha : p.targetAlpha;
 
       if (p.life >= p.maxLife) particles[i] = _spawn();
 
@@ -563,12 +639,19 @@ window.showToastGSAP = function(message) {
     },
     deactivate() {
       if (!_active || !canvas) return;
-      gsap.to(canvas, { opacity: 0, duration: 1.0, ease: 'power2.inOut', onComplete: () => {
-        _active = false;
-        if (raf) cancelAnimationFrame(raf);
-      }});
+      gsap.to(canvas, {
+        opacity: 0,
+        duration: 1.0,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          _active = false;
+          if (raf) cancelAnimationFrame(raf);
+        },
+      });
     },
-    toggle(on) { on ? this.activate() : this.deactivate(); },
+    toggle(on) {
+      on ? this.activate() : this.deactivate();
+    },
   };
 })();
 
@@ -577,18 +660,21 @@ window.showToastGSAP = function(message) {
 // Reads the latest GM story text for weather keywords.
 // Usage: WeatherSystem.setWeather('rain'|'storm'|'clear'|'ash')
 (function _initWeatherSystem() {
-  let _weatherEl = null, _current = 'clear';
+  let _weatherEl = null,
+    _current = 'clear';
 
   const WEATHER_STYLES = {
     clear: { opacity: 0 },
     rain: {
-      background: 'repeating-linear-gradient(to bottom, transparent 0, transparent 4px, rgba(180,210,240,0.10) 4px, rgba(180,210,240,0.10) 5px)',
+      background:
+        'repeating-linear-gradient(to bottom, transparent 0, transparent 4px, rgba(180,210,240,0.10) 4px, rgba(180,210,240,0.10) 5px)',
       backgroundSize: '3px 22px',
       opacity: 0.65,
       animation: 'weatherRain 0.22s linear infinite',
     },
     storm: {
-      background: 'repeating-linear-gradient(10deg, transparent 0, transparent 3px, rgba(130,180,230,0.18) 3px, rgba(130,180,230,0.18) 4px)',
+      background:
+        'repeating-linear-gradient(10deg, transparent 0, transparent 3px, rgba(130,180,230,0.18) 3px, rgba(130,180,230,0.18) 4px)',
       backgroundSize: '4px 18px',
       opacity: 0.85,
       animation: 'weatherRain 0.14s linear infinite',
@@ -615,8 +701,8 @@ window.showToastGSAP = function(message) {
     if (!text) return 'clear';
     const t = text.toLowerCase();
     if (/highstorm|stormwall|lightning/.test(t)) return 'storm';
-    if (/rain|downpour|drizzle|wet/.test(t))     return 'rain';
-    if (/ash|dust|smoke|haze/.test(t))           return 'ash';
+    if (/rain|downpour|drizzle|wet/.test(t)) return 'rain';
+    if (/ash|dust|smoke|haze/.test(t)) return 'ash';
     return 'clear';
   }
 
@@ -633,13 +719,23 @@ window.showToastGSAP = function(message) {
       });
       gsap.to(_weatherEl, { opacity: s.opacity || 0, duration: 1.5, ease: 'power2.inOut' });
     },
-    detectFromText(text) { this.setWeather(_detect(text)); },
+    detectFromText(text) {
+      this.setWeather(_detect(text));
+    },
     clear() {
       if (!_weatherEl) return;
       _current = 'clear';
-      gsap.to(_weatherEl, { opacity: 0, duration: 0.3, ease: 'power2.out', onComplete: () => {
-        if (_weatherEl) { _weatherEl.style.background = ''; _weatherEl.style.animation = 'none'; }
-      }});
+      gsap.to(_weatherEl, {
+        opacity: 0,
+        duration: 0.3,
+        ease: 'power2.out',
+        onComplete: () => {
+          if (_weatherEl) {
+            _weatherEl.style.background = '';
+            _weatherEl.style.animation = 'none';
+          }
+        },
+      });
     },
   };
 })();
@@ -679,7 +775,7 @@ window.showToastGSAP = function(message) {
 
       // Ideal number label
       const label = document.createElement('div');
-      label.textContent = `THE ${['FIRST','SECOND','THIRD','FOURTH','FIFTH'][idealNumber-1] || 'FIRST'} IDEAL`;
+      label.textContent = `THE ${['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH'][idealNumber - 1] || 'FIRST'} IDEAL`;
       label.style.cssText = `
         font-family:var(--font-d);font-size:9px;letter-spacing:8px;
         color:var(--text4);margin-top:8px;opacity:0;
@@ -714,24 +810,38 @@ window.showToastGSAP = function(message) {
       document.body.appendChild(overlay);
 
       const tl = gsap.timeline();
-      tl.to(overlay,   { opacity: 1,               duration: 0.5 })
-        .to(glyph,     { opacity: 1, scale: 1,      duration: 0.9, ease: 'elastic.out(1,0.7)' })
-        .to(glyph,     { textShadow: '0 0 120px rgba(201,168,76,1),0 0 240px rgba(201,168,76,0.6)', duration: 0.6, ease:'power2.out', yoyo:true, repeat:1 }, '-=0.2')
-        .to(order,     { opacity: 1,                duration: 0.5 }, '-=0.3')
-        .to(label,     { opacity: 1,                duration: 0.4 }, '-=0.2')
-        .to(words,     { opacity: 1, y: 0,          duration: 0.7, ease:'power2.out' }, '+=0.2')
-        .to(accepted,  { opacity: 0.8,              duration: 0.6 }, '+=0.8')
-        .to(hint,      { opacity: 0.4,              duration: 0.5 }, '+=1.0');
+      tl.to(overlay, { opacity: 1, duration: 0.5 })
+        .to(glyph, { opacity: 1, scale: 1, duration: 0.9, ease: 'elastic.out(1,0.7)' })
+        .to(
+          glyph,
+          {
+            textShadow: '0 0 120px rgba(201,168,76,1),0 0 240px rgba(201,168,76,0.6)',
+            duration: 0.6,
+            ease: 'power2.out',
+            yoyo: true,
+            repeat: 1,
+          },
+          '-=0.2'
+        )
+        .to(order, { opacity: 1, duration: 0.5 }, '-=0.3')
+        .to(label, { opacity: 1, duration: 0.4 }, '-=0.2')
+        .to(words, { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }, '+=0.2')
+        .to(accepted, { opacity: 0.8, duration: 0.6 }, '+=0.8')
+        .to(hint, { opacity: 0.4, duration: 0.5 }, '+=1.0');
 
       // Particle burst on glyph
       setTimeout(() => window.stormlightParticles?.activate(), 300);
 
       // Dismiss on click
       const _dismiss = () => {
-        gsap.to(overlay, { opacity: 0, duration: 0.5, onComplete: () => {
-          overlay.remove();
-          window.stormlightParticles?.deactivate();
-        }});
+        gsap.to(overlay, {
+          opacity: 0,
+          duration: 0.5,
+          onComplete: () => {
+            overlay.remove();
+            window.stormlightParticles?.deactivate();
+          },
+        });
       };
       overlay.addEventListener('click', _dismiss, { once: true });
       // Auto-dismiss after 9 seconds
@@ -749,12 +859,20 @@ window.showToastGSAP = function(message) {
   let _currentAnim = null;
 
   window.TypewriterMode = {
-    get enabled() { return _enabled; },
-    set enabled(v) { _enabled = !!v; localStorage.setItem('sc_typewriter', v ? '1' : '0'); },
+    get enabled() {
+      return _enabled;
+    },
+    set enabled(v) {
+      _enabled = !!v;
+      localStorage.setItem('sc_typewriter', v ? '1' : '0');
+    },
 
     /** Reveal HTML text content char-by-char in the given element. */
     reveal(el, html, onDone) {
-      if (!el) { onDone?.(); return; }
+      if (!el) {
+        onDone?.();
+        return;
+      }
       if (!_enabled) {
         el.innerHTML = html;
         onDone?.();
@@ -762,7 +880,10 @@ window.showToastGSAP = function(message) {
       }
 
       // Cancel any in-progress animation
-      if (_currentAnim) { clearInterval(_currentAnim); _currentAnim = null; }
+      if (_currentAnim) {
+        clearInterval(_currentAnim);
+        _currentAnim = null;
+      }
 
       // Strip HTML for typing; then re-render final HTML after
       const plain = html.replace(/<[^>]+>/g, '');
@@ -788,7 +909,10 @@ window.showToastGSAP = function(message) {
 
     /** Skip to end immediately */
     skip() {
-      if (_currentAnim) { clearInterval(_currentAnim); _currentAnim = null; }
+      if (_currentAnim) {
+        clearInterval(_currentAnim);
+        _currentAnim = null;
+      }
     },
   };
 
@@ -801,10 +925,14 @@ window.showToastGSAP = function(message) {
 // tense sustained tones when combat is active.
 // Usage: AmbientAudio.startCombat() / .endCombat() / .setVolume(0-1)
 (function _initAmbientAudio() {
-  let _ctx = null, _gainNode = null, _oscillators = [], _active = false, _volume = 0.06;
+  let _ctx = null,
+    _gainNode = null,
+    _oscillators = [],
+    _active = false,
+    _volume = 0.06;
 
   // Pentatonic scale frequencies — calm (Hz)
-  const CALM_CHORD  = [55, 82.41, 110, 164.81];   // A1 E2 A2 E3
+  const CALM_CHORD = [55, 82.41, 110, 164.81]; // A1 E2 A2 E3
   const COMBAT_CHORD = [58.27, 87.31, 116.54, 155.56]; // Bb1 F2 Bb2 Eb3 (tense)
 
   function _ensureCtx() {
@@ -815,11 +943,17 @@ window.showToastGSAP = function(message) {
       _gainNode.gain.value = 0;
       _gainNode.connect(_ctx.destination);
       return true;
-    } catch (e) { return false; }
+    } catch (e) {
+      return false;
+    }
   }
 
   function _buildChord(freqs) {
-    _oscillators.forEach(o => { try { o.stop(); } catch(e){} });
+    _oscillators.forEach((o) => {
+      try {
+        o.stop();
+      } catch (e) {}
+    });
     _oscillators = [];
     if (!_ctx || !_gainNode) return;
 
@@ -868,7 +1002,11 @@ window.showToastGSAP = function(message) {
       if (!_ctx) return;
       _fade(0, 1.0);
       setTimeout(() => {
-        _oscillators.forEach(o => { try { o.stop(); } catch(e){} });
+        _oscillators.forEach((o) => {
+          try {
+            o.stop();
+          } catch (e) {}
+        });
         _oscillators = [];
         _active = false;
       }, 1200);
@@ -878,7 +1016,9 @@ window.showToastGSAP = function(message) {
       if (_gainNode && _active) _fade(_volume, 0.5);
       localStorage.setItem('sc_ambient_vol', _volume);
     },
-    get active() { return _active; },
+    get active() {
+      return _active;
+    },
   };
 
   // Load saved volume
@@ -891,7 +1031,9 @@ window.showToastGSAP = function(message) {
 // active player's combat card. Updates when the active card changes.
 // Usage: SprenCompanion.attachTo(cardEl) / .detach()
 (function _initSprenCompanion() {
-  let _sprEl = null, _motionTween = null, _orbitTween = null;
+  let _sprEl = null,
+    _motionTween = null,
+    _orbitTween = null;
 
   function _mkSpren() {
     if (_sprEl) return;
@@ -917,26 +1059,29 @@ window.showToastGSAP = function(message) {
     const update = () => {
       const rect = cardEl.getBoundingClientRect();
       if (!rect.width) return;
-      const cx = rect.left + rect.width  / 2;
-      const cy = rect.top  + rect.height / 2;
-      const rx = rect.width  / 2 + 22;
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const rx = rect.width / 2 + 22;
       const ry = rect.height / 2 + 16;
 
       // Orbit using parametric t → x,y
       let angle = 0;
       if (_orbitTween) _orbitTween.kill();
-      _orbitTween = gsap.to({ t: 0 }, {
-        t: Math.PI * 2,
-        duration: 5.5,
-        ease: 'none',
-        repeat: -1,
-        onUpdate: function() {
-          const t = this.targets()[0].t;
-          const x = cx + Math.cos(t) * rx - 11;
-          const y = cy + Math.sin(t) * ry - 11;
-          gsap.set(_sprEl, { x, y });
-        },
-      });
+      _orbitTween = gsap.to(
+        { t: 0 },
+        {
+          t: Math.PI * 2,
+          duration: 5.5,
+          ease: 'none',
+          repeat: -1,
+          onUpdate: function () {
+            const t = this.targets()[0].t;
+            const x = cx + Math.cos(t) * rx - 11;
+            const y = cy + Math.sin(t) * ry - 11;
+            gsap.set(_sprEl, { x, y });
+          },
+        }
+      );
     };
     update();
     // Refresh on resize / scroll
@@ -953,12 +1098,18 @@ window.showToastGSAP = function(message) {
     },
     detach() {
       if (!_sprEl) return;
-      if (_orbitTween) { _orbitTween.kill(); _orbitTween = null; }
+      if (_orbitTween) {
+        _orbitTween.kill();
+        _orbitTween = null;
+      }
       gsap.to(_sprEl, { opacity: 0, duration: 0.4, ease: 'power2.in' });
     },
     /** Call whenever the active card changes in combat. */
     updateActiveCard(cardEl) {
-      if (!cardEl) { this.detach(); return; }
+      if (!cardEl) {
+        this.detach();
+        return;
+      }
       this.attachTo(cardEl);
     },
   };
@@ -1029,7 +1180,7 @@ window.addEventListener('load', () => {
 (async () => {
   applyLang();
   loadVoicePreference();
-  if(window.Auth) Auth.init();
+  if (window.Auth) Auth.init();
 
   // If on a hub screen (landing, worlds, wizard), let hub.js handle boot — don't load campaigns
   const _bootHash = (window.location.hash || '').split('?')[0];

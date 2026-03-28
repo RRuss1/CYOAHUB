@@ -19,7 +19,7 @@
  * ============================================================
  */
 
-(function() {
+(function () {
   'use strict';
 
   const _plugins = {};
@@ -55,8 +55,8 @@
       // Append combat actions (avoid duplicates by id)
       if (plugin.combatActions && Array.isArray(plugin.combatActions)) {
         if (!systemData.combatActions) systemData.combatActions = [];
-        const existingIds = new Set(systemData.combatActions.map(a => a.id));
-        plugin.combatActions.forEach(action => {
+        const existingIds = new Set(systemData.combatActions.map((a) => a.id));
+        plugin.combatActions.forEach((action) => {
           if (!existingIds.has(action.id)) {
             systemData.combatActions.push(action);
           }
@@ -66,8 +66,8 @@
       // Append story actions
       if (plugin.storyActions && Array.isArray(plugin.storyActions)) {
         if (!systemData.storyActions) systemData.storyActions = [];
-        const existingIds = new Set(systemData.storyActions.map(a => a.id));
-        plugin.storyActions.forEach(action => {
+        const existingIds = new Set(systemData.storyActions.map((a) => a.id));
+        plugin.storyActions.forEach((action) => {
           if (!existingIds.has(action.id)) {
             systemData.storyActions.push(action);
           }
@@ -81,7 +81,9 @@
 
       // Call onSystemLoad hook
       if (plugin.hooks && typeof plugin.hooks.onSystemLoad === 'function') {
-        try { plugin.hooks.onSystemLoad(systemData); } catch(e) {
+        try {
+          plugin.hooks.onSystemLoad(systemData);
+        } catch (e) {
           console.warn(`[PluginRegistry] Hook onSystemLoad failed for "${id}":`, e);
         }
       }
@@ -96,17 +98,24 @@
   function invoke(hookName, ...args) {
     for (const [id, plugin] of Object.entries(_plugins)) {
       if (plugin.hooks && typeof plugin.hooks[hookName] === 'function') {
-        try { plugin.hooks[hookName](...args); } catch(e) {
+        try {
+          plugin.hooks[hookName](...args);
+        } catch (e) {
           console.warn(`[PluginRegistry] Hook ${hookName} failed for "${id}":`, e);
         }
       }
     }
   }
 
-  function getAll() { return { ..._plugins }; }
-  function get(id) { return _plugins[id] || null; }
-  function unregister(id) { delete _plugins[id]; }
+  function getAll() {
+    return { ..._plugins };
+  }
+  function get(id) {
+    return _plugins[id] || null;
+  }
+  function unregister(id) {
+    delete _plugins[id];
+  }
 
   window.PluginRegistry = { register, applyPlugins, invoke, getAll, get, unregister };
-
 })();

@@ -9,40 +9,40 @@
 /* ─── DESIGN TOKENS ─── */
 :root {
   /* Backgrounds */
-  --bg:    #0f0d08;
-  --bg2:   #141109;
-  --bg3:   #1c1710;
-  --bg4:   #241e13;
+  --bg: #0f0d08;
+  --bg2: #141109;
+  --bg3: #1c1710;
+  --bg4: #241e13;
 
   /* Borders */
-  --border:  #2d2419;
+  --border: #2d2419;
   --border2: #3d3020;
   --border3: #5a4020;
 
   /* Gold palette */
-  --gold:       #C9A84C;
-  --gold-mid:   #DFC080;
-  --gold-bright:#EFE4C8;
-  --gold-light: #F3EBD8;
-  --gold-deep:  #A07830;
-  --gold-dim:   #624e1f;
-  --amber:      #C9A84C;
-  --amber2:     #DFC080;
-  --amber3:     #EFE4C8;
-  --amber-dim:  #624e1f;
+  --gold: #c9a84c;
+  --gold-mid: #dfc080;
+  --gold-bright: #efe4c8;
+  --gold-light: #f3ebd8;
+  --gold-deep: #a07830;
+  --gold-dim: #624e1f;
+  --amber: #c9a84c;
+  --amber2: #dfc080;
+  --amber3: #efe4c8;
+  --amber-dim: #624e1f;
 
   /* Accent palette */
-  --teal:     #1d7a5c;
-  --teal2:    #28a87a;
+  --teal: #1d7a5c;
+  --teal2: #28a87a;
   --teal-dim: #0e3d2e;
-  --coral:    #b03828;
-  --coral2:   #d44e30;
+  --coral: #b03828;
+  --coral2: #d44e30;
 
   /* Text */
-  --text:  #F8F3E8;
-  --text2: #F0E6CC;
-  --text3: #DFC080;
-  --text4: #A07830;
+  --text: #f8f3e8;
+  --text2: #f0e6cc;
+  --text3: #dfc080;
+  --text4: #a07830;
   --text5: #624e1f;
 
   /* Typography */
@@ -50,63 +50,66 @@
   --font-b: 'Crimson Pro', serif;
 
   /* Border radius */
-  --r:  10px;
+  --r: 10px;
   --r2: 16px;
   --r3: 22px;
 
   /* Shadows */
-  --shadow-card:        0 4px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(201,168,76,0.06);
-  --shadow-glow:        0 0 60px rgba(201,168,76,0.12);
-  --shadow-lift:        0 20px 80px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.3);
-  --shadow-deep:        0 8px 48px rgba(0,0,0,0.72), 0 2px 8px rgba(0,0,0,0.4);
-  --shadow-glow-strong: 0 0 80px rgba(201,168,76,0.22), 0 0 160px rgba(201,168,76,0.08);
-  --shadow-combat:      0 0 60px rgba(212,78,48,0.14), 0 4px 32px rgba(0,0,0,0.6);
+  --shadow-card: 0 4px 32px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(201, 168, 76, 0.06);
+  --shadow-glow: 0 0 60px rgba(201, 168, 76, 0.12);
+  --shadow-lift: 0 20px 80px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-deep: 0 8px 48px rgba(0, 0, 0, 0.72), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-glow-strong: 0 0 80px rgba(201, 168, 76, 0.22), 0 0 160px rgba(201, 168, 76, 0.08);
+  --shadow-combat: 0 0 60px rgba(212, 78, 48, 0.14), 0 4px 32px rgba(0, 0, 0, 0.6);
 
   /* Glow tokens */
-  --glow-gold:          rgba(201,168,76,0.15);
-  --glow-combat:        rgba(212,78,48,0.12);
-  --glow-heal:          rgba(29,122,92,0.18);
+  --glow-gold: rgba(201, 168, 76, 0.15);
+  --glow-combat: rgba(212, 78, 48, 0.12);
+  --glow-heal: rgba(29, 122, 92, 0.18);
 
   /* Theme overridable tokens */
-  --theme-primary:   #C9A84C;
-  --theme-secondary: #28A87A;
-  --theme-danger:    #B03828;
+  --theme-primary: #c9a84c;
+  --theme-secondary: #28a87a;
+  --theme-danger: #b03828;
 
   /* Hub tokens (CYOAhub landing/worlds/wizard) */
-  --gold-hi:    #EFD97A;
-  --gold-lo:    #7A5F28;
-  --teal-lo:    #0D4A35;
-  --red:        #C0392B;
-  --glass:      rgba(6, 14, 30, 0.55);
-  --glass-b:    rgba(255,255,255,0.08);
+  --gold-hi: #efd97a;
+  --gold-lo: #7a5f28;
+  --teal-lo: #0d4a35;
+  --red: #c0392b;
+  --glass: rgba(6, 14, 30, 0.55);
+  --glass-b: rgba(255, 255, 255, 0.08);
 
   /* CYOAhub Platform Palette */
-  --cream-light:  #F0DDD1;
-  --cream-mid:    #DFC4AB;
-  --cream-sand:   #CCC4AC;
-  --cream-off:    #E8E4D4;
-  --sage:         #B8C4AC;
-  --steel-teal:   #5E8E98;
-  --dark-teal:    #3A6E78;
-  --deep-teal:    #2A5860;
-  --glow-mint:    #2ECAA8;
-  --glow-cerulean:#3498B8;
-  --glow-pink:    #F06090;
-  --glow-crimson: #E81868;
-  --muted:      rgba(240,230,204,0.52);
-  --fd:         'Cinzel', serif;
-  --fb:         'Crimson Pro', serif;
+  --cream-light: #f0ddd1;
+  --cream-mid: #dfc4ab;
+  --cream-sand: #ccc4ac;
+  --cream-off: #e8e4d4;
+  --sage: #b8c4ac;
+  --steel-teal: #5e8e98;
+  --dark-teal: #3a6e78;
+  --deep-teal: #2a5860;
+  --glow-mint: #2ecaa8;
+  --glow-cerulean: #3498b8;
+  --glow-pink: #f06090;
+  --glow-crimson: #e81868;
+  --muted: rgba(240, 230, 204, 0.52);
+  --fd: 'Cinzel', serif;
+  --fb: 'Crimson Pro', serif;
 }
 
 /* ─── RESET ─── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
 /* ─── BASE ─── */
-html, body {
+html,
+body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
@@ -121,9 +124,9 @@ html, body {
 body {
   background-color: var(--bg);
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201,168,76,0.13) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 90% 90%, rgba(100,60,20,0.10) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 60% at 10% 80%, rgba(29,122,92,0.06) 0%, transparent 50%);
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201, 168, 76, 0.13) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 90%, rgba(100, 60, 20, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 60% at 10% 80%, rgba(29, 122, 92, 0.06) 0%, transparent 50%);
 }
 
 /* Grain texture overlay */
@@ -145,12 +148,7 @@ body::after {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background: radial-gradient(
-    ellipse 115% 115% at 50% 50%,
-    transparent 35%,
-    rgba(0,0,0,0.42) 72%,
-    rgba(0,0,0,0.70) 100%
-  );
+  background: radial-gradient(ellipse 115% 115% at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.42) 72%, rgba(0, 0, 0, 0.7) 100%);
 }
 
 /* Corner glyph watermark on active screens */
@@ -168,7 +166,9 @@ body::after {
 }
 
 /* ─── SCREEN SYSTEM ─── */
-.screen { display: none; }
+.screen {
+  display: none;
+}
 .screen.active {
   display: flex;
   flex-direction: column;
@@ -178,10 +178,20 @@ body::after {
 }
 
 /* ─── SCROLLBARS ─── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--bg2); }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border3); }
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg2);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border3);
+}
 
 /* ─── FORM INPUTS ─── */
 input:-webkit-autofill,
@@ -190,14 +200,14 @@ input:-webkit-autofill:focus,
 textarea:-webkit-autofill,
 select:-webkit-autofill {
   -webkit-text-fill-color: var(--text) !important;
-  -webkit-box-shadow: 0 0 0 1000px rgba(28,23,16,0.9) inset !important;
-  box-shadow: 0 0 0 1000px rgba(28,23,16,0.9) inset !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(28, 23, 16, 0.9) inset !important;
+  box-shadow: 0 0 0 1000px rgba(28, 23, 16, 0.9) inset !important;
   caret-color: var(--amber);
   transition: background-color 5000s ease-in-out 0s;
 }
 
 select {
-  background: rgba(28,23,16,0.9);
+  background: rgba(28, 23, 16, 0.9);
   color: var(--text);
   border: 1px solid var(--border2);
   border-radius: var(--r);
@@ -207,25 +217,69 @@ select {
   outline: none;
   cursor: pointer;
 }
-select:focus { border-color: var(--amber); }
-select option { background: rgba(28,23,16,0.95); color: var(--text); }
+select:focus {
+  border-color: var(--amber);
+}
+select option {
+  background: rgba(28, 23, 16, 0.95);
+  color: var(--text);
+}
 
 /* ─── PRINT ─── */
-#print-header { display: none; }
+#print-header {
+  display: none;
+}
 @media print {
-  body { background: #fff !important; color: #111 !important; font-size: 12pt; }
-  .party-strip, .bottom-zone, .sheet-toggle, .sheet-panel,
-  #enemy-panel, #initiative-panel, .prog-wrap, .turn-pill,
-  .audio-bar, #export-btn-wrap, #thinking-bar { display: none !important; }
-  .game-top { border-bottom: 1px solid #ccc; padding: 10px 0; margin-bottom: 16px; }
-  .game-logo { font-size: 16pt; font-weight: bold; }
-  #lang-toggle { display: none !important; }
-  .chronicle-card { border: none; }
-  .story-text { font-size: 12pt; color: #111 !important; }
-  #print-header { display: block !important; text-align: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #111; }
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 12pt;
+  }
+  .party-strip,
+  .bottom-zone,
+  .sheet-toggle,
+  .sheet-panel,
+  #enemy-panel,
+  #initiative-panel,
+  .prog-wrap,
+  .turn-pill,
+  .audio-bar,
+  #export-btn-wrap,
+  #thinking-bar {
+    display: none !important;
+  }
+  .game-top {
+    border-bottom: 1px solid #ccc;
+    padding: 10px 0;
+    margin-bottom: 16px;
+  }
+  .game-logo {
+    font-size: 16pt;
+    font-weight: bold;
+  }
+  #lang-toggle {
+    display: none !important;
+  }
+  .chronicle-card {
+    border: none;
+  }
+  .story-text {
+    font-size: 12pt;
+    color: #111 !important;
+  }
+  #print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #111;
+  }
 }
 
 /* ─── MOBILE BASE ─── */
 @media (max-width: 640px) {
-  html, body { font-size: 17px; }
+  html,
+  body {
+    font-size: 17px;
+  }
 }

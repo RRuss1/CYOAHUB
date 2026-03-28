@@ -11,53 +11,56 @@
  * ============================================================
  */
 
-(function() {
+(function () {
   'use strict';
 
   // ── Schema Definition ──────────────────────────────────────
   // Each leaf: { type, required?, min?, max?, values?, itemShape? }
   const SCHEMA = {
     // Identity
-    id:        { type: 'string', required: true },
-    name:      { type: 'string', required: true },
-    subtitle:  { type: 'string' },
-    tagline:   { type: 'string' },
-    glyph:     { type: 'string' },
+    id: { type: 'string', required: true },
+    name: { type: 'string', required: true },
+    subtitle: { type: 'string' },
+    tagline: { type: 'string' },
+    glyph: { type: 'string' },
 
     // Theme
     theme: {
-      _type: 'object', required: true,
-      primary:   { type: 'string', pattern: /^#[0-9A-Fa-f]{6}$/ },
+      _type: 'object',
+      required: true,
+      primary: { type: 'string', pattern: /^#[0-9A-Fa-f]{6}$/ },
       secondary: { type: 'string', pattern: /^#[0-9A-Fa-f]{6}$/ },
-      danger:    { type: 'string', pattern: /^#[0-9A-Fa-f]{6}$/ },
-      bgTone:    { type: 'string', values: ['dark','light'] },
+      danger: { type: 'string', pattern: /^#[0-9A-Fa-f]{6}$/ },
+      bgTone: { type: 'string', values: ['dark', 'light'] },
       titleFont: { type: 'string' },
-      bodyFont:  { type: 'string' },
+      bodyFont: { type: 'string' },
     },
 
     // Stats
-    statKeys:  { type: 'array', required: true, minLength: 2 },
+    statKeys: { type: 'array', required: true, minLength: 2 },
     statNames: { type: 'array', required: true, minLength: 2 },
-    statFull:  { type: 'array', required: true, minLength: 2 },
+    statFull: { type: 'array', required: true, minLength: 2 },
 
     // Rules
     rules: {
-      _type: 'object', required: true,
+      _type: 'object',
+      required: true,
       defenses: { type: 'array', required: true, minLength: 1 },
-      hp:       { _type: 'object', required: true, base: { type: 'number' }, stat: { type: 'string' } },
-      focus:    { _type: 'object', base: { type: 'number' }, stat: { type: 'string' } },
+      hp: { _type: 'object', required: true, base: { type: 'number' }, stat: { type: 'string' } },
+      focus: { _type: 'object', base: { type: 'number' }, stat: { type: 'string' } },
       magicPool: { _type: 'object', enabled: { type: 'boolean' }, label: { type: 'string' } },
       recoveryDie: { _type: 'object', stat: { type: 'string' }, table: { type: 'array' } },
       skillAttrMap: { type: 'object' },
       currency: { _type: 'object', name: { type: 'string' }, symbol: { type: 'string' } },
-      progressionType: { type: 'string', values: ['oaths','levels','corruption','milestones'] },
-      turnOrder: { type: 'string', values: ['fast-slow','initiative','round-robin'] },
+      progressionType: { type: 'string', values: ['oaths', 'levels', 'corruption', 'milestones'] },
+      turnOrder: { type: 'string', values: ['fast-slow', 'initiative', 'round-robin'] },
       equipmentDrops: { _type: 'object', legendaryName: { type: 'string' }, armorName: { type: 'string' } },
     },
 
     // Character Creation
     charCreation: {
-      _type: 'object', required: true,
+      _type: 'object',
+      required: true,
       paths: { type: 'array', required: true, minLength: 1 },
       classLabel: { type: 'string' },
       backgroundLabel: { type: 'string' },
@@ -68,27 +71,28 @@
 
     // GM Context
     gmContext: {
-      _type: 'object', required: true,
-      worldName:   { type: 'string', required: true },
-      systemName:  { type: 'string' },
-      magicName:   { type: 'string' },
+      _type: 'object',
+      required: true,
+      worldName: { type: 'string', required: true },
+      systemName: { type: 'string' },
+      magicName: { type: 'string' },
       magicResource: { type: 'string' },
-      worldLore:   { type: 'string' },
+      worldLore: { type: 'string' },
       toneInstruction: { type: 'string' },
     },
 
     // Combat & Story Actions
     combatActions: { type: 'array', required: true, minLength: 1 },
-    storyActions:  { type: 'array', minLength: 1 },
+    storyActions: { type: 'array', minLength: 1 },
 
     // Character Data
-    classes:    { type: 'array', required: true, minLength: 1 },
+    classes: { type: 'array', required: true, minLength: 1 },
     ancestries: { type: 'array' },
-    heroRoles:  { type: 'array' },
-    weapons:    { type: 'object' },
-    armors:     { type: 'object' },
+    heroRoles: { type: 'array' },
+    weapons: { type: 'object' },
+    armors: { type: 'object' },
     conditions: { type: 'object' },
-    locations:  { type: 'array' },
+    locations: { type: 'array' },
   };
 
   // ── Validation Engine ──────────────────────────────────────
@@ -112,7 +116,10 @@
             // Auto-repair from defaults
             if (data && window.ConfigDefaults) {
               const defaultVal = getNestedDefault(fullPath);
-              if (defaultVal !== undefined) { data[key] = defaultVal; warnings.push({ path: fullPath, msg: 'Auto-filled from defaults' }); }
+              if (defaultVal !== undefined) {
+                data[key] = defaultVal;
+                warnings.push({ path: fullPath, msg: 'Auto-filled from defaults' });
+              }
             }
           } else if (val && typeof val === 'object') {
             check(rule, val, fullPath);
@@ -125,7 +132,10 @@
           if (rule.required) {
             errors.push({ path: fullPath, msg: 'Required field missing', severity: 'error' });
             const defaultVal = getNestedDefault(fullPath);
-            if (defaultVal !== undefined && data) { data[key] = defaultVal; warnings.push({ path: fullPath, msg: 'Auto-filled from defaults' }); }
+            if (defaultVal !== undefined && data) {
+              data[key] = defaultVal;
+              warnings.push({ path: fullPath, msg: 'Auto-filled from defaults' });
+            }
           }
           continue;
         }
@@ -185,9 +195,12 @@
     if (repaired.rules && repaired.statKeys) {
       // Ensure defense stat refs exist in statKeys
       (repaired.rules.defenses || []).forEach((def, i) => {
-        (def.stats || []).forEach(statKey => {
+        (def.stats || []).forEach((statKey) => {
           if (!repaired.statKeys.includes(statKey)) {
-            warnings.push({ path: `rules.defenses[${i}].stats`, msg: `Stat "${statKey}" not found in statKeys [${repaired.statKeys.join(',')}]` });
+            warnings.push({
+              path: `rules.defenses[${i}].stats`,
+              msg: `Stat "${statKey}" not found in statKeys [${repaired.statKeys.join(',')}]`,
+            });
           }
         });
       });
@@ -198,12 +211,12 @@
     }
 
     // Log results
-    const valid = errors.filter(e => e.severity === 'error').length === 0;
+    const valid = errors.filter((e) => e.severity === 'error').length === 0;
     if (errors.length || warnings.length) {
       const sysName = repaired.name || repaired.id || 'unknown';
       console.groupCollapsed(`[ConfigValidator] ${sysName}: ${errors.length} errors, ${warnings.length} warnings`);
-      errors.forEach(e => console.error(`  ❌ ${e.path}: ${e.msg}`));
-      warnings.forEach(w => console.warn(`  ⚠ ${w.path}: ${w.msg}`));
+      errors.forEach((e) => console.error(`  ❌ ${e.path}: ${e.msg}`));
+      warnings.forEach((w) => console.warn(`  ⚠ ${w.path}: ${w.msg}`));
       console.groupEnd();
     }
 
@@ -212,5 +225,4 @@
 
   // ── Export ──────────────────────────────────────────────────
   window.ConfigValidator = { validate, SCHEMA };
-
 })();

@@ -38,7 +38,7 @@ function calcDefenses(attrs, bonuses = {}) {
   const s = attrs;
   return {
     physDef: 10 + (s.str || 0) + (s.spd || 0) + (bonuses.physDef || 0),
-    cogDef:  10 + (s.int || 0) + (s.wil || 0) + (bonuses.cogDef  || 0),
+    cogDef: 10 + (s.int || 0) + (s.wil || 0) + (bonuses.cogDef || 0),
     spirDef: 10 + (s.awa || 0) + (s.pre || 0) + (bonuses.spirDef || 0),
   };
 }
@@ -77,14 +77,34 @@ function skillModifier(attrs, skillId, skillRanks, miscBonus = 0) {
   const skillAttrMap = window.ConfigResolver
     ? window.ConfigResolver.getSkillAttrMap()
     : {
-        agility:'spd', athletics:'str', heavyWeapon:'str', lightWeapon:'spd',
-        stealth:'spd', thievery:'spd', crafting:'int', deduction:'int',
-        discipline:'wil', intimidation:'wil', lore:'int', medicine:'int',
-        deception:'pre', insight:'awa', leadership:'pre', perception:'awa',
-        persuasion:'pre', survival:'awa',
-        abrasion:'spd', adhesion:'pre', cohesion:'wil', division:'int',
-        gravitation:'awa', illumination:'pre', progression:'awa',
-        tension:'str', transformation:'wil', transportation:'int',
+        agility: 'spd',
+        athletics: 'str',
+        heavyWeapon: 'str',
+        lightWeapon: 'spd',
+        stealth: 'spd',
+        thievery: 'spd',
+        crafting: 'int',
+        deduction: 'int',
+        discipline: 'wil',
+        intimidation: 'wil',
+        lore: 'int',
+        medicine: 'int',
+        deception: 'pre',
+        insight: 'awa',
+        leadership: 'pre',
+        perception: 'awa',
+        persuasion: 'pre',
+        survival: 'awa',
+        abrasion: 'spd',
+        adhesion: 'pre',
+        cohesion: 'wil',
+        division: 'int',
+        gravitation: 'awa',
+        illumination: 'pre',
+        progression: 'awa',
+        tension: 'str',
+        transformation: 'wil',
+        transportation: 'int',
       };
   const attrKey = skillAttrMap[skillId] || 'int';
   return (attrs[attrKey] || 0) + (skillRanks || 0) + miscBonus;
@@ -101,7 +121,9 @@ function skillModifier(attrs, skillId, skillRanks, miscBonus = 0) {
    ───────────────────────────────────────────────────────────── */
 
 /** Roll a single d20 */
-function d20() { return Math.floor(Math.random() * 20) + 1; }
+function d20() {
+  return Math.floor(Math.random() * 20) + 1;
+}
 
 /** Roll dice — e.g. rollDice(2, 6) = sum of 2d6 */
 function rollDice(count, sides) {
@@ -161,9 +183,9 @@ function rollPlotDie() {
   return {
     roll,
     complication: roll <= 2,
-    bonus:        roll === 4 || roll === 5 ? 4 : 0,
-    opportunity:  roll === 6,
-    label:        roll <= 2 ? 'Complication' : roll === 6 ? 'Opportunity' : roll >= 4 ? '+4' : '—',
+    bonus: roll === 4 || roll === 5 ? 4 : 0,
+    opportunity: roll === 6,
+    label: roll <= 2 ? 'Complication' : roll === 6 ? 'Opportunity' : roll >= 4 ? '+4' : '—',
   };
 }
 
@@ -194,7 +216,7 @@ function resolveAttackOutcome(attackTotal, targetDef, hasOpportunity = false) {
   const margin = attackTotal - targetDef;
   let outcome;
   if (margin >= 0) {
-    outcome = (hasOpportunity) ? ATTACK_OUTCOME.CRIT : ATTACK_OUTCOME.HIT;
+    outcome = hasOpportunity ? ATTACK_OUTCOME.CRIT : ATTACK_OUTCOME.HIT;
   } else if (margin >= -4) {
     outcome = ATTACK_OUTCOME.GRAZE;
   } else {
@@ -217,7 +239,7 @@ function calcAttackDamage(diceStr, modifier, outcome, deflect = 0, dmgType = 'ke
 
   const m = (diceStr || '1d4').match(/^(\d+)d(\d+)$/i);
   const count = parseInt(m?.[1] || 1);
-  const sides  = parseInt(m?.[2] || 4);
+  const sides = parseInt(m?.[2] || 4);
   const isCrit = outcome === ATTACK_OUTCOME.CRIT;
 
   let dice;
@@ -228,7 +250,7 @@ function calcAttackDamage(diceStr, modifier, outcome, deflect = 0, dmgType = 'ke
     dice = rollDice(count, sides);
   }
 
-  const mod = (outcome === ATTACK_OUTCOME.HIT || isCrit) ? (modifier || 0) : 0;
+  const mod = outcome === ATTACK_OUTCOME.HIT || isCrit ? modifier || 0 : 0;
   const raw = dice + mod;
 
   // Deflect only applies to energy/impact/keen (not spirit/vital)
@@ -247,7 +269,7 @@ function calcAttackDamage(diceStr, modifier, outcome, deflect = 0, dmgType = 'ke
  * @returns {object} full attack result
  */
 function resolveAttack(attacker, defender, raiseStakes = false) {
-  const weapon   = attacker.weapon || { dmg: '1d4', dmgType: 'impact', skill: 'athletics' };
+  const weapon = attacker.weapon || { dmg: '1d4', dmgType: 'impact', skill: 'athletics' };
   const modifier = skillModifier(attacker.attrs || {}, weapon.skill, attacker.skillRanks?.[weapon.skill] || 0);
   const testResult = rollSkillTest(modifier, attacker.advantages || 0, raiseStakes);
 
@@ -255,11 +277,7 @@ function resolveAttack(attacker, defender, raiseStakes = false) {
   const defMap = { physDef: defender.physDef, cogDef: defender.cogDef, spirDef: defender.spirDef };
   const targetDef = defMap[weapon.targetDef || 'physDef'] || defender.physDef || 10;
 
-  const { outcome, margin } = resolveAttackOutcome(
-    testResult.total + (testResult.bonus || 0),
-    targetDef,
-    testResult.opportunity,
-  );
+  const { outcome, margin } = resolveAttackOutcome(testResult.total + (testResult.bonus || 0), targetDef, testResult.opportunity);
 
   const dmg = calcAttackDamage(weapon.dmg, modifier, outcome, defender.deflect || 0, weapon.dmgType);
 
@@ -299,19 +317,31 @@ function resolveSurgeAttack(caster, surgeId, target, investiture = 1, advantages
 
   // Read surge definition from config if available
   const _sd = window.SystemData || {};
-  const surgeDef = (_sd.surges || []).find(s => s.id === surgeId);
+  const surgeDef = (_sd.surges || []).find((s) => s.id === surgeId);
   const skillMap = window.ConfigResolver
     ? window.ConfigResolver.getSkillAttrMap()
-    : { abrasion:'spd', adhesion:'pre', cohesion:'wil', division:'int',
-        gravitation:'awa', illumination:'pre', progression:'awa',
-        tension:'str', transformation:'wil', transportation:'int' };
+    : {
+        abrasion: 'spd',
+        adhesion: 'pre',
+        cohesion: 'wil',
+        division: 'int',
+        gravitation: 'awa',
+        illumination: 'pre',
+        progression: 'awa',
+        tension: 'str',
+        transformation: 'wil',
+        transportation: 'int',
+      };
 
   const ranks = (caster.surgeRanks || {})[surgeId] || 1;
   const attrKey = (surgeDef && surgeDef.attr) || skillMap[surgeId] || 'awa';
   const surgeModifier = (caster.attrs?.[attrKey] || 0) + ranks;
   const dieSize = parseInt(SURGE_DICE[Math.min(ranks - 1, 4)].slice(1));
-  const dmgType = (surgeDef && surgeDef.dmgType) || ({ division:'spirit', transformation:'spirit' }[surgeId]) || 'impact';
-  const targetDefKey = (surgeDef && surgeDef.targetDef) || ({ division:'spirDef', transformation:'spirDef', transportation:'cogDef', illumination:'cogDef' }[surgeId]) || 'physDef';
+  const dmgType = (surgeDef && surgeDef.dmgType) || { division: 'spirit', transformation: 'spirit' }[surgeId] || 'impact';
+  const targetDefKey =
+    (surgeDef && surgeDef.targetDef) ||
+    { division: 'spirDef', transformation: 'spirDef', transportation: 'cogDef', illumination: 'cogDef' }[surgeId] ||
+    'physDef';
   const targetDef = target[targetDefKey] || target.physDef || 10;
 
   const testResult = rollSkillTest(surgeModifier, advantages, false);
@@ -386,15 +416,15 @@ function activateRegenerate(player, tier = 1) {
  * Returns ordered array with action budgets attached.
  */
 function buildTurnOrder(combatants) {
-  const fastPC   = combatants.filter(c => !c.isNPC && c.isFast  && !c.isSurprised);
-  const fastNPC  = combatants.filter(c =>  c.isNPC && c.isFast);
-  const slowPC   = combatants.filter(c => !c.isNPC && (!c.isFast || c.isSurprised));
-  const slowNPC  = combatants.filter(c =>  c.isNPC && !c.isFast);
+  const fastPC = combatants.filter((c) => !c.isNPC && c.isFast && !c.isSurprised);
+  const fastNPC = combatants.filter((c) => c.isNPC && c.isFast);
+  const slowPC = combatants.filter((c) => !c.isNPC && (!c.isFast || c.isSurprised));
+  const slowNPC = combatants.filter((c) => c.isNPC && !c.isFast);
 
-  return [...fastPC, ...fastNPC, ...slowPC, ...slowNPC].map(c => ({
+  return [...fastPC, ...fastNPC, ...slowPC, ...slowNPC].map((c) => ({
     ...c,
-    actions: c.isFast && !c.isSurprised ? 2 : 3,   // Fast = 2 ▶, Slow = 3 ▶
-    reactions: c.isSurprised ? 0 : 1,               // Surprised loses reactions
+    actions: c.isFast && !c.isSurprised ? 2 : 3, // Fast = 2 ▶, Slow = 3 ▶
+    reactions: c.isSurprised ? 0 : 1, // Surprised loses reactions
   }));
 }
 
@@ -422,14 +452,12 @@ function tickConditions(player, endOfTurn = true) {
 
   // Afflicted — take damage at end of each turn
   if (player.conditions?.afflicted) {
-    const afflictions = Array.isArray(player.conditions.afflicted)
-      ? player.conditions.afflicted
-      : [player.conditions.afflicted];
+    const afflictions = Array.isArray(player.conditions.afflicted) ? player.conditions.afflicted : [player.conditions.afflicted];
 
     for (const aff of afflictions) {
       const dmg = typeof aff === 'object' ? aff.dmg || 0 : aff;
       const dmgType = typeof aff === 'object' ? aff.dmgType || 'vital' : 'vital';
-      const deflect = ['energy', 'impact', 'keen'].includes(dmgType) ? (player.deflect || 0) : 0;
+      const deflect = ['energy', 'impact', 'keen'].includes(dmgType) ? player.deflect || 0 : 0;
       const actual = Math.max(0, dmg - deflect);
       player.hp = Math.max(0, (player.hp || 0) - actual);
       events.push(`${player.name || 'Character'} takes ${actual} ${dmgType} (Afflicted)`);
@@ -450,7 +478,7 @@ function tickConditions(player, endOfTurn = true) {
  * Returns { taken, unconscious, injuryTriggered }
  */
 function applyDamage(player, amount, dmgType = 'keen') {
-  const deflect = ['energy', 'impact', 'keen'].includes(dmgType) ? (player.deflect || 0) : 0;
+  const deflect = ['energy', 'impact', 'keen'].includes(dmgType) ? player.deflect || 0 : 0;
   const taken = Math.max(0, amount - deflect);
   player.hp = (player.hp || 0) - taken;
 
@@ -485,20 +513,20 @@ function applyDamage(player, amount, dmgType = 'keen') {
    ───────────────────────────────────────────────────────────── */
 
 const INJURY_SEVERITY = [
-  { min: 16,  name: 'Flesh Wound',       duration: () => 'Until next long rest', perm: false, fatal: false },
-  { min: 6,   name: 'Shallow Injury',    duration: () => `${rollDice(1,6)} days`, perm: false, fatal: false },
-  { min: 1,   name: 'Vicious Injury',    duration: () => `${rollDice(6,6)} days`, perm: false, fatal: false },
-  { min: -5,  name: 'Permanent Injury',  duration: () => 'Permanent (supernatural healing required)', perm: true,  fatal: false },
-  { min: -999,name: 'Death',             duration: () => 'Permanent',             perm: true,  fatal: true  },
+  { min: 16, name: 'Flesh Wound', duration: () => 'Until next long rest', perm: false, fatal: false },
+  { min: 6, name: 'Shallow Injury', duration: () => `${rollDice(1, 6)} days`, perm: false, fatal: false },
+  { min: 1, name: 'Vicious Injury', duration: () => `${rollDice(6, 6)} days`, perm: false, fatal: false },
+  { min: -5, name: 'Permanent Injury', duration: () => 'Permanent (supernatural healing required)', perm: true, fatal: false },
+  { min: -999, name: 'Death', duration: () => 'Permanent', perm: true, fatal: true },
 ];
 
 const INJURY_EFFECTS_TABLE = [
-  { d8: [1,2], effect: 'exhausted', penalty: 1, label: 'Exhausted [−1] — general stamina loss' },
-  { d8: [3],   effect: 'exhausted', penalty: 2, label: 'Exhausted [−2] — severe stamina loss' },
-  { d8: [4,5], effect: 'slowed',    penalty: 0, label: 'Slowed — injured leg' },
-  { d8: [6],   effect: 'disoriented', penalty: 0, label: 'Disoriented — head injury' },
-  { d8: [7],   effect: 'surprised',   penalty: 0, label: 'Surprised — shock from injury' },
-  { d8: [8],   effect: 'oneHand',     penalty: 0, label: 'Can only use one hand — injured arm' },
+  { d8: [1, 2], effect: 'exhausted', penalty: 1, label: 'Exhausted [−1] — general stamina loss' },
+  { d8: [3], effect: 'exhausted', penalty: 2, label: 'Exhausted [−2] — severe stamina loss' },
+  { d8: [4, 5], effect: 'slowed', penalty: 0, label: 'Slowed — injured leg' },
+  { d8: [6], effect: 'disoriented', penalty: 0, label: 'Disoriented — head injury' },
+  { d8: [7], effect: 'surprised', penalty: 0, label: 'Surprised — shock from injury' },
+  { d8: [8], effect: 'oneHand', penalty: 0, label: 'Can only use one hand — injured arm' },
 ];
 
 /**
@@ -508,22 +536,23 @@ const INJURY_EFFECTS_TABLE = [
 function rollInjury(player, isShardblade = false) {
   const deflect = player.deflect || 0;
   const existingInjuries = (player.injuries || []).length;
-  const roll = d20() + deflect - (existingInjuries * 5);
+  const roll = d20() + deflect - existingInjuries * 5;
 
   let severity;
   if (isShardblade) {
     // Spiritual Injury Table (Chapter 7)
-    if (roll >= 16)     severity = { name: 'Flesh Wound (Spiritual)',         duration: 'Until long rest', perm: false, fatal: false };
-    else if (roll >= 1) severity = { name: 'Permanent Spiritual Injury',       duration: 'Permanent (non-Invested healing blocked)', perm: true, fatal: false };
-    else                severity = { name: 'Death',                            duration: 'Permanent', perm: true, fatal: true };
+    if (roll >= 16) severity = { name: 'Flesh Wound (Spiritual)', duration: 'Until long rest', perm: false, fatal: false };
+    else if (roll >= 1)
+      severity = { name: 'Permanent Spiritual Injury', duration: 'Permanent (non-Invested healing blocked)', perm: true, fatal: false };
+    else severity = { name: 'Death', duration: 'Permanent', perm: true, fatal: true };
   } else {
-    severity = INJURY_SEVERITY.find(s => roll >= s.min) || INJURY_SEVERITY[INJURY_SEVERITY.length - 1];
+    severity = INJURY_SEVERITY.find((s) => roll >= s.min) || INJURY_SEVERITY[INJURY_SEVERITY.length - 1];
     severity = { ...severity, duration: severity.duration() };
   }
 
   // Roll d8 for injury effect
   const d8Roll = Math.floor(Math.random() * 8) + 1;
-  const effectRow = INJURY_EFFECTS_TABLE.find(r => r.d8.includes(d8Roll)) || INJURY_EFFECTS_TABLE[0];
+  const effectRow = INJURY_EFFECTS_TABLE.find((r) => r.d8.includes(d8Roll)) || INJURY_EFFECTS_TABLE[0];
 
   const injury = {
     id: Date.now(),
@@ -570,16 +599,16 @@ function rollInjury(player, isShardblade = false) {
    ───────────────────────────────────────────────────────────── */
 
 const RECOVERY_DIE_TABLE = [
-  { maxWil: 0,  die: 4  },
-  { maxWil: 2,  die: 6  },
-  { maxWil: 4,  die: 8  },
-  { maxWil: 6,  die: 10 },
-  { maxWil: 8,  die: 12 },
-  { maxWil: 999,die: 20 },
+  { maxWil: 0, die: 4 },
+  { maxWil: 2, die: 6 },
+  { maxWil: 4, die: 8 },
+  { maxWil: 6, die: 10 },
+  { maxWil: 8, die: 12 },
+  { maxWil: 999, die: 20 },
 ];
 
 function getRecoveryDieSides(wil) {
-  return (RECOVERY_DIE_TABLE.find(r => (wil || 0) <= r.maxWil) || { die: 20 }).die;
+  return (RECOVERY_DIE_TABLE.find((r) => (wil || 0) <= r.maxWil) || { die: 20 }).die;
 }
 
 /**
@@ -592,7 +621,8 @@ function doShortRest(player, allocation = 'hp') {
   const dieSides = getRecoveryDieSides(wil);
   const roll = rollDice(1, dieSides);
 
-  let hpGained = 0, focusGained = 0;
+  let hpGained = 0,
+    focusGained = 0;
   if (allocation === 'hp') {
     hpGained = Math.min(roll, (player.maxHp || 10) - (player.hp || 0));
     player.hp = Math.min(player.maxHp || 10, (player.hp || 0) + roll);
@@ -629,9 +659,7 @@ function doLongRest(player) {
 
   // Heal Flesh Wounds (duration 'until long rest' or 'Until next long rest')
   if (player.injuries) {
-    player.injuries = player.injuries.filter(inj =>
-      inj.isPermanent || (!inj.severity.toLowerCase().includes('flesh'))
-    );
+    player.injuries = player.injuries.filter((inj) => inj.isPermanent || !inj.severity.toLowerCase().includes('flesh'));
   }
 
   // Class-path characters: full long rest restores magic pool
@@ -780,7 +808,9 @@ window.Rules = {
    ───────────────────────────────────────────────────────────── */
 
 // D&D ability modifier: floor((score - 10) / 2)
-function dnd_abilityMod(score) { return Math.floor(((score||10) - 10) / 2); }
+function dnd_abilityMod(score) {
+  return Math.floor(((score || 10) - 10) / 2);
+}
 
 // D&D proficiency bonus by level
 function dnd_profBonus(level) {
@@ -799,11 +829,11 @@ function dnd_calcAC(attrs, armorDeflect) {
 // D&D HP: hit die avg + CON mod per level. Level 1 = max die + CON.
 function dnd_calcHP(hitDie, conScore, level) {
   const conMod = dnd_abilityMod(conScore || 10);
-  const dieSizes = { d6:6, d8:8, d10:10, d12:12 };
+  const dieSizes = { d6: 6, d8: 8, d10: 10, d12: 12 };
   const die = dieSizes[hitDie] || 8;
   const lvl1 = die + conMod;
-  const perLevel = Math.floor(die/2) + 1 + conMod;
-  return lvl1 + Math.max(0, (level||1) - 1) * perLevel;
+  const perLevel = Math.floor(die / 2) + 1 + conMod;
+  return lvl1 + Math.max(0, (level || 1) - 1) * perLevel;
 }
 
 // D&D death save: d20 >= 10 = success. 3 successes = stable. 3 failures = dead. Nat 20 = up with 1HP.
@@ -820,48 +850,48 @@ function dnd_deathSave() {
 // D&D spell slots by class level (simplified — Cleric/Wizard full caster)
 function dnd_spellSlots(level) {
   const table = {
-    1:  [2],
-    2:  [3],
-    3:  [4,2],
-    4:  [4,3],
-    5:  [4,3,2],
-    6:  [4,3,3],
-    7:  [4,3,3,1],
-    8:  [4,3,3,2],
-    9:  [4,3,3,3,1],
-    10: [4,3,3,3,2],
+    1: [2],
+    2: [3],
+    3: [4, 2],
+    4: [4, 3],
+    5: [4, 3, 2],
+    6: [4, 3, 3],
+    7: [4, 3, 3, 1],
+    8: [4, 3, 3, 2],
+    9: [4, 3, 3, 3, 1],
+    10: [4, 3, 3, 3, 2],
   };
-  return table[Math.min(level||1, 10)] || [2];
+  return table[Math.min(level || 1, 10)] || [2];
 }
 
 // D&D skill check: d20 + ability mod + proficiency (if proficient)
 function dnd_skillCheck(abilityScore, isProficient, level) {
   const roll = Math.floor(Math.random() * 20) + 1;
-  const mod = dnd_abilityMod(abilityScore) + (isProficient ? dnd_profBonus(level||1) : 0);
-  return { roll, modifier: mod, total: roll + mod, nat20: roll===20, nat1: roll===1 };
+  const mod = dnd_abilityMod(abilityScore) + (isProficient ? dnd_profBonus(level || 1) : 0);
+  return { roll, modifier: mod, total: roll + mod, nat20: roll === 20, nat1: roll === 1 };
 }
 
 // D&D attack roll: d20 + ability mod + proficiency
 function dnd_attackRoll(abilityScore, level, targetAC, advantage) {
   let roll1 = Math.floor(Math.random() * 20) + 1;
   let roll2 = Math.floor(Math.random() * 20) + 1;
-  const roll = advantage === 'advantage' ? Math.max(roll1,roll2) : advantage === 'disadvantage' ? Math.min(roll1,roll2) : roll1;
-  const mod = dnd_abilityMod(abilityScore) + dnd_profBonus(level||1);
+  const roll = advantage === 'advantage' ? Math.max(roll1, roll2) : advantage === 'disadvantage' ? Math.min(roll1, roll2) : roll1;
+  const mod = dnd_abilityMod(abilityScore) + dnd_profBonus(level || 1);
   const total = roll + mod;
   const hit = roll === 20 || (roll !== 1 && total >= targetAC);
   const crit = roll === 20;
-  return { roll, modifier: mod, total, hit, crit, nat1: roll===1 };
+  return { roll, modifier: mod, total, hit, crit, nat1: roll === 1 };
 }
 
 // Expose on Rules
-window.Rules.dnd_abilityMod  = dnd_abilityMod;
-window.Rules.dnd_profBonus   = dnd_profBonus;
-window.Rules.dnd_calcAC      = dnd_calcAC;
-window.Rules.dnd_calcHP      = dnd_calcHP;
-window.Rules.dnd_deathSave   = dnd_deathSave;
-window.Rules.dnd_spellSlots  = dnd_spellSlots;
-window.Rules.dnd_skillCheck  = dnd_skillCheck;
-window.Rules.dnd_attackRoll  = dnd_attackRoll;
+window.Rules.dnd_abilityMod = dnd_abilityMod;
+window.Rules.dnd_profBonus = dnd_profBonus;
+window.Rules.dnd_calcAC = dnd_calcAC;
+window.Rules.dnd_calcHP = dnd_calcHP;
+window.Rules.dnd_deathSave = dnd_deathSave;
+window.Rules.dnd_spellSlots = dnd_spellSlots;
+window.Rules.dnd_skillCheck = dnd_skillCheck;
+window.Rules.dnd_attackRoll = dnd_attackRoll;
 
 // ── System-aware wrappers ──
 // calcDefenses and calcSecondaryStats are now config-driven at their source.

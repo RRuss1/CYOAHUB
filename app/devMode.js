@@ -11,7 +11,7 @@
  * ============================================================
  */
 
-(function() {
+(function () {
   'use strict';
 
   // ── Activation Gate ────────────────────────────────────────
@@ -162,7 +162,7 @@
       status.textContent = '✓ Applied. Refresh screen to see changes.';
       status.style.color = '#28A87A';
       console.log('[DEV] Config applied:', parsed);
-    } catch(e) {
+    } catch (e) {
       status.textContent = '✕ JSON error: ' + e.message;
       status.style.color = '#B03828';
     }
@@ -183,7 +183,7 @@
       } else {
         status.textContent = 'ConfigValidator not loaded';
       }
-    } catch(e) {
+    } catch (e) {
       status.textContent = '✕ JSON error: ' + e.message;
       status.style.color = '#B03828';
     }
@@ -234,5 +234,4 @@
     resetConfig,
     getFallbackReport: () => ({ ..._fallbackReport }),
   };
-
 })();

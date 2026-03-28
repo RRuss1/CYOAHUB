@@ -21,10 +21,12 @@
  * ============================================================
  */
 
-(function() {
+(function () {
   'use strict';
 
-  function _SD() { return window.SystemData || {}; }
+  function _SD() {
+    return window.SystemData || {};
+  }
 
   // ═══════════════════════════════════════════════════════════
   // 1. RESOLVE — Determine which action config matches input text
@@ -47,7 +49,7 @@
     const tagMatch = text.match(/^\[([A-Z_]+)\]/);
     if (tagMatch) {
       const tag = tagMatch[1];
-      const found = allActions.find(a => a.tag === tag);
+      const found = allActions.find((a) => a.tag === tag);
       if (found) {
         return _buildResult(found, text);
       }
@@ -69,22 +71,30 @@
 
     // 3. Fallback: detect heal/rest patterns (universal)
     if (/\[heal\]|heal|mend|restore|bandage|cure|medicine|patch.*wound/.test(text)) {
-      const healAction = combatActions.find(a => a.id === 'heal') || { id: 'heal', tag: 'HEAL', label: 'Heal' };
+      const healAction = combatActions.find((a) => a.id === 'heal') || { id: 'heal', tag: 'HEAL', label: 'Heal' };
       return _buildResult(healAction, text);
     }
     if (/\[rest\]|short rest|take a rest|rest and recover|catch.*breath/.test(text)) {
-      return { actionDef: { id: 'rest', tag: 'REST', label: 'Rest' }, bucket: 'heal', stat: _getFirstStat('wil'), skill: 'medicine', tag: 'REST', phase: 'HEAL', restAction: true };
+      return {
+        actionDef: { id: 'rest', tag: 'REST', label: 'Rest' },
+        bucket: 'heal',
+        stat: _getFirstStat('wil'),
+        skill: 'medicine',
+        tag: 'REST',
+        phase: 'HEAL',
+        restAction: true,
+      };
     }
 
     // 4. Fallback: detect attack patterns
     if (/\[attack\]|attack|strike|slash|hit|stab|shoot|swing|punch|kick/.test(text)) {
-      const atkAction = combatActions.find(a => a.id === 'attack') || { id: 'attack', tag: 'ATTACK', label: 'Attack' };
+      const atkAction = combatActions.find((a) => a.id === 'attack') || { id: 'attack', tag: 'ATTACK', label: 'Attack' };
       return _buildResult(atkAction, text);
     }
 
     // 5. Fallback: detect defend patterns
     if (/\[defend\]|defend|block|dodge|evade|shield|parry|protect/.test(text)) {
-      const defAction = combatActions.find(a => a.id === 'defend') || { id: 'defend', tag: 'DEFEND', label: 'Defend' };
+      const defAction = combatActions.find((a) => a.id === 'defend') || { id: 'defend', tag: 'DEFEND', label: 'Defend' };
       return _buildResult(defAction, text);
     }
 
@@ -92,8 +102,18 @@
     const surges = _SD().surges || [];
     for (const surge of surges) {
       if (text.includes(surge.name.toLowerCase()) || text.includes(surge.id.toLowerCase())) {
-        const surgeAction = combatActions.find(a => a.id === 'surge' || a.id === 'magic' || a.id === 'corruption') || { id: 'surge', tag: 'SURGE' };
-        return { actionDef: surgeAction, bucket: 'surge', stat: surge.attr || _getFirstStat('int'), skill: surge.id, tag: surgeAction.tag || 'SURGE', phase: surgeAction.phase || 'OFFENSE' };
+        const surgeAction = combatActions.find((a) => a.id === 'surge' || a.id === 'magic' || a.id === 'corruption') || {
+          id: 'surge',
+          tag: 'SURGE',
+        };
+        return {
+          actionDef: surgeAction,
+          bucket: 'surge',
+          stat: surge.attr || _getFirstStat('int'),
+          skill: surge.id,
+          tag: surgeAction.tag || 'SURGE',
+          phase: surgeAction.phase || 'OFFENSE',
+        };
       }
     }
 
@@ -101,7 +121,14 @@
     const skillMap = window.ConfigResolver ? window.ConfigResolver.getSkillAttrMap() : {};
     for (const [skillId, attrKey] of Object.entries(skillMap)) {
       if (text.includes(skillId.toLowerCase())) {
-        return { actionDef: { id: 'skill', tag: 'SKILL', label: 'Skill Check' }, bucket: 'skill', stat: attrKey, skill: skillId, tag: 'SKILL', phase: 'OFFENSE' };
+        return {
+          actionDef: { id: 'skill', tag: 'SKILL', label: 'Skill Check' },
+          bucket: 'skill',
+          stat: attrKey,
+          skill: skillId,
+          tag: 'SKILL',
+          phase: 'OFFENSE',
+        };
       }
     }
 
@@ -124,14 +151,14 @@
   }
 
   function _getFirstStat(fallback) {
-    const keys = (_SD().statKeys || []);
+    const keys = _SD().statKeys || [];
     return keys[0] || fallback || 'str';
   }
 
   function _inferStat(bucket) {
     const map = { attack: 'str', defend: 'spd', heal: 'wil', surge: 'int', magic: 'int', skill: 'int' };
     const keys = _SD().statKeys || [];
-    return keys.length > 0 ? (keys[0]) : (map[bucket] || 'str');
+    return keys.length > 0 ? keys[0] : map[bucket] || 'str';
   }
 
   function _inferSkill(bucket) {
@@ -140,7 +167,15 @@
   }
 
   function _inferPhase(bucket) {
-    const map = { attack: 'OFFENSE', defend: 'DEFENSE', heal: 'HEAL', surge: 'OFFENSE', magic: 'OFFENSE', corruption: 'OFFENSE', skill: 'OFFENSE' };
+    const map = {
+      attack: 'OFFENSE',
+      defend: 'DEFENSE',
+      heal: 'HEAL',
+      surge: 'OFFENSE',
+      magic: 'OFFENSE',
+      corruption: 'OFFENSE',
+      skill: 'OFFENSE',
+    };
     return map[bucket] || 'OFFENSE';
   }
 
@@ -273,11 +308,11 @@
   function getAvailableActions(actor, context) {
     const sys = _SD();
     const actions = sys.combatActions || [];
-    return actions.filter(action => {
+    return actions.filter((action) => {
       if (!action.conditions) return true;
       if (!window.ConfigResolver) return true;
       const conds = Array.isArray(action.conditions) ? action.conditions : [action.conditions];
-      return conds.every(c => window.ConfigResolver.evaluateCondition(c, { character: actor, gState: context }));
+      return conds.every((c) => window.ConfigResolver.evaluateCondition(c, { character: actor, gState: context }));
     });
   }
 
@@ -286,9 +321,8 @@
    */
   function getActionTagsString() {
     const sys = _SD();
-    return (sys.combatActions || []).map(a => '[' + a.tag + ']').join(', ');
+    return (sys.combatActions || []).map((a) => '[' + a.tag + ']').join(', ');
   }
 
   window.ActionEngine = { resolve, execute, getAvailableActions, getActionTagsString };
-
 })();
