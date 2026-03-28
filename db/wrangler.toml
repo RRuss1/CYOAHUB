@@ -23,3 +23,7 @@ new_classes = ["GameSession"]
 # Secrets (set via CLI, never in this file):
 # ANTHROPIC_KEY  — Anthropic API key
 # DATABASE_URL   — Neon Postgres connection string
+
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "cyoahub-images"

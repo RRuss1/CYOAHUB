@@ -266,7 +266,76 @@ export default {
     }
 
     // ══════════════════════════════════════════════════════════
-    // 3. DATABASE ROUTES (Neon Postgres)
+    // 3. IMAGE STORAGE (Cloudflare R2)
+    // ══════════════════════════════════════════════════════════
+
+    // POST /img/upload — upload an image, returns URL
+    if (pathname === '/img/upload' && method === 'POST') {
+      if (!env.IMAGES) return json({ error: 'Image storage not configured' }, 503);
+
+      const contentType = request.headers.get('Content-Type') || '';
+
+      // Handle multipart form data (file upload from <input type="file">)
+      if (contentType.includes('multipart/form-data')) {
+        const formData = await request.formData();
+        const file = formData.get('file');
+        if (!file || !file.size) return json({ error: 'No file provided' }, 400);
+        if (file.size > 2 * 1024 * 1024) return json({ error: 'File too large (max 2MB)' }, 400);
+
+        const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (!allowed.includes(file.type)) return json({ error: 'Only JPEG, PNG, WebP, GIF allowed' }, 400);
+
+        const ext = file.type.split('/')[1] === 'jpeg' ? 'jpg' : file.type.split('/')[1];
+        const key = `uploads/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+
+        await env.IMAGES.put(key, file.stream(), {
+          httpMetadata: { contentType: file.type },
+        });
+
+        const imgUrl = url.origin + '/img/' + key;
+        return json({ ok: true, url: imgUrl, key });
+      }
+
+      // Handle base64 JSON upload
+      if (contentType.includes('application/json')) {
+        const { data, filename, mimeType } = await request.json();
+        if (!data) return json({ error: 'No image data' }, 400);
+
+        const binary = Uint8Array.from(atob(data), c => c.charCodeAt(0));
+        if (binary.length > 2 * 1024 * 1024) return json({ error: 'File too large (max 2MB)' }, 400);
+
+        const ext = (mimeType || 'image/png').split('/')[1] === 'jpeg' ? 'jpg' : (mimeType || 'image/png').split('/')[1];
+        const key = `uploads/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+
+        await env.IMAGES.put(key, binary, {
+          httpMetadata: { contentType: mimeType || 'image/png' },
+        });
+
+        const imgUrl = url.origin + '/img/' + key;
+        return json({ ok: true, url: imgUrl, key });
+      }
+
+      return json({ error: 'Unsupported content type' }, 400);
+    }
+
+    // GET /img/* — serve an image from R2
+    if (pathname.startsWith('/img/') && method === 'GET') {
+      if (!env.IMAGES) return new Response('Not found', { status: 404 });
+      const key = pathname.slice(5); // strip '/img/'
+      const obj = await env.IMAGES.get(key);
+      if (!obj) return new Response('Not found', { status: 404, headers: CORS_HEADERS });
+
+      return new Response(obj.body, {
+        headers: {
+          'Content-Type': obj.httpMetadata?.contentType || 'image/png',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          ...CORS_HEADERS,
+        },
+      });
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // 4. DATABASE ROUTES (Neon Postgres)
     // ══════════════════════════════════════════════════════════
 
     if (!env.DATABASE_URL) {

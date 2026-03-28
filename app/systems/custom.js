@@ -122,6 +122,64 @@ function _buildCharCreation(cfg) {
   };
 }
 
+// ── Helper: build classes from wizard class rows ──
+function _buildClasses(cfg) {
+  // If wizard provided custom classes, use them
+  const wizClasses = cfg.wizClasses || [];
+  const stats = _resolveStats(null, cfg.statSystem);
+  const keys = stats.statKeys || ['str','dex','con','int','wis','cha'];
+  const magic = cfg.magic || {};
+  const hasMagic = magic.exists !== false;
+
+  // Default archetypes if no wizard classes provided
+  const defaults = [
+    { name: 'Warrior', desc: 'A master of martial combat.', color: '#9B2335',
+      abilities: ['Power Strike','Battle Cry','Defensive Stance','Whirlwind Attack','Undying Resolve'] },
+    { name: 'Mage', desc: 'A wielder of arcane power.', color: '#4169E1',
+      abilities: ['Arcane Blast','Mystic Shield','Elemental Surge','Teleport','Time Stop'] },
+    { name: 'Rogue', desc: 'A cunning operative of stealth and precision.', color: '#4A4A4A',
+      abilities: ['Sneak Attack','Evasion','Smoke Bomb','Assassinate','Vanish'] },
+    { name: 'Healer', desc: 'A devoted healer and protector.', color: '#2E8B57',
+      abilities: ['Healing Touch','Purify','Divine Shield','Resurrect','Holy Nova'] },
+  ];
+
+  const source = wizClasses.length >= 2 ? wizClasses : defaults;
+
+  return source.map((cls, i) => {
+    const name = cls.name || defaults[i % defaults.length].name;
+    const id = name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+    const fallback = defaults[i % defaults.length];
+
+    // Distribute stat bonuses across classes (rotate through stat keys)
+    const bonus = {};
+    keys.forEach(k => { bonus[k] = 0; });
+    if (keys.length >= 2) {
+      bonus[keys[i % keys.length]] = 2;
+      bonus[keys[(i + 1) % keys.length]] = 1;
+    }
+
+    return {
+      id,
+      name,
+      philosophy: fallback.desc || ('The way of the ' + name + '.'),
+      surges: hasMagic && i % 2 === 1 ? ['arcaneBlast','ward','heal'] : [],
+      ideal1: 'I walk the path of the ' + name + '.',
+      ideal2: 'My skills grow sharper every day.',
+      ideal3: 'None can match me in my domain.',
+      ideal4: 'I have become the legend.',
+      spren: cls.name + ' Training',
+      sprenDesc: 'Deep training in the ways of the ' + name + '.',
+      sprenAssist: 'Class-specific skills and instincts',
+      desc: fallback.desc || ('A ' + name.toLowerCase() + ' of great skill.'),
+      bonus,
+      abilities: fallback.abilities || ['Strike','Defend','Focus','Special','Ultimate'],
+      dmgBonus: { crit: 3, hit: 2, miss: 0 },
+      color: fallback.color || '#' + Math.floor(Math.random()*0xFFFFFF).toString(16).padStart(6,'0'),
+      imgUrl: cls.imgUrl || '',
+    };
+  });
+}
+
 window.CustomSystem = {
   /**
    * Build a complete SystemData object from wizard worldConfig.
@@ -241,41 +299,8 @@ window.CustomSystem = {
 
       ..._resolveStats(null, cfg.statSystem),
 
-      // Generic classes — warrior, mage, rogue, healer archetype
-      classes: cfg.classes || [
-        {id:'warrior',name:'Warrior',philosophy:'Strength conquers all.',surges:[],
-         ideal1:'I will master the blade.',ideal2:'I protect my allies.',ideal3:'No foe can stand before me.',ideal4:'I am war incarnate.',
-         spren:'Combat Training',sprenDesc:'Years of martial discipline honed to perfection.',
-         sprenAssist:'Combat tactics, weapon mastery, endurance',
-         desc:'A master of martial combat.',
-         bonus:{str:2,dex:1,con:0,int:0,wis:0,cha:0},
-         abilities:['Power Strike','Battle Cry','Defensive Stance','Whirlwind Attack','Undying Resolve'],
-         dmgBonus:{crit:4,hit:2,miss:0},color:'#9B2335'},
-        {id:'mage',name:'Mage',philosophy:'Knowledge is power.',surges:['arcaneBlast','ward','heal'],
-         ideal1:'I seek arcane knowledge.',ideal2:'My spells grow stronger.',ideal3:'I bend reality to my will.',ideal4:'I transcend mortal limits.',
-         spren:'Arcane Study',sprenDesc:'Deep study of the mystical arts.',
-         sprenAssist:'Arcane lore, spell research, magical identification',
-         desc:'A wielder of arcane power.',
-         bonus:{str:0,dex:0,con:0,int:2,wis:1,cha:0},
-         abilities:['Arcane Blast','Mystic Shield','Elemental Surge','Teleport','Time Stop'],
-         dmgBonus:{crit:3,hit:2,miss:0},color:'#4169E1'},
-        {id:'rogue',name:'Rogue',philosophy:'Strike from the shadows.',surges:[],
-         ideal1:'I survive by my wits.',ideal2:'The shadows conceal me.',ideal3:'I strike where they least expect.',ideal4:'I am the shadow itself.',
-         spren:'Shadow Training',sprenDesc:'A lifetime of stealth and cunning.',
-         sprenAssist:'Lockpicking, trap detection, stealth, deception',
-         desc:'A cunning operative of stealth and precision.',
-         bonus:{str:0,dex:2,con:0,int:1,wis:0,cha:0},
-         abilities:['Sneak Attack','Evasion','Smoke Bomb','Assassinate','Vanish'],
-         dmgBonus:{crit:4,hit:2,miss:0},color:'#4A4A4A'},
-        {id:'healer',name:'Healer',philosophy:'Life above all.',surges:['healingTouch','bless','smite'],
-         ideal1:'I preserve life.',ideal2:'My healing touch strengthens.',ideal3:'I channel divine energy.',ideal4:'I am a conduit of life itself.',
-         spren:'Divine Gift',sprenDesc:'A sacred connection to the forces of life.',
-         sprenAssist:'Healing, purification, spiritual guidance',
-         desc:'A devoted healer and protector.',
-         bonus:{str:0,dex:0,con:0,int:0,wis:2,cha:1},
-         abilities:['Healing Touch','Purify','Divine Shield','Resurrect','Holy Nova'],
-         dmgBonus:{crit:2,hit:2,miss:0},color:'#2E8B57'},
-      ],
+      // Classes — built from wizard class rows, or fallback to generic archetypes
+      classes: _buildClasses(cfg),
 
       sprenBonds: cfg.sprenBonds || {
         warrior:{name:'Battle Spirit',nick:'Spirit',stages:['A fire kindles within you...','Your instincts sharpen — you see openings others miss.','Your body moves before your mind — reflexes perfected.','In combat, time slows. Every move is deliberate.','You are the weapon itself. Unstoppable.'],color:'#9B2335'},

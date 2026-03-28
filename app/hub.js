@@ -188,8 +188,82 @@ function renderStep(){
   document.getElementById('wiz-back-btn').style.visibility=_ws>1?'visible':'hidden';
   document.getElementById('wiz-nav').style.display=_ws<WS_MAX?'flex':'none';
   gsap.fromTo('#ws-'+_ws,{opacity:0,x:16},{opacity:1,x:0,duration:.26,ease:'power2.out'});
+  if(_ws===4 && !_wizClassRows.length) initWizClassRows();
   if(_ws===5) { renderAmbientAudioPicker(); renderEnemyCategoryStep(); }
   if(_ws===WS_MAX) { renderCardImagePicker(); updatePreview(); }
+}
+
+/* ── DYNAMIC CLASS BUILDER ── */
+const _DEFAULT_CLASSES = ['Warrior','Mage','Rogue','Healer'];
+let _wizClassRows = [];
+
+function initWizClassRows(){
+  _wizClassRows = _DEFAULT_CLASSES.map(name => ({ name, imgUrl: '' }));
+  renderWizClassRows();
+}
+
+function renderWizClassRows(){
+  const container = document.getElementById('wiz-class-rows');
+  if(!container) return;
+  container.innerHTML = _wizClassRows.map((row, i) => `
+    <div class="wiz-class-row" data-idx="${i}" style="display:flex;gap:8px;align-items:center;">
+      <input type="text" class="winput wiz-class-name" value="${row.name}" placeholder="Class name..."
+        oninput="_wizClassRows[${i}].name=this.value"
+        style="flex:1;margin:0;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1px solid rgba(40,168,160,0.2);border-radius:8px;background:rgba(40,168,160,0.05);font-size:10px;color:rgba(40,168,160,0.6);font-family:var(--font-d,monospace);letter-spacing:1px;white-space:nowrap;transition:all .15s;">
+        ${row.imgUrl ? `<img src="${row.imgUrl}" style="width:24px;height:24px;border-radius:4px;object-fit:cover;">` : '📷'}
+        <span>${row.imgUrl ? 'Change' : 'Image'}</span>
+        <input type="file" accept="image/*" onchange="uploadWizClassImg(${i},this)" style="display:none;">
+      </label>
+      ${_wizClassRows.length > 4 ? `<button onclick="removeWizClassRow(${i})" style="background:none;border:none;color:rgba(176,56,40,0.6);cursor:pointer;font-size:16px;padding:4px 8px;" title="Remove">✕</button>` : ''}
+    </div>
+  `).join('');
+
+  const addBtn = document.getElementById('wiz-add-class-btn');
+  if(addBtn) addBtn.style.display = _wizClassRows.length >= 10 ? 'none' : '';
+}
+
+function addWizClassRow(){
+  if(_wizClassRows.length >= 10) return;
+  _wizClassRows.push({ name: '', imgUrl: '' });
+  renderWizClassRows();
+  // Focus the new row's input
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('.wiz-class-name');
+    if(inputs.length) inputs[inputs.length-1].focus();
+  }, 50);
+}
+
+function removeWizClassRow(idx){
+  if(_wizClassRows.length <= 4) return;
+  _wizClassRows.splice(idx, 1);
+  renderWizClassRows();
+}
+
+async function uploadWizClassImg(idx, input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  if(file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB.'); return; }
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if(data.url) {
+      _wizClassRows[idx].imgUrl = data.url;
+      renderWizClassRows();
+    } else {
+      alert(data.error || 'Upload failed.');
+    }
+  } catch(e) { alert('Upload failed: ' + e.message); }
+}
+
+function getWizClasses(){
+  return _wizClassRows
+    .filter(r => r.name.trim())
+    .map(r => ({ name: r.name.trim(), imgUrl: r.imgUrl || '' }));
 }
 
 /* ── AMBIENT AUDIO PICKER ── */
@@ -417,6 +491,7 @@ Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Tim
     rules: { physics, deathRules, timeFlow, travelSpeed, dialogueStyle },
     enemies: { categories: _selectedEnemyCategories },
     ambientAudio: _selectedAmbientAudio,
+    wizClasses: getWizClasses(),
   };
   // Add card image and publish flag
   worldConfig.cardImage = _selectedCardImage;
