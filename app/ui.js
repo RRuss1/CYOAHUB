@@ -258,10 +258,12 @@ async function listCampaigns() {
   return camps;
 }
 async function createCampaign(name, sys, worldId, sz) {
-  return _dbFetch('/campaigns', {
+  const result = await _dbFetch('/campaigns', {
     method: 'POST',
     body: JSON.stringify({ name, system: sys, worldId, partySize: sz || partySize }),
   });
+  if (!result || !result.id) throw new Error('Campaign creation failed — please try again.');
+  return result;
 }
 async function deleteCampaign(id) {
   return _dbFetch('/campaigns/' + encodeURIComponent(id), { method: 'DELETE' });
