@@ -62,7 +62,9 @@ CHOICES FORMAT:
 - Four distinct approaches: aggressive, defensive, ${magicName.toLowerCase()}/ability, situational
 - Grounded in THIS moment — reference specific enemies, terrain, character state
 - NEVER generic ("I attack" / "I explore"). Always specific to what's happening NOW.
-- NEVER write choices for NPCs. Only the named player character.`;
+- NEVER write choices for NPCs. Only the named player character.` +
+    // Inject narrative intelligence from StoryEngine
+    (window.StoryEngine ? window.StoryEngine.getFullNarrativeContext() : '');
 }
 function _currentSystemPrompt() {
   return getAiDmSystemPrompt();
@@ -2028,6 +2030,8 @@ async function callGM(prompt) {
       await saveState(gState);
       setBottomFromState(await loadLog(false));
       if (lang === 'th') setTimeout(maybeTranslateStory, 200);
+      // Extract narrative intelligence (non-blocking)
+      if (window.StoryEngine) window.StoryEngine.extractFromNarrative(scene, '', gState.totalMoves || 0).catch(function(){});
       return;
     }
 
@@ -2074,6 +2078,8 @@ async function callGM(prompt) {
         tb.classList.remove('thinking-active');
       }
       maybeSpawnHoid(scene, (gState && gState.totalMoves) || 0);
+      // Extract narrative intelligence (non-blocking)
+      if (window.StoryEngine) window.StoryEngine.extractFromNarrative(scene, selActionText || '', (gState && gState.totalMoves) || 0).catch(function(){});
       return;
     }
     // Non-streaming fallback

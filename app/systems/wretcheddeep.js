@@ -147,6 +147,24 @@ window.WretchedDeepSystem = {
     'The darkness presses closer. Obsession claws at the edge of your thoughts. This place is feeding on the violence.',
   ],
 
+  // Story beat pacing — the Deep moves faster, more paranoid
+  storyBeats: [
+    { turn: 1, type: 'opening', hint: 'Immediate survival threat. Something hunts them. The darkness is alive.' },
+    { turn: 8, type: 'ally', hint: 'A survivor found — but can they be trusted? Nobody trusts down here.' },
+    { turn: 18, type: 'crown_whisper', hint: 'The Crown speaks to one player directly. A tempting offer. Nobody else heard it.' },
+    { turn: 30, type: 'betrayal', hint: 'Someone they relied on reveals Crown corruption. Or was already a vessel.' },
+    { turn: 45, type: 'descent', hint: 'They must go deeper. The surface is now impossible. The tunnels narrow.' },
+    { turn: 55, type: 'crown_fragment', hint: 'A fragment of the Crown is found. Touching it is power. And cost.' },
+    { turn: 60, type: 'act2_open', hint: 'The Mid-Deep. Stranger ecosystems. The rules of the Shallows no longer apply.' },
+    { turn: 75, type: 'identity', hint: 'A player\'s past is revealed or questioned. Who were they before the Deep?' },
+    { turn: 90, type: 'cult', hint: 'The Crown cult is real and organized. They want the party — alive.' },
+    { turn: 105, type: 'choice', hint: 'Use the Crown\'s power to survive, or find another way? No clean options.' },
+    { turn: 120, type: 'act3_open', hint: 'Crownhold. The source. The whispering is constant now. Every shadow has a face.' },
+    { turn: 140, type: 'sacrifice', hint: 'To destroy the Crown or take it — someone must give something up.' },
+    { turn: 165, type: 'climax', hint: 'The Hollow Crown itself. It offers everything. The price is everything else.' },
+    { turn: 178, type: 'resolution', hint: 'What remains? Who remembers who they were? Is the surface still there?' },
+  ],
+
   // ══════════════════════════════════════════════════════════════════════
   // CHARACTER DATA
   // ══════════════════════════════════════════════════════════════════════

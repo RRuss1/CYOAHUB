@@ -3,7 +3,14 @@
    ══════════════════════════════════════════════════════════════ */
 
 // ── ALIAS — goTo delegates to the main app's showScreen ──
-const goTo = (id) => showScreen(id);
+const goTo = (id) => {
+  // Wizard requires login
+  if (id === 'wizard' && (!window.Auth || !window.Auth.isLoggedIn())) {
+    if (window.Auth) window.Auth.showModal('login');
+    return;
+  }
+  showScreen(id);
+};
 
 // ── CARD IMAGE LIBRARY ───────────────────────────────────────
 // Add new images to GameCardImgs/ and list them here.
@@ -894,6 +901,11 @@ function openContribute() {
 
 /* ── PICK WORLD ── */
 function pickWorld(worldId) {
+  // Require login to play
+  if (!window.Auth || !window.Auth.isLoggedIn()) {
+    if (window.Auth) window.Auth.showModal('login');
+    return;
+  }
   // Persist active world so page refresh can restore it
   if (worldId) localStorage.setItem('cyoa_active_world', worldId);
   // For custom worlds, load config from local storage or community cache
@@ -1072,8 +1084,15 @@ function routeFromHash() {
     return;
   }
 
-  // Game screens — need a world loaded
+  // Game screens — require login + world loaded
   if (GAME_SCREENS.includes(screen)) {
+    if (screen !== 'join' && (!window.Auth || !window.Auth.isLoggedIn())) {
+      // Not logged in — show landing with auth modal
+      showScreen('landing');
+      animateLanding(false);
+      if (window.Auth) window.Auth.showModal('login');
+      return;
+    }
     const wid = worldId || localStorage.getItem('cyoa_active_world') || 'stormlight';
     _loadWorldFromId(wid);
 

@@ -2381,6 +2381,8 @@ async function showGameScreen() {
   }
   startPolling();
   connectSession();
+  // Load narrative memory from DB
+  if (window.StoryEngine && campaignId) window.StoryEngine.loadStoryArc(campaignId).catch(function(){});
   await refreshGame();
   setTimeout(initParallax, 500);
 }
@@ -3835,7 +3837,8 @@ CRAFT RULES:
 • Use ${loc} concretely — a smell, a sound, a texture unique to this place.
 • Mix sentence lengths. Never open with "${who.name}" or a gerund.
 • Show emotion through action. Injuries persist. No game jargon. Present tense.
-• No "suddenly", "quickly", or "immediately".${actHint}${phaseInstr}${choiceBlock}
+• No "suddenly", "quickly", or "immediately".${actHint}${phaseInstr}
+${window.StoryEngine ? window.StoryEngine.getStyleModifier(m) : ''}${window.StoryEngine ? window.StoryEngine.getStoryBeatHint(m) : ''}${choiceBlock}
 
 ${getLangInstruction()}`;
 }
@@ -4606,21 +4609,19 @@ async function maybeTranslateStory() {
 }
 
 // ══ PARALLAX ══
+let _parallaxHandler = null;
 function initParallax() {
+  // Clean up previous listener to prevent memory leak
+  if (_parallaxHandler) { window.removeEventListener('scroll', _parallaxHandler); _parallaxHandler = null; }
   const card = document.querySelector('.chronicle-card');
   if (!card || window.innerWidth < 900) return;
   card.style.backgroundImage = 'radial-gradient(ellipse at center,rgba(255,255,255,0.015) 0%,transparent 70%)';
   card.style.backgroundSize = '200% 200%';
-  window.addEventListener(
-    'scroll',
-    () => {
-      const y = window.scrollY;
-      const px = 50 + y * 0.015;
-      const py = 50 - y * 0.008;
-      card.style.backgroundPosition = `${px}% ${py}%`;
-    },
-    { passive: true }
-  );
+  _parallaxHandler = () => {
+    const y = window.scrollY;
+    card.style.backgroundPosition = `${50 + y * 0.015}% ${50 - y * 0.008}%`;
+  };
+  window.addEventListener('scroll', _parallaxHandler, { passive: true });
 }
 
 // Guard: ui.js loads before combat.js. Install a stub so the boot IIFE

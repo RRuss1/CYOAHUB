@@ -90,7 +90,7 @@
           if (errEl) errEl.textContent = data.error;
           return;
         }
-        _claimBrowserOwnership();
+        _offerClaimOwnership();
         hideAuthModal();
         renderAuthUI();
       } catch (e) {
@@ -376,6 +376,8 @@
     _injectModal();
     _showView(view || 'login');
     document.getElementById('auth-modal').hidden = false;
+    // Wake up DB (Neon cold-starts after inactivity)
+    fetch(PROXY_URL + '/db/health').catch(function () {});
     // Render Google Sign-In button (only once)
     _renderGoogleButton();
   }

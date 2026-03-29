@@ -435,6 +435,28 @@ export default {
       return json(rows);
     }
 
+    // ── STORY ARC MEMORY ────────────────────────────────
+
+    // GET /db/story/:campaignId — get story arc memory
+    if (pathname.startsWith('/db/story/') && !pathname.includes('/beats') && method === 'GET') {
+      const cid = pathname.split('/db/story/')[1];
+      const [row] = await sql`SELECT * FROM story_arcs WHERE campaign_id = ${cid}`;
+      return json(row || { npcs: [], factions: {}, secrets: [], threads: [], consequences: [], locations_visited: [], reputation: {}, dramatic_question: '' });
+    }
+
+    // PUT /db/story/:campaignId — update story arc memory
+    if (pathname.startsWith('/db/story/') && !pathname.includes('/beats') && method === 'PUT') {
+      const cid = pathname.split('/db/story/')[1];
+      const data = await request.json();
+      await sql`
+        INSERT INTO story_arcs (campaign_id, act, npcs, factions, secrets, threads, consequences, locations_visited, reputation, dramatic_question, updated_at)
+        VALUES (${cid}, ${data.act || 1}, ${JSON.stringify(data.npcs || [])}, ${JSON.stringify(data.factions || {})}, ${JSON.stringify(data.secrets || [])}, ${JSON.stringify(data.threads || [])}, ${JSON.stringify(data.consequences || [])}, ${JSON.stringify(data.locations_visited || [])}, ${JSON.stringify(data.reputation || {})}, ${data.dramatic_question || ''}, NOW())
+        ON CONFLICT (campaign_id)
+        DO UPDATE SET act = EXCLUDED.act, npcs = EXCLUDED.npcs, factions = EXCLUDED.factions, secrets = EXCLUDED.secrets, threads = EXCLUDED.threads, consequences = EXCLUDED.consequences, locations_visited = EXCLUDED.locations_visited, reputation = EXCLUDED.reputation, dramatic_question = EXCLUDED.dramatic_question, updated_at = NOW()
+      `;
+      return json({ ok: true });
+    }
+
     // POST /db/log/:campaignId — append a log entry
     if (pathname.startsWith('/db/log/') && method === 'POST') {
       const campaignId = pathname.split('/db/log/')[1];
