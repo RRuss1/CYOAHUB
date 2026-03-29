@@ -178,14 +178,22 @@ function getSprenStage(m) {
 // All persistence goes through PROXY_URL/db/* routes
 async function _dbFetch(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json' };
-  // Auto-attach auth token if logged in
   const tok = localStorage.getItem('cyoa_auth_token');
   if (tok) headers['Authorization'] = 'Bearer ' + tok;
-  const res = await fetch(PROXY_URL + '/db' + path, {
-    headers,
-    ...opts,
-  });
-  return res.json();
+  // Merge headers (don't overwrite auth)
+  if (opts.headers) Object.assign(headers, opts.headers);
+  const fetchOpts = { ...opts, headers };
+  let res;
+  try {
+    res = await fetch(PROXY_URL + '/db' + path, fetchOpts);
+  } catch (e) {
+    // Network error — try once more after DB wake-up
+    await fetch(PROXY_URL + '/db/health').catch(function () {});
+    await new Promise(function (r) { setTimeout(r, 1500); });
+    res = await fetch(PROXY_URL + '/db' + path, fetchOpts);
+  }
+  const text = await res.text();
+  try { return JSON.parse(text); } catch (e) { return {}; }
 }
 async function loadState() {
   if (!campaignId) return null;

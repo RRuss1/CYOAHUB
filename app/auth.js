@@ -267,10 +267,11 @@
 .auth-pill {
   display:flex; align-items:center; gap:6px;
   position:relative; cursor:pointer;
-  font-family:'Crimson Pro',serif; font-size:14px;
-  color:#F0E6CC; padding:4px 10px;
+  font-family:'Crimson Pro',serif; font-size:18px;
+  color:#F0E6CC; padding:5px 14px;
   border:1px solid rgba(40,168,160,0.18);
-  border-radius:12px; background:rgba(5,12,26,0.6);
+  border-radius:14px; background:rgba(5,12,26,0.7);
+  backdrop-filter:blur(12px);
   transition:border-color .2s;
   white-space:nowrap;
 }
@@ -287,13 +288,13 @@
   display:block; width:100%; text-align:left;
   padding:8px 16px; background:none; border:none;
   color:#F0E6CC; font-family:'Crimson Pro',serif;
-  font-size:14px; cursor:pointer; transition:background .15s;
+  font-size:18px; cursor:pointer; transition:background .15s;
 }
 .auth-pill-dd button:hover {
   background:rgba(40,168,160,0.12);
 }
 .auth-signin-btn {
-  font-family:'Crimson Pro',serif; font-size:13px;
+  font-family:'Crimson Pro',serif; font-size:18px;
   color:#8ab4d4; background:none; border:1px solid rgba(40,168,160,0.18);
   border-radius:10px; padding:5px 14px; cursor:pointer;
   transition:border-color .2s, color .2s; white-space:nowrap;
@@ -585,7 +586,7 @@
   }
 
   function _ensureAuthSlots() {
-    // Insert an .auth-slot next to each hamburger button if not already present
+    // Insert an .auth-slot next to each hamburger button
     document.querySelectorAll('.hamburger').forEach((btn) => {
       const nav = btn.closest('nav') || btn.parentElement;
       if (!nav) return;
@@ -595,6 +596,14 @@
       slot.style.cssText = 'display:inline-flex;align-items:center;margin-right:8px;';
       nav.insertBefore(slot, btn);
     });
+    // Global persistent badge (shows on ALL screens including game)
+    if (!document.getElementById('auth-global-badge')) {
+      const badge = document.createElement('div');
+      badge.id = 'auth-global-badge';
+      badge.className = 'auth-slot';
+      badge.style.cssText = 'position:fixed;top:12px;left:14px;z-index:150;display:inline-flex;align-items:center;';
+      document.body.appendChild(badge);
+    }
   }
 
   function _esc(s) {
