@@ -296,6 +296,301 @@
   }
 
   // ═══════════════════════════════════════════════════════════
+  // 6. NARRATIVE CRAFT KNOWLEDGE BASE (condensed)
+  //    Distilled from 15 canonical literary works.
+  //    Token-optimized: names + keywords only.
+  // ═══════════════════════════════════════════════════════════
+
+  var CRAFT_PRINCIPLES =
+    'CRAFT PRINCIPLES (always active): ' +
+    'Emotion as sensation, never label. ' +
+    'Environment mirrors interior state. ' +
+    'Every consequence specific and named. ' +
+    'Dread lives in implication, not revelation. ' +
+    'Corruption through first compromise, not last. ' +
+    'Dialogue carries subtext, not content. ' +
+    'Trials remake characters, not reveal them. ' +
+    'Prophecy traps its believers. ' +
+    'Sincere exchanges change both speakers. ' +
+    'Present tense demands commitment to the moment.';
+
+  // Named technique library — keyed for lookup by phase/scene guidance
+  var TECHNIQUES = {
+    ACCUMULATING_WRONGNESS:   'details individually normal, together wrong',
+    PROSE_FRAYING:            'narration unreliable at breaking point (1/act max)',
+    SHADOW_SELF:              'name the forbidden want, show relief of wrong choice',
+    NAMED_DEATH:              'every death: name, face, one human detail',
+    SLOW_CONSEQUENCE:         'early choice paying its debt, reference by name',
+    COST_OF_BECOMING:         'power gained, name what is left behind',
+    ARISTEIA:                 'peak power from enemy view, then cost in same breath',
+    INTERIOR_CONTRADICTION:   'reasoning toward decision already made, show blind spot',
+    MASK_FITS_TOO_WELL:       'pretender becoming the role, mask surprises wearer',
+    PARALYSIS_AS_CHOICE:      'inaction costs in real time, show what closes',
+    GUIDE_WITH_SCARS:         'authority from survival, warnings as testimony',
+    PUNISHMENT_MIRRORS_SIN:   'consequence rhymes with the crime',
+    UNCROSSABLE_PAST:         'past intrudes via smell, gesture, echo of the dead',
+    BOAST_AND_RECKONING:      'declaration vs reality, gap is where character lives',
+    TEMPTATION_AS_ENEMY:      'make wrong choice genuinely attractive before the flaw',
+    SINCERE_EXCHANGE:         'both speakers changed, no strategy or performance',
+    CHARISMATIC_ALMOST_RIGHT: 'antagonist right about everything except what matters',
+  };
+
+  // Full library string (kept for system prompt — condensed reference)
+  var TECHNIQUE_NAMES = Object.keys(TECHNIQUES);
+
+  var TECHNIQUE_LIBRARY_STR =
+    '\n\nTECHNIQUE LIBRARY (reference — specific techniques injected per beat):\n' +
+    TECHNIQUE_NAMES.map(function (k) { return k; }).join(' · ');
+
+  /**
+   * Resolve technique keys to one-line descriptions.
+   * Input: "ACCUMULATING_WRONGNESS · BOAST_AND_RECKONING"
+   * Output: "ACCUMULATING_WRONGNESS — details individually normal...\nBOAST_AND_RECKONING — declaration vs reality..."
+   */
+  function _expandTechniques(keysStr) {
+    if (!keysStr) return '';
+    var keys = keysStr.split(/\s*·\s*/);
+    var lines = [];
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i].trim();
+      if (TECHNIQUES[k]) lines.push(k + ' — ' + TECHNIQUES[k]);
+    }
+    return lines.join('\n');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 7. PHASE GUIDANCE (replaces old 5-phase system)
+  // ═══════════════════════════════════════════════════════════
+
+  var PHASE_TECHNIQUES = {
+    opening:       'ACCUMULATING_WRONGNESS · BOAST_AND_RECKONING',
+    discovery:     'GUIDE_WITH_SCARS · UNCROSSABLE_PAST',
+    rising_tension:'INTERIOR_CONTRADICTION · TEMPTATION_AS_ENEMY',
+    confrontation: 'ARISTEIA · NAMED_DEATH · BOAST_AND_RECKONING',
+    crisis:        'PARALYSIS_AS_CHOICE · SHADOW_SELF · PUNISHMENT_MIRRORS_SIN',
+    oath:          'COST_OF_BECOMING · BOAST_AND_RECKONING',
+    aftermath:     'SLOW_CONSEQUENCE · SINCERE_EXCHANGE · UNCROSSABLE_PAST',
+  };
+
+  var PHASE_GUIDANCE = {
+    opening:
+      'Drop into motion mid-scene. Plant one physical mystery for act 2. ' +
+      'Establish emotional register. One element that matters later — don\'t signal importance.',
+
+    discovery:
+      'Information through evidence, not testimony. Every discovery raises a new question. ' +
+      'One genuinely ambiguous detail. Ground in sensory specificity.',
+
+    rising_tension:
+      'Compress low-stakes time, stretch high-stakes. Something makes confrontation costlier than expected. ' +
+      'Journey cost in bodies — hunger, cold, sleeplessness. One NPC\'s reliability uncertain through behavior.',
+
+    confrontation:
+      'Open in middle of motion. Every round changes something beyond HP. ' +
+      'Humanize at least one enemy with one detail. Final moment specific — exactly how, who saw it.',
+
+    crisis:
+      'Genuine dilemma — both options cost something real and named. Delay costs in real time. ' +
+      'Name what conflicts with oath or values. Crisis rhymes with backstory. Environment mirrors pressure.',
+
+    oath:
+      'Earned, not performed — inevitable given everything before. Name what is left behind. ' +
+      'Magic response physical and specific, not a glow. One witness reacts with something other than awe.',
+
+    aftermath:
+      'Reference one early choice by name, show what it became. Don\'t resolve everything. ' +
+      'Bodies tell the act\'s story. Sincere exchanges happen here. World different in one named way.',
+  };
+
+  /**
+   * Get phase guidance for current story position.
+   * Replaces the old 5-phase inline system in turnPrompt().
+   */
+  function getPhaseGuidance(beatNum, totalBeats, preCombatNow, combatMode, turn) {
+    if (combatMode) return '';
+
+    var phase;
+    var gs = typeof gState !== 'undefined' ? gState : {};
+
+    // Priority 1: pre-combat confrontation
+    if (preCombatNow) {
+      phase = 'confrontation';
+    }
+    // Priority 2: act transitions → aftermath
+    else if (turn === 59 || turn === 119) {
+      phase = 'aftermath';
+    }
+    // Priority 3: story beat overrides
+    else {
+      var beats = (window.SystemData && window.SystemData.storyBeats) || DEFAULT_BEATS;
+      var activeBeat = null;
+      for (var i = 0; i < beats.length; i++) {
+        if (Math.abs(beats[i].turn - turn) <= 2) { activeBeat = beats[i]; break; }
+      }
+      if (activeBeat && (activeBeat.type === 'loss' || activeBeat.type === 'sacrifice' || activeBeat.type === 'betrayal')) {
+        phase = 'crisis';
+      }
+      // Priority 4: opening turns
+      else if (turn <= 2 || turn === 60 || turn === 61 || turn === 120 || turn === 121) {
+        phase = 'opening';
+      }
+      // Priority 5: beat-position mapping
+      else {
+        var progress = totalBeats > 0 ? beatNum / totalBeats : 0.5;
+        if (progress <= 0.3) phase = 'discovery';
+        else if (progress <= 0.7) phase = 'rising_tension';
+        else phase = 'confrontation';
+      }
+    }
+
+    // Oath override — check if any player near oath threshold
+    if (phase !== 'confrontation' && phase !== 'crisis') {
+      var players = gs.players || [];
+      for (var j = 0; j < players.length; j++) {
+        if (players[j] && players[j].oathProgress && players[j].oathProgress >= 0.8) {
+          phase = 'oath';
+          break;
+        }
+      }
+    }
+
+    var guidance = PHASE_GUIDANCE[phase] || PHASE_GUIDANCE.discovery;
+    var techniqueKeys = PHASE_TECHNIQUES[phase] || PHASE_TECHNIQUES.discovery;
+    var expanded = _expandTechniques(techniqueKeys);
+
+    return '\n\nPHASE — ' + phase.toUpperCase().replace(/_/g, ' ') +
+      ' (' + beatNum + '/' + totalBeats + '):\n' +
+      (expanded ? expanded + '\n' : '') + guidance;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 8. SCENE TYPE DETECTION + GUIDANCE
+  // ═══════════════════════════════════════════════════════════
+
+  var SCENE_GUIDANCE = {
+    npc_dialogue:
+      'NPC wants something unstated. Three words unique to this character. ' +
+      'NPC leaves exchange changed. Subtext louder than text.',
+
+    exploration:
+      'Three senses: visual + auditory/olfactory + tactile. One inexplicable detail. ' +
+      'Environment contradicts its reputation. Evidence over testimony.',
+
+    combat:
+      'Start in motion. Named death for significant kills. Aristeia at peak power with cost. ' +
+      'Environment changes each round. Enemy has goal, fear, and tell.',
+
+    injury:
+      'Exact body part, sensation, limitation created. Immediate effect + planted ongoing effect. ' +
+      'Character response reveals character. Others\' reactions matter equally.',
+
+    moral_dilemma:
+      'Wrong choice gets best argument. Name what oath forbids. Both options cost specifically. ' +
+      'Delay costs in real time. Dilemma rhymes with backstory.',
+
+    revelation:
+      'Never exposition — evidence or testimony. Knowledge cost someone. ' +
+      'One element genuinely ambiguous. Revelation recontextualizes, not just adds.',
+
+    emotional:
+      'Something true said — relief and cost simultaneously. Show reasoning gap. ' +
+      'Reference one prior beat. Name what is left behind. Stretch time — duration is respect.',
+  };
+
+  /**
+   * Detect scene type from action text and game context.
+   * Independent layer — not tied to action tags.
+   */
+  function detectSceneType(action, gameState) {
+    if (!action) return 'exploration';
+    var act = action.toLowerCase();
+    var gs = gameState || {};
+
+    // Combat mode override
+    if (gs.combatMode) return 'combat';
+
+    // Action text patterns (most specific first)
+    if (/oath|swear|vow|bond|transform|ideal|pledge|embrace|kneel/i.test(act)) return 'emotional';
+    if (/choose|decide|sacrifice|betray|abandon|save|condemn|spare|mercy|refuse|accept|bargain/i.test(act)) return 'moral_dilemma';
+    if (/speak|talk|persuade|negotiate|ask|tell|confront|argue|plead|convince|warn|lie|question|challenge/i.test(act)) return 'npc_dialogue';
+    if (/examine|investigate|search|explore|look|inspect|study|read|decipher|enter|scout|sneak|observe|open|touch/i.test(act)) return 'exploration';
+
+    // Context-based fallback — check for recent injuries
+    var players = gs.players || [];
+    var hasRecentInjury = false;
+    for (var i = 0; i < players.length; i++) {
+      if (players[i] && players[i].injuries && players[i].injuries.length && players[i].hp < (players[i].maxHp || 1) * 0.4) {
+        hasRecentInjury = true;
+        break;
+      }
+    }
+    if (hasRecentInjury) return 'injury';
+
+    // Story beat type fallback
+    var turn = gs.totalMoves || 0;
+    var beats = (window.SystemData && window.SystemData.storyBeats) || DEFAULT_BEATS;
+    for (var j = 0; j < beats.length; j++) {
+      if (Math.abs(beats[j].turn - turn) <= 3) {
+        var bt = beats[j].type;
+        if (bt === 'betrayal' || bt === 'twist' || bt === 'truth') return 'revelation';
+        if (bt === 'loss' || bt === 'sacrifice') return 'moral_dilemma';
+        if (bt === 'resolution') return 'emotional';
+        break;
+      }
+    }
+
+    return 'exploration';
+  }
+
+  /**
+   * Get scene type guidance string for prompt injection.
+   */
+  function getSceneGuidance(action, gameState) {
+    var sceneType = detectSceneType(action, gameState);
+    var guidance = SCENE_GUIDANCE[sceneType];
+    if (!guidance) return '';
+    return '\n\nSCENE — ' + sceneType.toUpperCase().replace(/_/g, ' ') + ':\n' + guidance;
+  }
+
+  /**
+   * Get craft principles string for system prompt injection.
+   */
+  function getCraftPrinciples() {
+    return '\n\n' + CRAFT_PRINCIPLES;
+  }
+
+  /**
+   * Get technique library string for system prompt injection.
+   */
+  function getTechniqueLibrary() {
+    return TECHNIQUE_LIBRARY_STR;
+  }
+
+  /**
+   * Get combat-specific craft guidance by combat prompt type.
+   */
+  function getCombatCraftGuidance(type, round) {
+    if (type === 'opening') {
+      return '\nCRAFT: Open in middle of motion — sword already moving. Humanize one enemy with one specific detail. Connect threat to the narrative thread.';
+    }
+    if (type === 'round') {
+      var hint = round <= 2
+        ? 'ACCUMULATING_WRONGNESS — something in the environment shifts each round.'
+        : round <= 4
+          ? 'ARISTEIA if a player crits — peak power from enemy\'s view, then cost. NAMED_DEATH for any significant kill.'
+          : 'Final moments — COST_OF_BECOMING. Someone is changing. Name it.';
+      return '\nCRAFT: ' + hint + ' Every round changes something beyond HP — position, visibility, emotional state.';
+    }
+    if (type === 'victory') {
+      return '\nCRAFT: SLOW_CONSEQUENCE — reference what this fight cost by name. Victory is relief and exhaustion, never glory. Bodies tell the story.';
+    }
+    if (type === 'defeat') {
+      return '\nCRAFT: Stillness after violence. NAMED_DEATH principle — what was lost is specific. End on consequence, not despair.';
+    }
+    return '';
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // EXPORT
   // ═══════════════════════════════════════════════════════════
 
@@ -311,7 +606,16 @@
     getFactionContext: getFactionContext,
     getFullNarrativeContext: getFullNarrativeContext,
     getStoryBeatHint: getStoryBeatHint,
+    getPhaseGuidance: getPhaseGuidance,
+    getSceneGuidance: getSceneGuidance,
+    getCraftPrinciples: getCraftPrinciples,
+    getTechniqueLibrary: getTechniqueLibrary,
+    getCombatCraftGuidance: getCombatCraftGuidance,
+    detectSceneType: detectSceneType,
     STYLE_MODIFIERS: STYLE_MODIFIERS,
     DEFAULT_BEATS: DEFAULT_BEATS,
+    PHASE_GUIDANCE: PHASE_GUIDANCE,
+    SCENE_GUIDANCE: SCENE_GUIDANCE,
+    TECHNIQUE_NAMES: TECHNIQUE_NAMES,
   };
 })();

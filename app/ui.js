@@ -2375,11 +2375,13 @@ ACTS: I (1-60): ${a1.location} | II (61-120): ${a2.location} | III (121-180): ${
 PARTY: ${names}${gctx}${cctx}
 
 OPENING SCENE RULES:
-1. SHOW don't tell. No "you sense danger." Show the specific thing that's wrong — crumbling stone, distant screaming, ${_magicName} flickering.
-2. This is ${_worldName}, not generic fantasy. Use its specific geography, cultures, creatures, sensory textures. Every detail must belong to THIS world.
-3. VARY sentence rhythm. Short punches mixed with atmospheric flow.
-4. The opening must present an IMMEDIATE situation — danger, mystery, or moral choice. Not "you arrive at a camp." Something is ALREADY happening.
-5. USE assigned pronouns consistently.
+1. Drop into motion mid-scene — no preamble. The player asks "what is happening" before "where am I."
+2. Plant one physical mystery that won't resolve until act 2 — specific, not "something felt wrong."
+3. This is ${_worldName}, not generic fantasy. Use its specific geography, cultures, creatures, sensory textures. Every detail must belong to THIS world.
+4. VARY sentence rhythm. Short punches mixed with atmospheric flow.
+5. Introduce one NPC or environmental element that will matter later — don't signal importance.
+6. USE assigned pronouns consistently.
+Techniques: ACCUMULATING_WRONGNESS · BOAST_AND_RECKONING
 
 Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between). An immediate crisis in ${a1.location} — specific to this world, sensory, urgent.
 
@@ -3791,36 +3793,13 @@ RECENT CHOICES BY ${next?.name?.toUpperCase() || 'THIS PLAYER'} (DO NOT REPEAT t
   const totalBeats = gState.beatsUntilCombat || 5;
   const beatNum = totalBeats - Math.max(0, beatsLeft) + 1;
 
-  // Phase guidance — specific narrative instructions per beat position
-  let phaseInstr = '';
-  if (!gState.combatMode) {
-    if (preCombatNow) {
-      phaseInstr = `
-
-PHASE — THE CONFRONTATION (this is the pre-combat payoff beat):
-The threat that has been building must physically manifest RIGHT NOW and face the party. Do not approach — arrive. End at the exact moment before weapons clash. One image, maximum dread, no resolution. Short sharp sentences here.`;
-    } else if (beatsLeft <= 1) {
-      phaseInstr = `
-
-PHASE — FINAL BEAT BEFORE COMBAT (${beatNum}/${totalBeats}):
-The wrongness is undeniable. Something from the immediate history above has escalated beyond ignoring. Build pure dread — not action yet, but the absolute certainty that violence is seconds away. The party can feel it in their bodies. End on a held breath.`;
-    } else if (beatsLeft <= 2) {
-      phaseInstr = `
-
-PHASE — RISING TENSION (${beatNum}/${totalBeats}):
-The world is tightening. Echo something specific from the immediate history — a detail that felt minor before but now reads as warning. The threat is not subtle anymore. Show the environment responding to it.`;
-    } else if (beatNum > Math.floor(totalBeats / 2)) {
-      phaseInstr = `
-
-PHASE — DEEPENING (${beatNum}/${totalBeats}):
-Past the threshold. Every discovery should add texture to a threat without naming it. Something specific about ${loc} is wrong in a way the characters can sense but not yet explain. Plant something that will pay off later.`;
-    } else {
-      phaseInstr = `
-
-PHASE — DISCOVERY (${beatNum}/${totalBeats}):
-Fresh ground. Build ${loc} with sensory specificity — what makes this place unlike anywhere else in ${window.SystemData?.gmContext?.worldName || 'this world'}. Introduce details that will matter. No hints at combat yet. Let the world feel vast.`;
-    }
-  }
+  // Phase + scene guidance — from Narrative Craft Knowledge Base
+  const phaseInstr = window.StoryEngine
+    ? window.StoryEngine.getPhaseGuidance(beatNum, totalBeats, preCombatNow, gState.combatMode, m)
+    : '';
+  const sceneInstr = window.StoryEngine
+    ? window.StoryEngine.getSceneGuidance(action, gState)
+    : '';
 
   if (m === 59) generateActConsequence(1).catch(() => {});
   if (m === 119) generateActConsequence(2).catch(() => {});
@@ -3867,7 +3846,7 @@ CRAFT RULES:
 • Use ${loc} concretely — a smell, a sound, a texture unique to this place.
 • Mix sentence lengths. Never open with "${who.name}" or a gerund.
 • Show emotion through action. Injuries persist. No game jargon. Present tense.
-• No "suddenly", "quickly", or "immediately".${actHint}${phaseInstr}
+• No "suddenly", "quickly", or "immediately".${actHint}${phaseInstr}${sceneInstr}
 ${window.StoryEngine ? window.StoryEngine.getStyleModifier(m) : ''}${window.StoryEngine ? window.StoryEngine.getStoryBeatHint(m) : ''}${choiceBlock}
 
 ${getLangInstruction()}`;

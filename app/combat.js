@@ -16,7 +16,9 @@
  */
 
 // ══ AI DUNGEON MASTER — SYSTEM PROMPT ══
-// Build GM system prompt from active system's gmContext
+// Build GM system prompt as array of content blocks for prompt caching.
+// Block 1 (STABLE — cached): world identity, craft rules, techniques, choices format
+// Block 2 (DYNAMIC — not cached): narrative context (NPCs, threads, factions, consequences)
 function getAiDmSystemPrompt() {
   const ctx = window.SystemData?.gmContext || {};
   const sysName = ctx.systemName || 'RPG';
@@ -32,7 +34,7 @@ function getAiDmSystemPrompt() {
       ? window.ActionEngine.getActionTagsString()
       : '[ATTACK], [DEFEND], [HEAL], [SURGE], [COMBAT], [DISCOVERY], [DECISION]');
 
-  return `You are the AI Game Master for ${sysName} — a digital RPG set in ${worldName}. You create immersive, responsive, cinematic experiences unique to this world.
+  const stableBlock = `You are the AI Game Master for ${sysName} — a digital RPG set in ${worldName}. You create immersive, responsive, cinematic experiences unique to this world.
 
 TWO-PARAGRAPH RULE (CRITICAL — NEVER BREAK):
 Every response is EXACTLY two short paragraphs (2-3 sentences each, blank line between).
@@ -53,7 +55,10 @@ NARRATIVE CRAFT:
 - Translate mechanics to fiction: "The blow drives you back three steps" not "you lose 4 HP"
 - Vary rhythm: short punches in combat, flowing imagery in calm. Never repeat sentence structures.
 - Injuries persist. Previous choices have consequences. The world remembers.
-- Each scene changes something permanently — no status quo returns.
+- Each scene changes something permanently — no status quo returns.` +
+    (window.StoryEngine ? window.StoryEngine.getCraftPrinciples() : '') +
+    (window.StoryEngine ? window.StoryEngine.getTechniqueLibrary() : '') +
+    `
 
 CHOICES FORMAT:
 [CHOICES]
@@ -62,9 +67,19 @@ CHOICES FORMAT:
 - Four distinct approaches: aggressive, defensive, ${magicName.toLowerCase()}/ability, situational
 - Grounded in THIS moment — reference specific enemies, terrain, character state
 - NEVER generic ("I attack" / "I explore"). Always specific to what's happening NOW.
-- NEVER write choices for NPCs. Only the named player character.` +
-    // Inject narrative intelligence from StoryEngine
-    (window.StoryEngine ? window.StoryEngine.getFullNarrativeContext() : '');
+- NEVER write choices for NPCs. Only the named player character.`;
+
+  // Dynamic block — narrative intelligence that changes every turn
+  const dynamicBlock = window.StoryEngine ? window.StoryEngine.getFullNarrativeContext() : '';
+
+  // Return as array of content blocks for Anthropic prompt caching
+  const blocks = [
+    { type: 'text', text: stableBlock, cache_control: { type: 'ephemeral' } },
+  ];
+  if (dynamicBlock) {
+    blocks.push({ type: 'text', text: dynamicBlock });
+  }
+  return blocks;
 }
 function _currentSystemPrompt() {
   return getAiDmSystemPrompt();
@@ -205,7 +220,7 @@ function craftBlade() {
     ? window.ConfigResolver.getEquipDropConfig()
     : { fragmentName: 'Fragment', craftCost: 3, legendaryName: 'Legendary Weapon' };
   if ((myChar.fragments || 0) < _edCfg3.craftCost) {
-    alert('Need ' + _edCfg3.craftCost + ' ' + _edCfg3.fragmentName + 's.');
+    showToast('Need ' + _edCfg3.craftCost + ' ' + _edCfg3.fragmentName + 's.');
     return;
   }
   myChar.shardblade = BLADE_NAMES[myChar.classId] || 'Nascent ' + _edCfg3.legendaryName;
@@ -218,14 +233,14 @@ function craftBlade() {
     saveState(gState).catch(() => {});
   }
   renderSheet();
-  alert('⚔ ' + myChar.shardblade + ' forged!');
+  showToast('⚔ ' + myChar.shardblade + ' forged!');
 }
 function upgradeBlade() {
   if (!myChar) return;
   const tier = myChar.bladeLevel || 1;
   const _edCfg4 = window.ConfigResolver ? window.ConfigResolver.getEquipDropConfig() : { fragmentName: 'Fragment', upgradeCost: 5 };
   if (tier >= 5) {
-    alert('Your weapon has reached its ultimate form.');
+    showToast('Your weapon has reached its ultimate form.');
     return;
   }
   if ((myChar.fragments || 0) < _edCfg4.upgradeCost) {
@@ -2163,7 +2178,8 @@ Enemies: ${enemies}${gctx}${mctx}${thread}
 Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between).
 P1: The threat ARRIVES. Connect to the narrative thread if present. Environmental danger.
 P2: The moment before first contact. One image. Held breath. End here.
-Fast, visceral, present tense. No game jargon. No "suddenly". Show emotion through action.`;
+Fast, visceral, present tense. No game jargon. No "suddenly". Show emotion through action.` +
+      (window.StoryEngine ? window.StoryEngine.getCombatCraftGuidance('opening', 1) : '');
   } else if (type === 'round') {
     // World-specific atmospheric flavor — reads from system config
     const _worldN = window.SystemData?.gmContext?.worldName || 'this place';
@@ -2201,7 +2217,8 @@ Atmosphere: ${sprenFlavor}
 Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between).
 P1: Weave ALL outcomes above into one fluid combat moment — every hit, miss, heal, surge must appear as physical consequence.
 P2: Momentum shift — who has advantage now. End on something uncertain.
-All injuries accumulate. Present tense. No game jargon. No "suddenly". Vary sentence lengths.`;
+All injuries accumulate. Present tense. No game jargon. No "suddenly". Vary sentence lengths.` +
+      (window.StoryEngine ? window.StoryEngine.getCombatCraftGuidance('round', round) : '');
   } else if (type === 'victory') {
     const injuries = gState.players
       .slice(0, sz)
@@ -2219,12 +2236,14 @@ Write 2 sentences. Rules:
 • Sentence 1: The exact physical moment the last enemy falls — specific, visual, definitive. Rooted in ${window.SystemData?.gmContext?.worldName || 'this world'}.
 • Sentence 2: The immediate aftermath — what the survivors feel in their BODIES, not their hearts; what the silence sounds like; one detail that has permanently changed
 • No triumphalism. Victory costs something. Ground it in physical sensation.
-• One brief world-specific atmospheric detail to mark the moment (natural phenomenon, ambient shift, environmental reaction).`;
+• One brief world-specific atmospheric detail to mark the moment (natural phenomenon, ambient shift, environmental reaction).` +
+      (window.StoryEngine ? window.StoryEngine.getCombatCraftGuidance('victory', round) : '');
   } else if (type === 'defeat') {
     prompt = `Combat GM. ${loc}. All party members downed.
 ${gctx}
 
-Write 2 sentences: the moment the last party member falls, and what the enemy does next. Leave everyone downed but breathing — enemies do not deliver killing blows. End on stillness and consequence, not despair.`;
+Write 2 sentences: the moment the last party member falls, and what the enemy does next. Leave everyone downed but breathing — enemies do not deliver killing blows. End on stillness and consequence, not despair.` +
+      (window.StoryEngine ? window.StoryEngine.getCombatCraftGuidance('defeat', round) : '');
   }
 
   const el = document.getElementById('combat-narrative-text');

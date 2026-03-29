@@ -216,13 +216,18 @@ export default {
 
       const isStreaming = body.stream === true;
 
+      const anthropicHeaders = {
+        'Content-Type':      'application/json',
+        'x-api-key':         env.ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+      };
+      // Enable prompt caching when client sends cache_control in system blocks
+      if (body.system && Array.isArray(body.system)) {
+        anthropicHeaders['anthropic-beta'] = 'prompt-caching-2024-07-31';
+      }
       const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type':      'application/json',
-          'x-api-key':         env.ANTHROPIC_KEY,
-          'anthropic-version': '2023-06-01',
-        },
+        headers: anthropicHeaders,
         body: JSON.stringify(body),
       });
 

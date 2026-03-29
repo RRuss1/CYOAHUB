@@ -949,8 +949,10 @@
 .combat-dice-ticker {
   border-top: 1px solid var(--border);
   background: rgba(15, 13, 8, 0.7);
-  height: 150px;
-  overflow-y: scroll;
+  min-height: 250px;
+  max-height: 400px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   font-size: 20px;
   font-family: var(--font-d);
   letter-spacing: 0.5px;

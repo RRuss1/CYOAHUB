@@ -369,8 +369,8 @@ function _getAttrMax() {
 Object.defineProperty(window, 'ATTR_POINTS_START', { get: _getAttrPoints });
 Object.defineProperty(window, 'ATTR_MAX_CREATE', { get: _getAttrMax });
 const DC = { EASY: 10, MEDIUM: 15, HARD: 20, VERY_HARD: 25, NEARLY_IMPOSSIBLE: 30 };
-const COMBAT_BEATS_MIN = 3,
-  COMBAT_BEATS_MAX = 8;
+const COMBAT_BEATS_MIN = 2,
+  COMBAT_BEATS_MAX = 12;
 
 // ══════════════════════════════════════════════════════════
 // FUNCTIONS (game mechanics — NOT extracted to system file)
