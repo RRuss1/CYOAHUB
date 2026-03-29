@@ -575,8 +575,9 @@
   <span>${_esc(name)}</span>
   <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style="opacity:0.5"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
   <div class="auth-pill-dd" onclick="event.stopPropagation()">
-    <button onclick="Auth.showModal('profile');this.closest('.auth-pill').classList.remove('open')">Profile</button>
-    <button onclick="Auth.logout();this.closest('.auth-pill').classList.remove('open')">Logout</button>
+    <button onclick="window.location.hash='#landing';this.closest('.auth-pill').classList.remove('open')">🏠 Lobby</button>
+    <button onclick="Auth.showModal('profile');this.closest('.auth-pill').classList.remove('open')">👤 Profile</button>
+    <button onclick="Auth.logout();this.closest('.auth-pill').classList.remove('open')">🚪 Logout</button>
   </div>
 </div>`;
       } else {
