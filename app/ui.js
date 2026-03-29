@@ -509,7 +509,7 @@ function renderCampaigns(camps) {
         ${isOwned ? `<button class="camp-del" onclick="event.stopPropagation();onDeleteCampaign('${cam.id}')" title="Delete">✕</button>` : ''}
         <button class="camp-share" onclick="event.stopPropagation();shareCampaign('${cam.id}','${activeWorld}')" title="Copy invite link">🔗</button>
       </div>
-      <div class="camp-num">${cam.id.startsWith('Campaign_') ? 'Campaign' : cam.id.replace('Campaign', 'Campaign ')}</div>
+      <div class="camp-num">${cam.name || (st && st.campaignName) || 'Campaign'}</div>
       <div class="camp-name" style="color:${themeColor};">${st && st.campaignName ? st.campaignName : cam.id}</div>
       <div class="camp-meta">${phase === 'playing' ? act.tag + ' · Turn ' + moves + '/180' : 'Ready to begin'}</div>
       <div class="camp-meta">${players}</div>
