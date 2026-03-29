@@ -2951,9 +2951,16 @@ function renderParty() {
 function renderStory(log) {
   const el = document.getElementById('story-text');
   if (!el) return;
+  // Only show the last 3 story beats + the most recent player actions — not the full history
   let dlog = [...log];
   if (gState && gState.lastGM && !dlog.some((e) => e.type === 'gm')) {
     dlog = [...dlog, { type: 'gm', who: '', text: gState.lastGM.text, choices: gState.lastGM.choices, ts: gState.lastGM.ts || 'mem' }];
+  }
+  // Trim to last 3 GM beats + associated player entries
+  const gmEntries = dlog.filter((e) => e.type === 'gm');
+  if (gmEntries.length > 3) {
+    const cutoffIdx = dlog.indexOf(gmEntries[gmEntries.length - 3]);
+    dlog = dlog.slice(Math.max(0, cutoffIdx));
   }
   if (!dlog.length) {
     el.innerHTML =

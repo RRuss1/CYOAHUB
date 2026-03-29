@@ -832,9 +832,9 @@
    ───────────────────────────────────────────── */
 .turn-pill {
   font-family: var(--font-d);
-  font-size: 20px;
-  letter-spacing: 1.5px;
-  padding: 6px 18px;
+  font-size: 16px;
+  letter-spacing: 1.2px;
+  padding: 5px 14px;
   border-radius: 20px;
   border: 1px solid var(--border2);
   color: var(--text4);

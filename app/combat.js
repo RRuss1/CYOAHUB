@@ -2595,7 +2595,11 @@ function populateVoiceSelect() {
 // ── Public API ──
 function speakStory() {
   if (!voiceEnabled || isMobile()) return;
-  const el = document.getElementById('story-text');
+  // Read from combat narrative if on combat screen, otherwise chronicle
+  const onCombat = document.getElementById('s-combat') && document.getElementById('s-combat').classList.contains('active');
+  const el = onCombat
+    ? document.getElementById('combat-narrative-text') || document.getElementById('combat-narrative')
+    : document.getElementById('story-text');
   if (!el) return;
   const text = _cleanForTTS(el.innerText || '');
   if (text.length < 10) return;

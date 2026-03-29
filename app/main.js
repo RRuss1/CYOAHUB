@@ -462,34 +462,37 @@ window.animateStoryReveal = function (el) {
   );
 };
 
-// ── 8. CHRONICLE CARD 3-D TILT PARALLAX ──────────────────────
+// ── 8. CHRONICLE CARD SHIMMER EFFECT ─────────────────────────
+// Subtle light shimmer that follows the mouse — no 3D tilt
 function _initChronicleTilt() {
   const card = document.querySelector('.chronicle-card');
   if (!card || window.innerWidth < 900) return;
 
-  // Remove previous listeners (re-init safe)
-  card.onmousemove = null;
-  card.onmouseleave = null;
+  // Create shimmer overlay if not present
+  if (!card.querySelector('.shimmer-overlay')) {
+    const shimmer = document.createElement('div');
+    shimmer.className = 'shimmer-overlay';
+    shimmer.style.cssText = 'position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:0;transition:opacity 0.4s;z-index:1;';
+    card.style.position = 'relative';
+    card.style.overflow = 'hidden';
+    card.appendChild(shimmer);
+  }
 
-  card.addEventListener(
-    'mousemove',
-    (e) => {
-      const rect = card.getBoundingClientRect();
-      const cx = (e.clientX - rect.left) / rect.width - 0.5; // -0.5 → 0.5
-      const cy = (e.clientY - rect.top) / rect.height - 0.5;
-      gsap.to(card, {
-        rotateX: cy * -3.5,
-        rotateY: cx * 3.5,
-        transformPerspective: 1400,
-        duration: 0.55,
-        ease: 'power2.out',
-      });
-    },
-    { passive: true }
-  );
+  const shimmer = card.querySelector('.shimmer-overlay');
+
+  card.addEventListener('mousemove', (e) => {
+    const rect = card.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    shimmer.style.background = `radial-gradient(circle 300px at ${x}% ${y}%, rgba(255,255,255,0.04) 0%, transparent 70%)`;
+    shimmer.style.opacity = '1';
+    // Subtle border glow
+    card.style.borderColor = `color-mix(in srgb, var(--primary, #C9A84C) 20%, var(--border))`;
+  }, { passive: true });
 
   card.addEventListener('mouseleave', () => {
-    gsap.to(card, { rotateX: 0, rotateY: 0, duration: 0.5, ease: 'power2.out', clearProps: 'rotateX,rotateY' });
+    shimmer.style.opacity = '0';
+    card.style.borderColor = '';
   });
 }
 
