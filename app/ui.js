@@ -2957,11 +2957,12 @@ function renderStory(log) {
   if (gState && gState.lastGM && !dlog.some((e) => e.type === 'gm')) {
     dlog = [...dlog, { type: 'gm', who: '', text: gState.lastGM.text, choices: gState.lastGM.choices, ts: gState.lastGM.ts || 'mem' }];
   }
-  // Trim to last 3 GM beats + associated player entries
+  // Show only the latest GM beat — not the full history
   const gmEntries = dlog.filter((e) => e.type === 'gm');
-  if (gmEntries.length > 3) {
-    const cutoffIdx = dlog.indexOf(gmEntries[gmEntries.length - 3]);
-    dlog = dlog.slice(Math.max(0, cutoffIdx));
+  if (gmEntries.length > 1) {
+    const lastGm = gmEntries[gmEntries.length - 1];
+    const lastGmIdx = dlog.indexOf(lastGm);
+    dlog = dlog.slice(Math.max(0, lastGmIdx));
   }
   if (!dlog.length) {
     el.innerHTML =
