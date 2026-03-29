@@ -189,7 +189,7 @@ async function _dbFetch(path, opts = {}) {
   } catch (e) {
     // Network error — try once more after DB wake-up
     await fetch(PROXY_URL + '/db/health').catch(function () {});
-    await new Promise(function (r) { setTimeout(r, 1500); });
+    await new Promise(function (r) { setTimeout(r, 3000); });
     res = await fetch(PROXY_URL + '/db' + path, fetchOpts);
   }
   const text = await res.text();
@@ -449,13 +449,24 @@ function showScreen(id) {
 // ── CAMPAIGN + CREATE + LOBBY ─────────────────────────────────
 // ══ CAMPAIGN PICKER ══
 async function initCampaignPicker() {
-  document.getElementById('camp-status').textContent = 'Connecting...';
+  const status = document.getElementById('camp-status');
+  if (status) status.textContent = 'Loading campaigns...';
   try {
     const camps = await listCampaigns();
     renderCampaigns(camps);
-    document.getElementById('camp-status').textContent = '';
+    if (status) status.textContent = '';
   } catch (e) {
-    document.getElementById('camp-status').textContent = 'Could not connect: ' + e.message;
+    console.warn('Campaign fetch failed:', e.message);
+    // Show empty state with New Campaign instead of error
+    const grid = document.getElementById('camp-grid');
+    const sys = window.SystemData || {};
+    const themeColor = sys.theme?.primary || 'var(--gold)';
+    if (grid) {
+      grid.innerHTML = `<div class="camp-card new-camp" onclick="promptNewCampaign()" style="border-color:${themeColor}22;"><div class="camp-new-icon" style="color:${themeColor};">+</div><div class="camp-new-txt" style="color:${themeColor};">New Campaign</div></div>`;
+    }
+    if (status) {
+      status.innerHTML = '<span style="color:var(--text4);font-style:italic;">No campaigns found.</span> <button onclick="initCampaignPicker()" style="background:none;border:1px solid var(--border2);color:var(--text3);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:18px;margin-left:8px;">Retry</button>';
+    }
   }
 }
 function renderCampaigns(camps) {
