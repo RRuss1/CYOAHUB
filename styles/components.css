@@ -1214,6 +1214,7 @@
 }
 .party-strip {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 12px 28px;
   border-bottom: 1px solid var(--border);
@@ -1222,6 +1223,10 @@
   overflow-x: auto;
   align-items: stretch;
 }
+/* 4 players: 2+2 rows. 5 players: 2+3 rows. Each row fills full width. */
+.party-strip[data-party-size="4"] .ppip-pair { flex: 0 0 calc(50% - 4px); }
+.party-strip[data-party-size="5"] .ppip-pair:nth-child(-n+2) { flex: 0 0 calc(50% - 4px); }
+.party-strip[data-party-size="5"] .ppip-pair:nth-child(n+3) { flex: 0 0 calc(33.33% - 6px); }
 .ppip-pair {
   flex: 1;
   display: flex;
@@ -1402,7 +1407,7 @@
 
 /* Spren card */
 .spren-card {
-  width: 72px;
+  width: 100px;
   flex-shrink: 0;
   align-self: stretch;
   background: var(--bg2, rgba(20, 17, 9, 0.9));

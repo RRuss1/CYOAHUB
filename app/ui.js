@@ -2915,6 +2915,7 @@ function renderParty() {
   const s = document.getElementById('party-strip');
   if (!gState) return;
   const sz = gState.partySize || partySize;
+  s.dataset.partySize = sz;
   s.innerHTML = gState.players
     .slice(0, sz)
     .map((p, i) => {
