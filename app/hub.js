@@ -9,6 +9,13 @@ const goTo = (id) => {
     if (window.Auth) window.Auth.showModal('login');
     return;
   }
+  // Reset wizard to step 1 when entering fresh
+  if (id === 'wizard') {
+    _ws = 1;
+    _wsHighest = 1;
+    _wizSelections && Object.keys(_wizSelections).forEach(k => delete _wizSelections[k]);
+    setTimeout(renderStep, 50);
+  }
   showScreen(id);
 };
 
@@ -173,6 +180,7 @@ function filterWorlds(tier, btn) {
 
 /* ── WIZARD ── */
 let _ws = 1;
+let _wsHighest = 1; // tracks furthest step reached — enables forward navigation
 const WS_MAX = 7;
 let _selectedEnemyCategories = ['undead', 'beasts', 'goblinoids', 'humanEnemies']; // defaults
 let _selectedAmbientAudio = 'forest'; // default for custom worlds
@@ -181,22 +189,34 @@ function wizStep(dir) {
   const n = _ws + dir;
   if (n < 1 || n > WS_MAX) return;
   _ws = n;
+  if (n > _wsHighest) _wsHighest = n;
+  renderStep();
+}
+
+function wizJump(step) {
+  if (step < 1 || step > _wsHighest) return; // can only jump to visited steps
+  _ws = step;
   renderStep();
 }
 
 function wizBack() {
-  if (_ws <= 1) goTo('worlds');
+  if (_ws <= 1) goTo('landing');
   else wizStep(-1);
 }
 
 function renderStep() {
   document.querySelectorAll('.wstep').forEach((s, i) => s.classList.toggle('on', i + 1 === _ws));
   document.querySelectorAll('.wdot').forEach((d, i) => {
-    d.classList.toggle('on', i + 1 === _ws);
-    d.classList.toggle('done', i + 1 < _ws);
+    const stepNum = i + 1;
+    d.classList.toggle('on', stepNum === _ws);
+    d.classList.toggle('done', stepNum < _ws);
+    d.classList.toggle('visited', stepNum <= _wsHighest && stepNum !== _ws);
   });
+  // Back button: visible except on step 1 (where screen-back handles exit)
   document.getElementById('wiz-back-btn').style.visibility = _ws > 1 ? 'visible' : 'hidden';
+  // Next button: hidden on final step (publish buttons replace it)
   document.getElementById('wiz-nav').style.display = _ws < WS_MAX ? 'flex' : 'none';
+  // Animate step transition
   gsap.fromTo('#ws-' + _ws, { opacity: 0, x: 16 }, { opacity: 1, x: 0, duration: 0.26, ease: 'power2.out' });
   if (_ws === 4 && !_wizClassRows.length) initWizClassRows();
   if (_ws === 5) {

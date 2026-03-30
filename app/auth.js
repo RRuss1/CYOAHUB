@@ -595,17 +595,7 @@
   }
 
   function _ensureAuthSlots() {
-    // Insert an .auth-slot next to each hamburger button
-    document.querySelectorAll('.hamburger').forEach((btn) => {
-      const nav = btn.closest('nav') || btn.parentElement;
-      if (!nav) return;
-      if (nav.querySelector('.auth-slot')) return;
-      const slot = document.createElement('div');
-      slot.className = 'auth-slot';
-      slot.style.cssText = 'display:inline-flex;align-items:center;margin-right:8px;';
-      nav.insertBefore(slot, btn);
-    });
-    // Global persistent badge (shows on ALL screens including game)
+    // Single global auth badge (top-left, all screens)
     if (!document.getElementById('auth-global-badge')) {
       const badge = document.createElement('div');
       badge.id = 'auth-global-badge';

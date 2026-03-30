@@ -657,6 +657,7 @@
   border-radius: 50%;
   background: rgba(40, 168, 160, 0.17);
   transition: all 0.28s;
+  cursor: default;
 }
 .wdot.on {
   background: #28a8a0;
@@ -665,6 +666,19 @@
 }
 .wdot.done {
   background: rgba(40, 168, 160, 0.42);
+  cursor: pointer;
+}
+.wdot.done:hover {
+  background: rgba(40, 168, 160, 0.65);
+  transform: scale(1.2);
+}
+.wdot.visited {
+  background: rgba(40, 168, 160, 0.35);
+  cursor: pointer;
+}
+.wdot.visited:hover {
+  background: rgba(40, 168, 160, 0.55);
+  transform: scale(1.15);
 }
 
 .wstep {

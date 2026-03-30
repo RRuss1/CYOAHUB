@@ -1196,8 +1196,8 @@ function renderCombatActions() {
     } else {
       const choiceHTML = choices
         .map((ch, i) => {
-          const display = ch.replace(/\[ATTACK\]|\[DEFEND\]|\[HEAL\]|\[SURGE\]|\[SKILL\]/g, '').trim();
-          const m = ch.match(/\[(ATTACK|DEFEND|HEAL|SURGE|SKILL)\]/);
+          const display = ch.replace(/\[ATTACK\]|\[DEFEND\]|\[HEAL\]|\[SURGE\]|\[SKILL\]|\[REVIVE\]/g, '').trim();
+          const m = ch.match(/\[(ATTACK|DEFEND|HEAL|SURGE|SKILL|REVIVE)\]/);
           const tag = m ? m[1] : '';
           const tagCol =
             tag === 'HEAL'
@@ -1688,7 +1688,13 @@ async function resolveRound() {
         const p = a.player;
         if (!p || p.downed) return; // healer must be alive
         const pi = gState.players.findIndex((x) => x && x.name === a.actor);
-        const sv = (p.stats && p.stats[a.stat]) || 10;
+        // Resolve heal stat — try action stat, then system-appropriate fallbacks
+        let sv = (p.stats && p.stats[a.stat]) || 0;
+        if (!sv && p.stats) {
+          const healFallbacks = ['wil','wis','wisdom','spirit','mind','int','obsession'];
+          for (const fb of healFallbacks) { if (p.stats[fb]) { sv = p.stats[fb]; break; } }
+        }
+        if (!sv) sv = 12; // generous default so heals don't auto-fail
         const bonus = Math.floor((sv - 10) / 2);
         const roll = Math.ceil(Math.random() * 20);
         const total = Math.min(20, Math.max(1, roll + bonus));
@@ -1730,16 +1736,11 @@ async function resolveRound() {
           // Self or ally heal
           const baseAmt = getHealAmount(p, stage) || 6;
           let healAmt = 0;
-          if (total >= 18) healAmt = Math.round(baseAmt * 1.5);
-          else if (total >= 14) healAmt = baseAmt;
-          else if (total >= 10) healAmt = Math.round(baseAmt * 0.6);
-          else if (total >= 6) {
-            healAmt = 0;
-            detail = 'heal fizzled';
-          } else {
-            healAmt = -Math.floor(baseAmt * 0.3);
-            detail = (window.SystemData?.gmContext?.magicName || 'Magic') + ' backlash';
-          }
+          if (total >= 18) healAmt = Math.round(baseAmt * 1.5);      // CRIT: +50%
+          else if (total >= 14) healAmt = baseAmt;                    // HIT: full
+          else if (total >= 10) healAmt = Math.round(baseAmt * 0.6); // PARTIAL: 60%
+          else if (total >= 6) healAmt = Math.max(1, Math.round(baseAmt * 0.3)); // WEAK: 30% (min 1)
+          else healAmt = Math.max(1, Math.round(baseAmt * 0.2));     // FUMBLE: 20% (still heals, min 1)
           if (healAmt > 0) {
             p.hp = Math.min(p.maxHp || p.hp, p.hp + healAmt);
             detail = `+${healAmt}HP`;
