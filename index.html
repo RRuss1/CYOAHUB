@@ -139,9 +139,9 @@
      ═══════════════════════════════════════════════════════ -->
 <div id="s-landing" class="screen active">
 
-  <nav class="nav">
+  <nav class="nav" style="justify-content:center;">
     <div class="logo" onclick="goTo('landing')">CYOA<em>HUB</em></div>
-    <button class="hamburger" onclick="toggleMenu()" id="hamburger" aria-label="Menu">
+    <button class="hamburger" onclick="toggleMenu()" id="hamburger" aria-label="Menu" style="position:absolute;right:28px;">
       <span></span><span></span><span></span>
     </button>
   </nav>
@@ -233,12 +233,10 @@
      ═══════════════════════════════════════════════════════ -->
 <div id="s-worlds" class="screen">
 
-  <nav class="nav">
-    <div style="display:flex;align-items:center;gap:16px;">
-      <button class="screen-back-inline" onclick="goTo('landing')">←</button>
-      <div class="logo" onclick="goTo('landing')">CYOA<em>HUB</em></div>
-    </div>
-    <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">
+  <nav class="nav" style="justify-content:center;">
+    <button class="screen-back-inline" onclick="goTo('landing')" style="position:absolute;left:28px;">←</button>
+    <div class="logo" onclick="goTo('landing')">CYOA<em>HUB</em></div>
+    <button class="hamburger" onclick="toggleMenu()" aria-label="Menu" style="position:absolute;right:28px;">
       <span></span><span></span><span></span>
     </button>
   </nav>

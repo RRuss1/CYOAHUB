@@ -205,10 +205,14 @@ async function loadState() {
 }
 async function saveState(s) {
   if (!campaignId) return;
-  await _dbFetch('/state/' + encodeURIComponent(campaignId), {
-    method: 'PUT',
-    body: JSON.stringify({ gState: s }),
-  });
+  try {
+    await _dbFetch('/state/' + encodeURIComponent(campaignId), {
+      method: 'PUT',
+      body: JSON.stringify({ gState: s }),
+    });
+  } catch(e) {
+    console.error('saveState failed:', e);
+  }
 }
 async function loadLog(waitForGM) {
   if (!campaignId) return [];
@@ -855,6 +859,11 @@ async function onEnter() {
     if (gState) {
       partySize = gState.partySize || partySize;
       if (gState.locationSeed) buildActs(gState.locationSeed);
+      // Ensure the correct system is loaded for this campaign
+      const worldId = gState.system || gState.worldId || 'stormlight';
+      if (!window.SystemData || window.SystemData.id !== worldId) {
+        if (typeof loadSystem === 'function') loadSystem(worldId);
+      }
     }
     myChar = loadMyChar();
     if (myChar && gState && gState.phase === 'playing') {
@@ -1482,7 +1491,9 @@ function pickWeapon(id) {
 
 function getClassBonus() {
   const bonus = isRadiant ? (selClass ? selClass.bonus : {}) : selRole ? selRole.bonus : {};
-  return { str: 0, spd: 0, int: 0, wil: 0, awa: 0, pre: 0, ...bonus };
+  const base = {};
+  (window.STAT_KEYS || []).forEach(k => base[k] = 0);
+  return { ...base, ...bonus };
 }
 function getTotalStats() {
   const b = getClassBonus();

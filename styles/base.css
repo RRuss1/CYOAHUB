@@ -129,14 +129,14 @@ body {
     radial-gradient(ellipse 60% 60% at 10% 80%, rgba(29, 122, 92, 0.06) 0%, transparent 50%);
 }
 
-/* Grain texture overlay */
+/* Grain texture overlay — hub screens only, hidden during game */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.04;
+  opacity: 0.03;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 128px;
 }
@@ -148,22 +148,10 @@ body::after {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background: radial-gradient(ellipse 115% 115% at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.42) 72%, rgba(0, 0, 0, 0.7) 100%);
+  background: radial-gradient(ellipse 115% 115% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.3) 75%, rgba(0, 0, 0, 0.5) 100%);
 }
 
-/* Corner glyph watermark on active screens */
-.screen.active::after {
-  content: '⟁';
-  position: fixed;
-  bottom: 24px;
-  right: 28px;
-  font-family: var(--font-d);
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: var(--gold-dim);
-  opacity: 0.35;
-  pointer-events: none;
-}
+/* Corner glyph watermark removed — each world has its own identity */
 
 /* ─── SCREEN SYSTEM ─── */
 .screen {
