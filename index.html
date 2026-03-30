@@ -319,7 +319,12 @@
      ═══════════════════════════════════════════════════════ -->
 <div id="s-wizard" class="screen">
 
-  <button class="screen-back" onclick="wizBack()">← Back</button>
+  <div style="position:absolute;top:14px;right:18px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;z-index:20;">
+    <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <button class="screen-back-inline" onclick="wizBack()" style="font-size:11px;font-family:var(--fd);letter-spacing:1px;color:var(--muted);">← Back to Lobby</button>
+  </div>
 
   <div class="wiz-box">
     <div class="wiz-dots" id="wiz-dots">
@@ -797,10 +802,11 @@
      SCREEN: CAMPAIGN PICKER
      ═══════════════════════════════════════════════════════ -->
 <div id="s-campaign" class="screen">
-  <div class="absolute top-4 right-4">
-    <button id="lang-toggle-camp" onclick="toggleLang()"
-      class="bg-transparent border rounded-full px-3.5 py-1.5 cursor-pointer font-display text-xs tracking-widest"
-      style="background:var(--bg3);border-color:var(--border2);color:var(--text3);display:none;">🌐 EN</button>
+  <div style="position:absolute;top:14px;right:18px;display:flex;align-items:center;gap:10px;z-index:20;">
+    <button class="screen-back-inline" onclick="goTo('worlds')" title="Back to Worlds">←</button>
+    <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 
   <div class="title-glyph" id="camp-glyph">⟁</div>

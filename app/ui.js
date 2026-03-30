@@ -755,14 +755,17 @@ function renderPSZ() {
           <div style="font-size:11px;color:var(--text4);">${p.className || ''}</div>
         </div>`;
       } else if (p && p.isNPC) {
-        return `<div class="slot npc-slot" style="text-align:center;padding:10px 8px;">
+        const canTakeover = !myChar && gState && gState.phase === 'playing';
+        return `<div class="slot npc-slot" style="text-align:center;padding:10px 8px;${canTakeover?'cursor:pointer;':''}" ${canTakeover?`onclick="lateJoinClaim(${i})"`:''}  title="${canTakeover?'Take over this character':''}">
           <div style="font-family:var(--font-d);font-size:11px;color:var(--text4);margin-bottom:2px;">Slot ${i + 1} · AI</div>
           <div style="font-family:var(--font-d);font-size:12px;color:var(--amber2);">${p.name}</div>
+          ${canTakeover?'<div style="font-size:10px;color:var(--gold);margin-top:4px;">Take over →</div>':''}
         </div>`;
       } else {
-        return `<div class="slot" style="text-align:center;padding:10px 8px;">
+        const canPick = !locked && !myChar;
+        return `<div class="slot" style="text-align:center;padding:10px 8px;${canPick?'cursor:pointer;':''}${canPick?'border:1px dashed var(--gold-dim);border-radius:12px;':''}" ${canPick?`onclick="pickSlot(${i})"`:''}  title="${canPick?'Click to join this slot':''}">
           <div style="font-size:11px;color:var(--text5);font-family:var(--font-d);letter-spacing:1px;">Slot ${i + 1}</div>
-          <div style="font-size:10px;color:var(--text5);margin-top:4px;font-style:italic;">Open</div>
+          <div style="font-size:10px;color:${canPick?'var(--gold)':'var(--text5)'};margin-top:4px;font-style:italic;">${canPick?'Join here →':'Open'}</div>
         </div>`;
       }
     }).join('');
@@ -874,9 +877,17 @@ async function onEnter() {
       return;
     }
     setTitleStatus('');
-    showScreen('create');
-    renderCreate();
-    startCreatePolling();
+    try {
+      showScreen('create');
+      renderCreate();
+      startCreatePolling();
+    } catch(createErr) {
+      console.error('Character creation failed:', createErr);
+      // Fallback: show lobby instead of blank screen
+      showScreen('lobby');
+      renderLobby();
+      startLobbyPolling();
+    }
   } catch (e) {
     setTitleStatus('Could not connect: ' + e.message);
     const btn = document.getElementById('enter-btn');
@@ -995,6 +1006,11 @@ async function reserveSlotOnly(i) {
 
 async function reserveSlot(i) {
   await reserveSlotOnly(i);
+  // Ensure the correct system is loaded before character creation
+  const worldId = (gState && gState.system) || 'stormlight';
+  if (!window.SystemData || window.SystemData.id !== worldId) {
+    if (typeof loadSystem === 'function') loadSystem(worldId);
+  }
   showScreen('create');
   renderCreate();
   startCreatePolling();
@@ -1007,6 +1023,7 @@ function setTitleStatus(m) {
 // ══ CHARACTER CREATION ══
 // ══ ENHANCED CREATOR ══
 function renderCreate() {
+  try {
   createStep = 1;
   selAncestry = 'human';
   selCultures = [];
@@ -1122,6 +1139,7 @@ function renderCreate() {
     pickCharType(true);
     renderStatsPointBuy();
   }, 80);
+  } catch(e) { console.error('renderCreate crashed:', e); }
 }
 
 function renderAncestryGrid() {
@@ -1392,16 +1410,16 @@ function _getRoleCardImg(id, name) {
 }
 
 function renderClasses() {
+  const grid = document.getElementById('class-grid');
+  if (!grid) return;
+  const classes = window.CLASSES || [];
+  if (!classes.length) { grid.innerHTML = '<div style="color:var(--text4);font-style:italic;">No classes available</div>'; return; }
   const _sprenLabel =
     (window.SystemData || {}).id === 'stormlight' ? 'Spren' : (window.SystemData || {}).id === 'dnd5e' ? 'Subclass' : 'Bond';
-  document.getElementById('class-grid').innerHTML = CLASSES.map((c) => {
+  grid.innerHTML = classes.map((c) => {
     const imgHtml = _getClassCardImg(c.id, c.name);
-    return `<div class="ccard${selClass && selClass.id === c.id ? ' sel' : ''}" onclick="pickClass('${c.id}')">${imgHtml}<div class="ccard-name">${c.name}</div><div class="ccard-ideal">"${c.philosophy || c.ideal || ''}"</div><div class="ccard-desc">${c.desc}</div>${c.spren ? `<div class="ccard-bonus">${_sprenLabel}: ${c.spren}</div>` : ''}<div class="ccard-bonus">Bonus: ${Object.entries(
-      c.bonus
-    )
-      .filter((e) => e[1] > 0)
-      .map((e) => e[0].toUpperCase() + '+' + e[1])
-      .join(' ')}</div></div>`;
+    const bonusStr = c.bonus ? Object.entries(c.bonus).filter((e) => e[1] > 0).map((e) => e[0].toUpperCase() + '+' + e[1]).join(' ') : '';
+    return `<div class="ccard${selClass && selClass.id === c.id ? ' sel' : ''}" onclick="pickClass('${c.id}')">${imgHtml}<div class="ccard-name">${c.name}</div><div class="ccard-ideal">"${c.philosophy || c.ideal || ''}"</div><div class="ccard-desc">${c.desc || ''}</div>${c.spren ? `<div class="ccard-bonus">${_sprenLabel}: ${c.spren}</div>` : ''}${bonusStr ? `<div class="ccard-bonus">Bonus: ${bonusStr}</div>` : ''}</div>`;
   }).join('');
 }
 function pickClass(id) {
