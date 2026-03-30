@@ -1190,7 +1190,56 @@ window.addEventListener('load', () => {
     return; // Hub boot handled by hub.js
   }
 
-  // Show campaign screen
+  // Deep link: #create/worldId/campaignId or #game/worldId/campaignId
+  const hashParts = (window.location.hash || '').replace('#', '').split('/');
+  const hashScreen = hashParts[0];
+  const hashWorld = hashParts[1];
+  const hashCampaign = hashParts[2];
+
+  if ((hashScreen === 'create' || hashScreen === 'game' || hashScreen === 'lobby' || hashScreen === 'title') && hashWorld && hashCampaign) {
+    // Load the correct system
+    if (typeof loadSystem === 'function') loadSystem(hashWorld);
+    // Set campaign ID
+    if (typeof campaignId !== 'undefined') campaignId = hashCampaign;
+    else window.campaignId = hashCampaign;
+    // Load state and route to correct screen
+    try {
+      gState = await loadState();
+      if (gState) {
+        partySize = gState.partySize || partySize;
+        if (gState.locationSeed && typeof buildActs === 'function') buildActs(gState.locationSeed);
+      }
+      myChar = typeof loadMyChar === 'function' ? loadMyChar() : null;
+
+      if (hashScreen === 'create') {
+        // Character creation deep link
+        if (myChar && gState && gState.phase === 'playing') {
+          showGameScreen();
+        } else {
+          showScreen('create');
+          renderCreate();
+          if (typeof startCreatePolling === 'function') startCreatePolling();
+        }
+      } else if (hashScreen === 'game' && myChar && gState && gState.phase === 'playing') {
+        showGameScreen();
+      } else if (hashScreen === 'lobby') {
+        showScreen('lobby');
+        if (typeof renderLobby === 'function') renderLobby();
+        if (typeof startLobbyPolling === 'function') startLobbyPolling();
+      } else {
+        // Fallback to campaign picker
+        showScreen('campaign');
+        const camps = await listCampaigns();
+        renderCampaigns(camps);
+      }
+    } catch (e) {
+      console.error('Deep link boot failed:', e);
+      showScreen('campaign');
+    }
+    return;
+  }
+
+  // Default: show campaign screen
   showScreen('campaign');
 
   // Load campaigns

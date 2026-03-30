@@ -192,6 +192,16 @@ async function _dbFetch(path, opts = {}) {
     await new Promise(function (r) { setTimeout(r, 3000); });
     res = await fetch(PROXY_URL + '/db' + path, fetchOpts);
   }
+  // If 401/403, token is bad — clear it and retry once without auth
+  if (res.status === 401 || res.status === 403) {
+    console.warn('Auth rejected (' + res.status + ') for ' + path + ' — clearing token and retrying');
+    localStorage.removeItem('cyoa_auth_token');
+    if (window.Auth) { window.Auth.logout(); }
+    delete headers['Authorization'];
+    try {
+      res = await fetch(PROXY_URL + '/db' + path, { ...opts, headers });
+    } catch(e2) { return {}; }
+  }
   const text = await res.text();
   try { return JSON.parse(text); } catch (e) { return {}; }
 }
@@ -4680,24 +4690,10 @@ if (typeof loadVoicePreference === 'undefined') {
   };
 }
 
-(async () => {
+// ui.js init — language + voice only. Routing handled by main.js + hub.js
+(function () {
   applyLang();
   loadVoicePreference();
-  // If hash points to a hub screen (or empty = landing), let hub.js handle boot
-  const _hash = (window.location.hash || '').split('?')[0];
-  if (!_hash || _hash === '#landing' || _hash === '#worlds' || _hash === '#wizard') {
-    // Hub boot — hub.js hubBoot() will run on window.load
-    return;
-  }
-  // Game boot — show campaign picker
-  showScreen('campaign');
-  try {
-    const camps = await listCampaigns();
-    renderCampaigns(camps);
-    document.getElementById('camp-status').textContent = '';
-  } catch (e) {
-    document.getElementById('camp-status').textContent = 'Connecting... ' + e.message;
-  }
 })();
 async function applyThaiToElement(el) {
   if (!el || !el.innerText || el.innerText.trim().length < 10) return;

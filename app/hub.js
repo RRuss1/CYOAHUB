@@ -1121,15 +1121,49 @@ function routeFromHash() {
     if (screen === 'campaign') {
       showScreen('campaign');
       if (typeof initCampaignPicker === 'function') initCampaignPicker();
-    } else if (campId && (screen === 'game' || screen === 'lobby' || screen === 'combat')) {
-      // Restore campaign context
+    } else if (campId) {
+      // Restore campaign context for all game screens
       if (typeof campaignId !== 'undefined') campaignId = campId;
-      showScreen(screen);
-      if (screen === 'game' && typeof showGameScreen === 'function') showGameScreen();
-      else if (screen === 'lobby' && typeof renderLobby === 'function') {
-        renderLobby();
-        if (typeof startLobbyPolling === 'function') startLobbyPolling();
-      } else if (screen === 'combat' && typeof enterCombat === 'function') enterCombat();
+      else window.campaignId = campId;
+
+      // Load state before rendering screen
+      (async () => {
+        try {
+          if (typeof loadState === 'function') {
+            gState = await loadState();
+            if (gState) {
+              partySize = gState.partySize || partySize;
+              if (gState.locationSeed && typeof buildActs === 'function') buildActs(gState.locationSeed);
+            }
+          }
+          if (typeof loadMyChar === 'function') myChar = loadMyChar();
+
+          if (screen === 'game') {
+            if (typeof showGameScreen === 'function') showGameScreen();
+          } else if (screen === 'lobby') {
+            showScreen('lobby');
+            if (typeof renderLobby === 'function') renderLobby();
+            if (typeof startLobbyPolling === 'function') startLobbyPolling();
+          } else if (screen === 'combat') {
+            showScreen('combat');
+            if (typeof enterCombat === 'function') enterCombat();
+          } else if (screen === 'create') {
+            showScreen('create');
+            if (typeof renderCreate === 'function') renderCreate();
+            if (typeof startCreatePolling === 'function') startCreatePolling();
+          } else if (screen === 'title') {
+            showScreen('title');
+            if (typeof renderPSZ === 'function') renderPSZ();
+          } else {
+            showScreen('campaign');
+            if (typeof initCampaignPicker === 'function') initCampaignPicker();
+          }
+        } catch(e) {
+          console.error('Route restore failed:', e);
+          showScreen('campaign');
+          if (typeof initCampaignPicker === 'function') initCampaignPicker();
+        }
+      })();
     } else {
       showScreen(screen);
     }
@@ -1154,12 +1188,21 @@ function hubBoot() {
   // Initialize auth on every boot
   if (window.Auth && window.Auth.init) window.Auth.init();
 
-  if (!screen || screen === 'landing' || screen === 'worlds' || screen === 'wizard') {
+  if (!screen || screen === 'landing') {
     showScreen('landing');
     animateLanding(true);
     initTilt();
     initHubParticles();
     prefetchWorldLibrary();
+  } else if (screen === 'worlds') {
+    showScreen('worlds');
+    initHubParticles();
+    animateHub();
+  } else if (screen === 'wizard') {
+    showScreen('wizard');
+    initHubParticles();
+    _ws = 1; _wsHighest = 1;
+    renderStep();
   } else {
     routeFromHash();
   }
