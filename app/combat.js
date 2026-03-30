@@ -1352,6 +1352,7 @@ async function submitCombatAction() {
   renderCombatActions(); // instant feedback
   await saveAndBroadcast(gState); // async save in background
   const sz = gState.partySize || partySize;
+  // Auto-submit for ALL NPCs
   gState.players
     .slice(0, sz)
     .filter((p) => p && p.isNPC && !p.downed)
@@ -1361,6 +1362,29 @@ async function submitCombatAction() {
         gState.pendingActions[p.name] = choices[Math.floor(Math.random() * choices.length)];
       }
     });
+  // Auto-pilot absent humans — if host has submitted and other humans haven't,
+  // treat them as NPCs for this round (they can take over next round)
+  if (isHost()) {
+    gState.players
+      .slice(0, sz)
+      .filter((p) => p && !p.isNPC && !p.downed && p.name !== myChar.name)
+      .forEach((p) => {
+        if (!gState.pendingActions[p.name]) {
+          // Give absent player a reasonable auto-action based on their state
+          const hpPct = p.hp / (p.maxHp || 1);
+          let autoAction;
+          if (hpPct < 0.3) {
+            autoAction = '[HEAL] Tend to wounds';
+          } else if (hpPct < 0.6) {
+            autoAction = '[DEFEND] Take a defensive stance';
+          } else {
+            const choices = buildCombatChoices(p, gState);
+            autoAction = choices.length ? choices[Math.floor(Math.random() * choices.length)] : '[ATTACK] Strike the nearest enemy';
+          }
+          gState.pendingActions[p.name] = autoAction;
+        }
+      });
+  }
   await saveAndBroadcast(gState);
   renderCombatActions();
 }

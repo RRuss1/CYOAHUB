@@ -1968,10 +1968,9 @@ function stopCreatePolling() {
 function claimSlot(i) {
   if (!gState || !gState.players[i]) return;
   const p = gState.players[i];
-  if (p.isNPC) {
-    alert('That slot belongs to an NPC.');
-    return;
-  }
+  // If it's an NPC, use lateJoinClaim to take it over
+  if (p.isNPC) { lateJoinClaim(i); return; }
+  // Otherwise claim an existing human slot (reconnecting)
   myChar = { ...p, slot: i, campaignId };
   mySlot = i;
   saveMyChar(myChar);
@@ -2075,25 +2074,30 @@ function renderLobby() {
   }
 }
 async function lateJoinClaim(slot) {
-  if (!gState) return;
+  if (!gState || !gState.players[slot]) return;
+  const npc = gState.players[slot];
+
+  // Just hop on the bike — take over the NPC as-is
+  npc.isNPC = false;
+  npc.isPlaceholder = false;
+  npc.slot = slot;
+  npc.campaignId = campaignId;
+
+  // Save as my character
+  myChar = { ...npc };
   mySlot = slot;
-  const placeholder = {
-    name: '...',
-    className: 'Joining...',
-    classId: 'pending',
-    color: '#555',
-    hp: 0,
-    maxHp: 0,
-    slot,
-    isNPC: false,
-    campaignId,
-    isPlaceholder: true,
-  };
-  gState.players[slot] = placeholder;
-  await saveState(gState);
-  showScreen('create');
-  renderCreate();
-  startCreatePolling();
+  saveMyChar(myChar);
+
+  // Update game state
+  gState.players[slot] = npc;
+  await saveAndBroadcast(gState);
+
+  // Go straight to the game — no character creation needed
+  if (gState.phase === 'playing') {
+    showGameScreen();
+  } else {
+    renderLobby();
+  }
 }
 
 async function startNow() {
@@ -3059,7 +3063,12 @@ function setBottomFromState(log) {
   } else if (npc) {
     setBottomContinue('NPC turn — press Continue to advance');
   } else {
-    setBottomWaiting(cur.name);
+    // Another human's turn — if host, offer to auto-pilot them
+    if (isHost()) {
+      setBottomContinue(`${cur.name} is absent — press Continue to auto-pilot`);
+    } else {
+      setBottomWaiting(cur.name);
+    }
   }
 }
 
