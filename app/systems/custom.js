@@ -432,6 +432,7 @@ window.CustomSystem = {
       id,
       name,
       _era: cfg.era || 'Medieval',
+      _combatFrequency: cfg.combatFrequency || 'Moderate',
       _factions: cfg.factions || '',
       _climate: cfg.climate || 'Temperate — Mild seasons',
       _npcDialogue: cfg.npcDialogue || '',

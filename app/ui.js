@@ -2512,7 +2512,7 @@ async function refreshGame() {
   }
   const onGame = document.getElementById('s-game').classList.contains('active');
   const onCombat = document.getElementById('s-combat').classList.contains('active');
-  if (gState && gState.combatMode && !onCombat) {
+  if (gState && gState.combatMode && !onCombat && !_isCombatDisabled()) {
     enterCombat();
     return;
   }
@@ -2880,7 +2880,7 @@ async function skipTurn(playerName) {
   });
   gState.turn = (gState.turn + 1) % sz;
   gState.totalMoves = (gState.totalMoves || 0) + 1;
-  if (!gState.combatMode) {
+  if (!gState.combatMode && !_isCombatDisabled()) {
     gState.beatsSinceLastCombat = (gState.beatsSinceLastCombat || 0) + 1;
     const beatsLeft = (gState.beatsUntilCombat || 5) - gState.beatsSinceLastCombat;
     if (beatsLeft <= 0 && gState.preCombatTriggered) {
@@ -3342,7 +3342,7 @@ async function handleNPC(log) {
       }
     });
   }
-  if (!gState.combatMode) {
+  if (!gState.combatMode && !_isCombatDisabled()) {
     gState.beatsSinceLastCombat = (gState.beatsSinceLastCombat || 0) + 1;
     const beatsLeft = (gState.beatsUntilCombat || 5) - gState.beatsSinceLastCombat;
     if (beatsLeft <= 0 && gState.preCombatTriggered) {
@@ -3430,8 +3430,8 @@ async function onSubmitAction() {
   }
   errEl.style.display = 'none';
   if (isLoading) return;
-  // If the player chose a [COMBAT] tagged option, enter combat immediately
-  if (selActionTag === 'COMBAT' || /^\[COMBAT\]/i.test(action)) {
+  // If the player chose a [COMBAT] tagged option, enter combat immediately (unless combat disabled)
+  if (!_isCombatDisabled() && (selActionTag === 'COMBAT' || /^\[COMBAT\]/i.test(action))) {
     gState.combatMode = true;
     gState.preCombatTriggered = true;
   }
@@ -3541,7 +3541,7 @@ async function onSubmitAction() {
       }
     });
   }
-  if (!gState.combatMode) {
+  if (!gState.combatMode && !_isCombatDisabled()) {
     gState.beatsSinceLastCombat = (gState.beatsSinceLastCombat || 0) + 1;
     const beatsLeft = (gState.beatsUntilCombat || 5) - gState.beatsSinceLastCombat;
     if (beatsLeft <= 0 && gState.preCombatTriggered) {

@@ -75,12 +75,13 @@ NEVER exceed 2 paragraphs. NEVER put choices in the narrative. Choices go in [CH
     const tone = ctx.toneInstruction || 'Epic fantasy — mythic stakes, personal cost.';
     const magicRules = ctx.magicRules || '';
     const npcFlavor = ctx.npcFlavor || '';
+    const noCombat = _isCombatDisabled();
     return `[WORLD] THIS IS ${worldName.toUpperCase()}:
 ${worldLore}
 ${magicRules ? 'MAGIC: ' + magicRules : ''}
 ${npcFlavor ? 'NPCs: ' + npcFlavor : ''}
 Tone: ${tone}
-You are not a generic fantasy GM. Every sentence must feel like it belongs in ${worldName} and ONLY ${worldName}. Use the world's specific geography, cultures, creatures, and vocabulary. Never import concepts from other settings.`;
+You are not a generic fantasy GM. Every sentence must feel like it belongs in ${worldName} and ONLY ${worldName}. Use the world's specific geography, cultures, creatures, and vocabulary. Never import concepts from other settings.${noCombat ? '\nPURE NARRATIVE MODE: This world has NO combat. Never generate fights, enemies, or violence-focused choices. Focus entirely on story, dialogue, exploration, mystery, relationships, and discovery. Never use [COMBAT] or [ATTACK] tags. Use [DISCOVERY], [DECISION], and [SKILL] tags instead.' : ''}`;
   },
 
   craft: () => {
@@ -98,15 +99,21 @@ You are not a generic fantasy GM. Every sentence must feel like it belongs in ${
   choices: () => {
     const ctx = window.SystemData?.gmContext || {};
     const magicName = ctx.magicName || 'power';
-    const choiceTags = ctx.choiceTagRules
-      || (window.ActionEngine ? window.ActionEngine.getActionTagsString() : '[ATTACK], [DEFEND], [HEAL], [SURGE], [COMBAT], [DISCOVERY], [DECISION]');
+    const noCombat = _isCombatDisabled();
+    const defaultTags = noCombat
+      ? '[DISCOVERY], [DECISION], [SKILL]'
+      : '[ATTACK], [DEFEND], [HEAL], [SURGE], [COMBAT], [DISCOVERY], [DECISION]';
+    const choiceTags = ctx.choiceTagRules || (window.ActionEngine ? window.ActionEngine.getActionTagsString() : defaultTags);
+    const approaches = noCombat
+      ? 'investigative, diplomatic, emotional, bold'
+      : `aggressive, defensive, ${magicName.toLowerCase()}/ability, situational`;
     return `[CHOICES FORMAT]
 [CHOICES]
 - Exactly 4 numbered choices, first-person: "I [verb]..." — one vivid sentence each
 - Tagged: ${choiceTags}
-- Four distinct approaches: aggressive, defensive, ${magicName.toLowerCase()}/ability, situational
-- Grounded in THIS moment — reference specific enemies, terrain, character state
-- NEVER generic ("I attack" / "I explore"). Always specific to what's happening NOW.
+- Four distinct approaches: ${approaches}
+- Grounded in THIS moment — reference specific characters, terrain, situation
+- NEVER generic ("I explore" / "I wait"). Always specific to what's happening NOW.
 - NEVER write choices for NPCs. Only the named player character.`;
   },
 

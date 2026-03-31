@@ -283,13 +283,58 @@ This does everything at once:
 
 **All migrations confirmed run** (006, 007, 008).
 
+#### 12. Loot Tables Expanded + DB Audit + Prompt Refactor (same session, continued)
+
+**Era-specific loot tables (`worldSystems.js`):**
+- Replaced 4-item generic table with **7 full era tables** (Ancient, Medieval, Renaissance, Colonial, Modern, Post-Apoc, Futuristic)
+- Each era has weapon/armor/consumable/misc categories with 4-8 items each, rarity 0-4
+- Examples: Futuristic → Singularity Cannon, Nanite Swarm Injector, AI Chip Fragment, Void Walker Suit
+- Post-Apoc → Nuclear Fist, Stimpak, Pre-War Power Armor, Mutant Gland
+- `rollLoot()` now calls `_getLootTable()` which picks era from `SystemData._era`
+
+**DB migration 009 (`db/migrations/009_indexes_and_fk_fixes.sql`):**
+- Added indexes: `idx_campaigns_owner`, `idx_world_library_owner`, `idx_world_library_published`
+- FK: `user_uploads.user_id → users(id) ON DELETE CASCADE`
+- FK: `campaigns.owner_id → users(id) ON DELETE SET NULL` (prevents orphaned campaigns)
+- **Migration applied to Neon DB.**
+
+**GM prompt refactored into slot architecture (`combat.js`):**
+- Old monolithic `getAiDmSystemPrompt()` replaced with `_PROMPT_SLOTS` registry
+- **Stable slots** (cached): `identity`, `format`, `world`, `craft`, `choices`
+- **Dynamic slots** (per-turn): `narrative`, `worldSystems`
+- Each slot tagged with `[SLOT NAME]` header for AI boundary awareness
+- Runtime API: `window.PromptSlots.set(name, fn, isDynamic)`, `.remove(name)`, `.list()`
+- Plugins/systems can add/replace/remove prompt sections without touching the core
+
+#### 13. Paperdoll Visual Fix + World Editor Button (same session, continued)
+
+**Paperdoll SVG fix (all 5 SVGs):**
+- Body silhouette changed from `fill="url(#bodyGrad)"` → `fill="none"` (no more blue overlay)
+- Stroke reduced to `opacity: 0.3`, `stroke-width: 1` (faint outline only)
+- Slot box fill reduced from `rgba(0,0,0,0.3)` → `rgba(0,0,0,0.15)` (subtle)
+- Background image bumped from `opacity: 0.25 + saturate(0.6)` → `opacity: 0.85` (full color character art)
+
+**World Editor button moved to chronicle header bar:**
+- New `🎨 EDIT` button in chronicle header (next to weather + rest)
+- Visible at all times during gameplay for custom worlds
+- Same `toggleThemeEditor()` function, just accessible location
+- Old button below story card still works as fallback
+
 ### Known Issues / Next Session
-- [ ] Paperdoll slot positions are approximate — may need tweaking per SVG after visual testing on real screens
-- [ ] Loot tables are generic — could be expanded with era-specific items (Futuristic = plasma cells, Medieval = gemstones)
 - [ ] `performRest()` doesn't persist to DB yet — need `saveAndBroadcast` after rest in `onRest()`
 - [ ] `renderAll` monkey-patch for weather/rest update could break if `renderAll` is reassigned later
 - [ ] Mobile layout + per-world fonts still untested
 - [ ] World editor image management untested end-to-end (from laptop session)
+- [ ] Old `▸ Character Sheet` button + `sheet-panel` div below story card can be removed (replaced by modal)
+
+### File Counts (updated)
+- **app/systems/**: 4 files — ~3,200 lines (custom.js grew with era weapon pools)
+- **app/*.js**: 18 files — ~20,500 lines (+worldSystems.js)
+- **styles/*.css**: 4 files — ~4,600 lines
+- **index.html**: ~1,600 lines
+- **assets/paperdoll/**: 5 SVGs
+- **db/migrations/**: 9 files
+- **Total JS**: ~23,700 lines
 
 ---
 

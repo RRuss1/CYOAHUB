@@ -718,6 +718,7 @@ Win condition: ${winCondition.toLowerCase()}. Lose condition: ${loseCondition.to
     progression,
     era,
     tech,
+    combatFrequency: combatFreq,
     rules: { physics, deathRules, timeFlow, travelSpeed, dialogueStyle, restRules, lootStyle, winCondition, loseCondition, difficulty },
     moralityAxis,
     climate,

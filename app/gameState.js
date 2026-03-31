@@ -371,6 +371,11 @@ Object.defineProperty(window, 'ATTR_MAX_CREATE', { get: _getAttrMax });
 const DC = { EASY: 10, MEDIUM: 15, HARD: 20, VERY_HARD: 25, NEARLY_IMPOSSIBLE: 30 };
 const COMBAT_BEATS_MIN = 2,
   COMBAT_BEATS_MAX = 12;
+// Returns true if this world has combat disabled (pure narrative mode)
+function _isCombatDisabled() {
+  const sys = window.SystemData || {};
+  return (sys._combatFrequency || '').startsWith('None');
+}
 
 // ══════════════════════════════════════════════════════════
 // FUNCTIONS (game mechanics — NOT extracted to system file)
