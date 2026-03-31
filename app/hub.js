@@ -17,6 +17,8 @@ const goTo = (id) => {
     setTimeout(renderStep, 50);
   }
   showScreen(id);
+  // Worlds screen needs community worlds fetched + rendered
+  if (id === 'worlds') animateHub();
 };
 
 // ── CARD IMAGE LIBRARY ───────────────────────────────────────
