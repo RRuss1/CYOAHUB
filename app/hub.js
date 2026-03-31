@@ -42,6 +42,8 @@ const CARD_IMAGES = [
   'GameCardImgs/starduster.jpg',
 ];
 let _selectedCardImage = CARD_IMAGES[0]; // default selection
+const MAX_CARD_UPLOADS = 4;
+let _userCardUploads = []; // URLs of user-uploaded card images
 
 /* ── GEOMETRIC PARTICLE CANVAS ── */
 function initHubParticles() {
@@ -282,13 +284,48 @@ function removeWizClassRow(idx) {
   renderWizClassRows();
 }
 
+// ── Image compression — resize + JPEG encode via canvas ──
+// Automatically shrinks any image to fit under 2MB before upload.
+// maxDim: longest edge in px, quality: JPEG quality 0-1
+function _compressImage(file, maxDim = 1200, quality = 0.8) {
+  const MAX_BYTES = 2 * 1024 * 1024;
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/') || file.size < 50 * 1024) { resolve(file); return; }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w <= maxDim && h <= maxDim && file.size < 500 * 1024) { resolve(file); return; }
+      if (w > h) { if (w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; } }
+      else       { if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; } }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+      // Try progressively lower quality until under 2MB
+      const tryQuality = (q) => {
+        canvas.toBlob((blob) => {
+          if (!blob) { resolve(file); return; }
+          if (blob.size > MAX_BYTES && q > 0.3) { tryQuality(q - 0.15); return; }
+          if (blob.size >= file.size) { resolve(file); return; }
+          const compressed = new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' });
+          console.log(`[img] compressed ${(file.size/1024).toFixed(0)}KB → ${(compressed.size/1024).toFixed(0)}KB (${w}×${h}, q=${q.toFixed(2)})`);
+          resolve(compressed);
+        }, 'image/jpeg', q);
+      };
+      tryQuality(quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 async function uploadWizClassImg(idx, input) {
-  const file = input.files && input.files[0];
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024) {
-    alert('Image must be under 2MB.');
-    return;
-  }
+  const raw = input.files && input.files[0];
+  if (!raw) return;
+  const file = await _compressImage(raw);
+  if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB (even after compression).'); return; }
 
   const formData = new FormData();
   formData.append('file', file);
@@ -364,14 +401,15 @@ function toggleEnemyCat(cb) {
 
 function renderCardImagePicker() {
   const grid = document.getElementById('card-image-grid');
-  if (!grid || grid.children.length) return; // only render once
-  CARD_IMAGES.forEach((src, i) => {
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  // Render all bundled + user-uploaded images
+  const allImages = [...CARD_IMAGES, ..._userCardUploads];
+  allImages.forEach((src) => {
     const thumb = document.createElement('div');
     thumb.className = 'card-image-thumb' + (src === _selectedCardImage ? ' selected' : '');
-    thumb.innerHTML = `<img src="${src}" alt="${src
-      .split('/')
-      .pop()
-      .replace(/\.\w+$/, '')}">`;
+    thumb.innerHTML = `<img src="${src}" alt="${src.split('/').pop().replace(/\.\w+$/, '')}">`;
     thumb.onclick = () => {
       grid.querySelectorAll('.card-image-thumb').forEach((t) => t.classList.remove('selected'));
       thumb.classList.add('selected');
@@ -379,6 +417,50 @@ function renderCardImagePicker() {
     };
     grid.appendChild(thumb);
   });
+
+  // Upload tile (if under limit)
+  if (_userCardUploads.length < MAX_CARD_UPLOADS) {
+    const uploadTile = document.createElement('div');
+    uploadTile.className = 'card-image-thumb card-upload-tile';
+    uploadTile.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:4px;color:var(--text4);">
+      <span style="font-size:28px;">+</span>
+      <span style="font-size:11px;font-family:var(--font-d);letter-spacing:1px;">UPLOAD</span>
+      <span style="font-size:10px;color:var(--text5);">${_userCardUploads.length}/${MAX_CARD_UPLOADS}</span>
+    </div>`;
+    uploadTile.onclick = () => document.getElementById('card-image-upload-input').click();
+    grid.appendChild(uploadTile);
+  }
+}
+
+async function uploadCardImage(input) {
+  const raw = input.files && input.files[0];
+  if (!raw) return;
+  if (_userCardUploads.length >= MAX_CARD_UPLOADS) { alert(`Maximum ${MAX_CARD_UPLOADS} card image uploads reached.`); return; }
+  const file = await _compressImage(raw);
+  if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB (even after compression).'); return; }
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const tile = document.querySelector('.card-upload-tile');
+  if (tile) tile.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text4);font-size:11px;">Uploading...</div>';
+
+  try {
+    const res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.url) {
+      _userCardUploads.push(data.url);
+      _selectedCardImage = data.url;
+      renderCardImagePicker();
+    } else {
+      alert(data.error || 'Upload failed.');
+      renderCardImagePicker();
+    }
+  } catch (e) {
+    alert('Upload failed: ' + e.message);
+    renderCardImagePicker();
+  }
+  input.value = ''; // reset so same file can be re-selected
 }
 
 // Track all wopt selections by data-field
