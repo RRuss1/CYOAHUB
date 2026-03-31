@@ -2459,12 +2459,13 @@ async function showGameScreen() {
   showScreen('game');
   const ab = document.getElementById('audio-bar');
   if (ab) ab.style.display = 'flex';
-  // Show theme edit button for custom world owners
+  // Show world editor button for custom world owners
+  const sys = window.SystemData || {};
+  const isCustom = sys.id && sys.id.startsWith('custom-');
   const themeBtn = document.getElementById('theme-edit-btn');
-  if (themeBtn) {
-    const sys = window.SystemData || {};
-    themeBtn.style.display = sys.id && sys.id.startsWith('custom-') ? '' : 'none';
-  }
+  if (themeBtn) themeBtn.style.display = isCustom ? '' : 'none';
+  const worldEditBtn = document.getElementById('world-edit-btn');
+  if (worldEditBtn) worldEditBtn.style.display = isCustom ? '' : 'none';
   startPolling();
   connectSession();
   // Load narrative memory from DB
