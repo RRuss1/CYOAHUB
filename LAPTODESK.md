@@ -56,8 +56,14 @@
 - `renderWorldsGrid()` made async with self-fetch fallback if community cache is empty.
 - Official world duplicates filtered: skip any world from DB with `tier === 'official'` or ID in `{stormlight, dnd5e, wretcheddeep}`.
 
-**Custom World Builder Fix:**
-- `app/systems/custom.js` — Fixed `ReferenceError: keys is not defined` in `_buildCharCreation()`. Variable `keys` was from `_buildStats()` scope. Now reads stat key count from `STAT_PRESETS` directly.
+**Custom World Builder Fix (`app/systems/custom.js` line 120):**
+- `_buildCharCreation()` had 3 bugs in one line:
+  1. `keys` — variable from `_buildStats()` scope, not accessible here → `ReferenceError`
+  2. `STAT_PRESETS` — wrong name, module-level const is `_STAT_PRESETS` (with underscore)
+  3. `.statKeys` — wrong property name, preset objects use `.keys` not `.statKeys`
+  4. `classic6` — wrong key name, preset map uses `classic` not `classic6`
+- Fix: `_STAT_PRESETS[cfg.statSystem] || _STAT_PRESETS.classic).keys.length`
+- Audited all other helpers (`_buildRules`, `_resolveStats`, `_buildSkillMap`, `_buildClasses`) — no other scope leaks found. All use proper parameter passing or module-level `_STAT_PRESETS`.
 
 ### Migrations To Run (if not already done)
 - [ ] `006_narrative_craft_kb.sql` — narrative techniques table (for future admin audit)
