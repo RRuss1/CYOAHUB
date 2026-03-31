@@ -872,19 +872,26 @@ async function renderWorldsGrid() {
 
   // 1. Render local worlds (yours — private + published)
   const myWorlds = _getSavedWorlds();
+  console.log('[WorldGrid] localStorage worlds:', myWorlds.map(w => w.id));
   myWorlds.forEach((w) => {
     try { if (w && w.id) _renderWorldCard(w, true, grid); }
-    catch (e) { console.warn('Local world card render failed:', w?.id, e); }
+    catch (e) { console.warn('[WorldGrid] Local card failed:', w?.id, e); }
   });
 
   // 2. Render community worlds from DB (skip official + already-rendered)
   const OFFICIAL_IDS = new Set(['stormlight', 'dnd5e', 'wretcheddeep']);
+  console.log('[WorldGrid] community cache:', _communityWorldsCache.map(c => c.id + '(' + c.tier + ')'));
   _communityWorldsCache.forEach((cw) => {
-    if (OFFICIAL_IDS.has(cw.id) || cw.tier === 'official') return; // hardcoded in HTML
-    // Skip if step 1 already rendered this world from localStorage
+    if (OFFICIAL_IDS.has(cw.id) || cw.tier === 'official') {
+      console.log('[WorldGrid] skip official:', cw.id);
+      return;
+    }
     const alreadyInDom = grid.querySelector('[data-world-id="' + cw.id + '"]');
-    console.log('[WorldGrid] community:', cw.id, cw.name, 'alreadyInDom:', !!alreadyInDom);
-    if (alreadyInDom) return;
+    if (alreadyInDom) {
+      console.log('[WorldGrid] skip dup:', cw.id);
+      return;
+    }
+    console.log('[WorldGrid] RENDERING:', cw.id, cw.name);
     // Store config so pickWorld can load it
     const worldData = cw.config || {};
     worldData.id = cw.id;
