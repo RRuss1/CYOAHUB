@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 500" fill="none">
+  <!-- Post-Apocalyptic Paperdoll — ragged, scrappy, improvised gear slots -->
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(180,140,80,0.12)"/>
+      <stop offset="100%" stop-color="rgba(140,100,60,0.04)"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <!-- Rough edge filter for that scrappy look -->
+    <filter id="rough"><feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="3" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="2"/></filter>
+  </defs>
+
+  <!-- Body silhouette — lean, worn -->
+  <g opacity="0.5" stroke="rgba(180,140,80,0.4)" stroke-width="1.5" fill="url(#bodyGrad)">
+    <!-- Head — hood/mask shape -->
+    <path d="M126 18 L120 42 L122 64 L134 74 L150 78 L166 74 L178 64 L180 42 L174 18 L162 10 L138 10 Z"/>
+    <!-- Neck — wrapped -->
+    <rect x="140" y="76" width="20" height="16" rx="3"/>
+    <!-- Torso — layered scrap armor look -->
+    <path d="M108 92 L96 104 L88 174 L96 236 L150 248 L204 236 L212 174 L204 104 L192 92 Z"/>
+    <!-- Left arm — wrapped/bandaged -->
+    <path d="M96 104 L66 128 L54 188 L48 238 L56 244 L64 240 L68 192 L80 140"/>
+    <!-- Right arm -->
+    <path d="M204 104 L234 128 L246 188 L252 238 L244 244 L236 240 L232 192 L220 140"/>
+    <!-- Left leg -->
+    <path d="M116 244 L108 316 L104 396 L98 458 L108 466 L116 462 L118 396 L122 316 L130 248"/>
+    <!-- Right leg -->
+    <path d="M170 248 L178 316 L182 396 L184 462 L194 466 L202 458 L196 396 L192 316 L184 244"/>
+  </g>
+
+  <!-- Scrap/stitching detail lines -->
+  <g stroke="rgba(180,140,80,0.12)" stroke-width="0.5" fill="none" stroke-dasharray="2 4">
+    <path d="M120 130 L180 130 M115 160 L185 160 M118 200 L182 200"/>
+    <path d="M110 310 L120 310 M180 310 L190 310"/>
+  </g>
+
+  <!-- Equipment slots — rough, irregular edges -->
+  <g stroke="var(--slot-color, rgba(180,140,80,0.5))" stroke-width="1.5" fill="rgba(0,0,0,0.3)" stroke-dasharray="6 3 2 3" filter="url(#glow)">
+    <!-- Head — mask/goggles -->
+    <rect x="124" y="12" width="52" height="52" rx="4" data-slot="head"/>
+    <!-- Chest — scrap vest -->
+    <rect x="110" y="110" width="80" height="76" rx="4" data-slot="chest"/>
+    <!-- Weapon primary (right) -->
+    <rect x="224" y="200" width="52" height="56" rx="4" data-slot="weapon-primary"/>
+    <!-- Weapon secondary (left) -->
+    <rect x="24" y="200" width="52" height="56" rx="4" data-slot="weapon-secondary"/>
+    <!-- Legs — wrapped -->
+    <rect x="118" y="258" width="64" height="60" rx="4" data-slot="legs"/>
+    <!-- Boots — salvaged -->
+    <rect x="118" y="438" width="64" height="36" rx="4" data-slot="feet"/>
+    <!-- Backpack slot -->
+    <rect x="22" y="120" width="44" height="48" rx="4" data-slot="backpack"/>
+    <!-- Belt / pouch -->
+    <rect x="234" y="120" width="44" height="48" rx="4" data-slot="belt"/>
+  </g>
+
+  <!-- Slot labels -->
+  <g font-family="'Courier New', monospace" font-size="7" fill="rgba(180,140,80,0.4)" text-anchor="middle" letter-spacing="1.5">
+    <text x="150" y="72">MASK</text>
+    <text x="150" y="198">SCRAP VEST</text>
+    <text x="250" y="264">PRIMARY</text>
+    <text x="50" y="264">BACKUP</text>
+    <text x="150" y="328">WRAPS</text>
+    <text x="150" y="464">BOOTS</text>
+    <text x="44" y="176">PACK</text>
+    <text x="256" y="176">BELT</text>
+  </g>
+</svg>

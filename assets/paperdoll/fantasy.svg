@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 500" fill="none">
+  <!-- Fantasy Paperdoll — medieval/fantasy silhouette with equipment slots -->
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(200,180,140,0.15)"/>
+      <stop offset="100%" stop-color="rgba(200,180,140,0.05)"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="2" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+
+  <!-- Body silhouette -->
+  <g opacity="0.6" stroke="rgba(200,180,140,0.4)" stroke-width="1.5" fill="url(#bodyGrad)">
+    <!-- Head -->
+    <ellipse cx="150" cy="52" rx="28" ry="32"/>
+    <!-- Neck -->
+    <rect x="140" y="82" width="20" height="18" rx="4"/>
+    <!-- Torso -->
+    <path d="M110 100 L100 108 L92 180 L102 240 L150 250 L198 240 L208 180 L200 108 L190 100 Z"/>
+    <!-- Left arm -->
+    <path d="M100 108 L72 130 L58 190 L52 240 L60 248 L70 244 L78 196 L88 148"/>
+    <!-- Right arm -->
+    <path d="M200 108 L228 130 L242 190 L248 240 L240 248 L230 244 L222 196 L212 148"/>
+    <!-- Left leg -->
+    <path d="M118 245 L110 320 L105 400 L100 460 L108 468 L118 464 L120 400 L126 320 L132 250"/>
+    <!-- Right leg -->
+    <path d="M168 250 L174 320 L180 400 L182 464 L192 468 L200 460 L195 400 L190 320 L182 245"/>
+  </g>
+
+  <!-- Equipment slot outlines -->
+  <g stroke="var(--slot-color, rgba(200,170,100,0.5))" stroke-width="1.5" fill="rgba(0,0,0,0.3)" stroke-dasharray="4 2" filter="url(#glow)">
+    <!-- Head slot -->
+    <rect x="124" y="14" width="52" height="52" rx="8" data-slot="head"/>
+    <!-- Chest slot -->
+    <rect x="114" y="110" width="72" height="80" rx="8" data-slot="chest"/>
+    <!-- Left hand / weapon -->
+    <rect x="28" y="220" width="48" height="48" rx="8" data-slot="weapon-left"/>
+    <!-- Right hand / weapon -->
+    <rect x="224" y="220" width="48" height="48" rx="8" data-slot="weapon-right"/>
+    <!-- Legs slot -->
+    <rect x="118" y="260" width="64" height="64" rx="8" data-slot="legs"/>
+    <!-- Feet slot -->
+    <rect x="118" y="440" width="64" height="36" rx="8" data-slot="feet"/>
+    <!-- Accessory / ring -->
+    <circle cx="46" cy="180" r="16" data-slot="accessory-1"/>
+    <!-- Accessory / amulet -->
+    <circle cx="254" cy="180" r="16" data-slot="accessory-2"/>
+  </g>
+
+  <!-- Slot labels -->
+  <g font-family="Cinzel, serif" font-size="8" fill="rgba(200,180,140,0.5)" text-anchor="middle" letter-spacing="1.5">
+    <text x="150" y="76">HELM</text>
+    <text x="150" y="200">ARMOR</text>
+    <text x="52" y="278">WEAPON</text>
+    <text x="248" y="278">OFF-HAND</text>
+    <text x="150" y="334">GREAVES</text>
+    <text x="150" y="466">BOOTS</text>
+    <text x="46" y="204">RING</text>
+    <text x="254" y="204">AMULET</text>
+  </g>
+</svg>

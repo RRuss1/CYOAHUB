@@ -431,6 +431,13 @@ window.CustomSystem = {
     return {
       id,
       name,
+      _era: cfg.era || 'Medieval',
+      _factions: cfg.factions || '',
+      _climate: cfg.climate || 'Temperate — Mild seasons',
+      _npcDialogue: cfg.npcDialogue || '',
+      moralityAxis: cfg.moralityAxis || 'None — Moral ambiguity',
+      climate: cfg.climate || 'Temperate — Mild seasons',
+      npcDialogue: cfg.npcDialogue || '',
       subtitle: cfg.tagline || 'A Custom Adventure',
       tagline: cfg.tagline || '',
       glyph: '🌍',

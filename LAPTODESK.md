@@ -94,15 +94,14 @@
 
 ---
 
-### Desktop Session — 2026-03-31 (Stat Pools + Era Weapons)
+### Desktop Session — 2026-03-31 (Massive Feature Drop)
 
-**Stat Pool Display Fix (`app/ui.js` + `index.html`):**
-- All hardcoded `12` and `3` in stat allocation UI replaced with dynamic `ATTR_POINTS_START` and `ATTR_MAX_CREATE` (which read from `SystemData.charCreation.attributePoints` / `.maxPerAttribute`)
-- Hint text, "All X points allocated", error text, and per-stat `/max` display all dynamic now
-- Custom worlds with `pointBuyPool: 27` and 5 stats correctly show "27 points, max 6 per attribute"
+#### 1. Stat Pool Display Fix (`app/ui.js` + `index.html`)
+- All hardcoded `12` and `3` replaced with dynamic `ATTR_POINTS_START` / `ATTR_MAX_CREATE`
+- Hint text, allocation message, error text, per-stat `/max` all dynamic now
 
-**Era-Based Weapon Pools (`app/systems/custom.js`):**
-- New `_ERA_WEAPON_POOLS` constant with 8 full eras, each defining `heroWeapons`, `weapons`, `startingKits`, `armors`:
+#### 2. Era-Based Weapon Pools (`app/systems/custom.js`)
+- New `_ERA_WEAPON_POOLS` constant — 8 full eras, each with `heroWeapons`, `weapons`, `startingKits`, `armors`:
   - **Ancient** — Spear, Khopesh, Sling, War Club, Javelin, Ritual Staff
   - **Medieval** — Sword, Battle Axe, Longbow, Magic Staff, Twin Daggers, Spear, Warhammer, Crossbow
   - **Renaissance** — Rapier, Musket, Cutlass, Flintlock Pistol, Halberd, Crossbow
@@ -121,36 +120,176 @@
 - Stamps `"era": "Medieval"` on custom worlds missing the field
 - Strips stale hardcoded medieval weapon data so worlds pick up fresh era pools
 
-### ACTION REQUIRED — Update Your Custom World in DB
+#### 3. Wizard Era Options Expanded (`index.html`)
+- Added **Colonial** and **Modern** to era selector (8 total, chronological order)
 
-Your existing custom world is still using the old hardcoded medieval weapons. To switch it to Futuristic (or any era), run this against the Neon DB:
+#### 4. Starting Kit Fonts Enlarged (`app/ui.js`)
+- Kit card text bumped from 10-11px → 12-15px for readability
 
-```sql
--- Replace <your-world-id> with the actual world ID from world_library
--- Change 'Futuristic' to whichever era you want
+#### 5. All Kit Expertise Nulls Filled
+- Every era kit now has an expertise label (Warfare, Survival, Lore, Military, Underworld, etc.)
 
-UPDATE world_library
-SET config = config || '{"era": "Futuristic"}'::jsonb - 'heroWeapons' - 'weapons' - 'startingKits' - 'armors'
-WHERE id = '<your-world-id>'
-  AND system = 'custom';
-```
+#### 6. Image Upload Compression (`app/hub.js`)
+- New `_compressImage()` — resizes to 1200px max, JPEG at 0.8 quality
+- Progressive retry at lower quality if still over 2MB
+- Both class image and card image uploaders use it
+- Effectively eliminates "file too big" errors
 
-To find your world ID:
+#### 7. World Card Image Uploads (4 max per user)
+- Upload tile in card image picker with `+` button and counter
+- Hidden file input, R2 upload, auto-select on success
+- Dashed teal border styling for the upload tile
+
+#### 8. Paperdoll Character Sheet Modal (Phase A)
+**New files:**
+- `assets/paperdoll/fantasy.svg` — Ancient/Medieval/Renaissance/Timeless
+- `assets/paperdoll/colonial.svg` — Colonial era
+- `assets/paperdoll/modern.svg` — Modern era
+- `assets/paperdoll/postapoc.svg` — Post-Apocalyptic
+- `assets/paperdoll/scifi.svg` — Futuristic/Sci-Fi
+
+**Modal system:**
+- Full overlay modal in `index.html` (`#charsheet-modal`)
+- Two-column layout: paperdoll left (with class image background at 25% opacity), stats right
+- Equipped items shown as text labels overlaid on paperdoll slots (weapons, armor, kit)
+- Class/race image layered behind SVG silhouette via `.cs-paperdoll-bg`
+- Inventory grid below paperdoll showing all equipment, loot, fragments
+- Stats, defenses, abilities, surge skills, bonds, ideals, origins — all rendered
+- 📋 icon button on every **ppip party card** (story screen) and **combat card** (combat screen)
+- Old `▸ Character Sheet` button now redirects to the new modal
+- Escape key closes modal, click-outside closes modal
+- ~130 lines of new CSS in `components.css`
+
+#### 9. Wizard Expansions — 8 New World-Building Fields (Phase B)
+All added to `index.html` wizard and wired through `hub.js` → `worldConfig` → `custom.js build()` → GM prompt:
+
+| Field | Location | Options |
+|-------|----------|---------|
+| Morality System | Step 4 | Good/Evil, Honor/Shame, Corruption, Karma, None |
+| Climate & Weather | Step 4 | Temperate, Desert, Frozen, Tropical, Toxic, Void, Mixed |
+| NPC Dialogue Style | Step 6 | Full sentences, Terse grunts, Court speech, Alien syntax, Slang |
+| Rest & Recovery | Step 6 | Safe, Risky, No Rests, Time-Limited |
+| Loot & Rewards | Step 6 | Sparse, Balanced, Generous, Crafting Only |
+| Win Condition | Step 6 | Defeat Boss, Survive Rounds, Collect Artifacts, Escape, Open-Ended |
+| Lose Condition | Step 6 | TPK, Corruption Max, Time Out, Narrative Only |
+| Difficulty Curve | Step 6 | Punishing, Balanced, Cinematic, Adaptive |
+
+#### 10. World Systems Engine — `app/worldSystems.js` (Phase C)
+**New file: ~400 lines.** Houses 9 runtime gameplay systems:
+
+1. **Skill Checks** — `[CHECK:stat:dc]` tags in GM choices trigger d20+stat rolls
+2. **Faction Reputation** — per-faction rep tracker, `[FACTION:name:±N]` tags
+3. **Loot Engine** — post-combat drops with rarity tiers (Common→Legendary), loot-style-aware frequency
+4. **Dynamic Difficulty** — adaptive/punishing/cinematic enemy scaling
+5. **Win/Loss Checker** — evaluates conditions after each GM turn
+6. **Rest & Recovery** — safe/risky/no-rest/time-limited mechanics
+7. **Weather System** — per-climate weather tables with HP costs and mechanical effects
+8. **NPC Generator** — dialogue style + faction awareness injected into GM prompt
+9. **Morality Tracker** — `[MORALITY:±N]` tags, axis-aware labels (Righteous↔Evil, Honored↔Disgraced, etc.)
+
+**Wiring:**
+- `worldSystems.js` added to script load order in `index.html` (after storyEngine, before hub)
+- `WorldSystems.initAll(gState)` called on game enter in `ui.js`
+- `WorldSystems.getGmContextBlock(gState)` appended to dynamic block in `getAiDmSystemPrompt()`
+- `WorldSystems.processGmResponse(gState, text)` called after every GM response in `combat.js`
+
+---
+
+### ACTION REQUIRED — Update Your Sci-Fi vs Robots Custom World
+
+**Step 1: Find your world ID:**
 ```sql
 SELECT id, config->>'name' AS name, config->>'era' AS era FROM world_library WHERE system = 'custom';
 ```
 
-Also run migration 008 if not already applied:
+**Step 2: Run this single UPDATE to set era, weapons, AND all new gameplay fields:**
 ```sql
-\i db/migrations/008_backfill_era_weapon_pools.sql
+UPDATE world_library
+SET config = config
+  || '{"era": "Futuristic"}'::jsonb
+  || '{"moralityAxis": "None — Moral ambiguity"}'::jsonb
+  || '{"climate": "Void / Space — No atmosphere"}'::jsonb
+  || '{"npcDialogue": "Alien / strange syntax"}'::jsonb
+  || '{"restRules": "Risky Rests — Roll for interruptions"}'::jsonb
+  || '{"lootStyle": "Balanced — Regular rewards"}'::jsonb
+  || '{"winCondition": "Defeat the Final Boss"}'::jsonb
+  || '{"loseCondition": "Total Party Kill"}'::jsonb
+  || '{"difficulty": "Adaptive — Scales to party performance"}'::jsonb
+  - 'heroWeapons' - 'weapons' - 'startingKits' - 'armors'
+WHERE id = '<your-world-id>'
+  AND system = 'custom';
 ```
 
-Or via the Neon console, paste the contents of `008_backfill_era_weapon_pools.sql`.
+This does everything at once:
+- Sets era to **Futuristic** → unlocks Plasma Blasters, Rail Rifles, Vibro-Blades, Smart Pistols, etc.
+- Strips old medieval weapon fallbacks so the Futuristic era pool kicks in
+- Sets climate to **Void/Space** → weather table includes solar flares, micrometeorites, radiation
+- Sets NPC dialogue to **Alien/strange syntax** → robots and AI entities speak differently
+- Sets difficulty to **Adaptive** → enemies scale based on how well the party is doing
+- Sets win condition to **Defeat the Final Boss** → gives the campaign a clear endpoint
+- Sets rest to **Risky** → can't just heal freely, robots might find you
+- Strips morality (robots don't judge, you just survive)
 
-### Migrations Still Pending
-- [ ] `006_narrative_craft_kb.sql` — narrative techniques table
-- [ ] `007_user_uploads.sql` — user upload tracking table
-- [ ] `008_backfill_era_weapon_pools.sql` — era backfill + stale weapon strip
+**Step 3: Run pending migrations:**
+```sql
+-- Run these in order in the Neon console:
+
+-- 006: narrative craft knowledge base
+-- (paste contents of db/migrations/006_narrative_craft_kb.sql)
+
+-- 007: user upload tracking
+-- (paste contents of db/migrations/007_user_uploads.sql)
+
+-- 008: era backfill + stale weapon strip
+-- (paste contents of db/migrations/008_backfill_era_weapon_pools.sql)
+```
+
+### Migrations — All Applied
+- [x] `006_narrative_craft_kb.sql` — narrative techniques table
+- [x] `007_user_uploads.sql` — user upload tracking table
+- [x] `008_backfill_era_weapon_pools.sql` — era backfill + stale weapon strip
+- [x] `009_indexes_and_fk_fixes.sql` — indexes on owner_id/published, FK on user_uploads + campaigns
+
+#### 11. Bug Squash + Wiring Pass (same session, continued)
+
+**Console.log cleanup (`hub.js`):** Removed 5 debug `[WorldGrid]` logs. Kept compression log.
+
+**CSS blur fix (`animations.css`):** Removed `filter: blur()` from `stormlightIn` and `depthIn` keyframes — this was causing blurry text on screen transitions.
+
+**Skill checks wired into choice buttons (`ui.js`):**
+- `[CHECK:stat:dc]` tags parsed from GM choice text
+- Displayed as blue `DEX DC 15` pill badge on the choice button
+- On submit: d20+stat rolled, result string appended to action text sent to GM
+- GM receives `[SKILL CHECK: SUCCESS — d20(14) + DEX(3) = 17 vs DC 15]` with the player's action
+
+**Loot drops wired into combat resolution (`combat.js`):**
+- `WorldSystems.processPostCombat(gState, 'win'|'loss')` called in `exitCombat()`
+- Each surviving player rolls for loot based on loot style setting
+- Drops shown as toast notifications: `"Player found: ⚔ Enchanted Weapon (Rare)"`
+
+**Victory/defeat screen (`combat.js`):**
+- `_showEndScreen(message, isVictory)` — full-screen overlay with icon, title, message
+- "Continue Playing" and "Back to Worlds" buttons
+- Triggered by `processGmResponse` when win/loss conditions met
+
+**Weather indicator + Rest button (`index.html` + `ui.js`):**
+- Weather name shown in chronicle header bar (auto-updates on renderAll)
+- `⛺ REST` button in chronicle header — heals party, risky rests can trigger ambush combat
+- Hidden during combat and when rest rules are "No Rests"
+
+**Toast notification system (`combat.js`):**
+- `_showToast(text, color)` — bottom-center pill, auto-dismiss after 3s, stacks vertically
+- Used for loot drops, rest results, weather changes, faction shifts
+
+**All migrations confirmed run** (006, 007, 008).
+
+### Known Issues / Next Session
+- [ ] Paperdoll slot positions are approximate — may need tweaking per SVG after visual testing on real screens
+- [ ] Loot tables are generic — could be expanded with era-specific items (Futuristic = plasma cells, Medieval = gemstones)
+- [ ] `performRest()` doesn't persist to DB yet — need `saveAndBroadcast` after rest in `onRest()`
+- [ ] `renderAll` monkey-patch for weather/rest update could break if `renderAll` is reassigned later
+- [ ] Mobile layout + per-world fonts still untested
+- [ ] World editor image management untested end-to-end (from laptop session)
 
 ---
 

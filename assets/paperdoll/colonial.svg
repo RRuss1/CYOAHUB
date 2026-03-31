@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 500" fill="none">
+  <!-- Colonial Paperdoll — tricorn hat, long coat, musket-era silhouette -->
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(160,120,80,0.12)"/>
+      <stop offset="100%" stop-color="rgba(140,100,60,0.04)"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+
+  <!-- Body silhouette — tricorn hat, long coat -->
+  <g opacity="0.55" stroke="rgba(180,150,100,0.4)" stroke-width="1.5" fill="url(#bodyGrad)">
+    <!-- Tricorn hat -->
+    <path d="M108 30 L120 14 L150 8 L180 14 L192 30 L178 36 L172 24 L150 20 L128 24 L122 36 Z"/>
+    <!-- Head -->
+    <ellipse cx="150" cy="52" rx="26" ry="24"/>
+    <!-- Neck / cravat -->
+    <path d="M140 74 L142 90 L150 96 L158 90 L160 74"/>
+    <!-- Torso — long coat, wider at bottom -->
+    <path d="M108 92 L96 104 L88 170 L84 240 L90 280 L150 290 L210 280 L216 240 L212 170 L204 104 L192 92 Z"/>
+    <!-- Left arm — coat sleeve -->
+    <path d="M96 104 L68 128 L56 186 L50 234 L58 240 L64 236 L68 190 L80 140"/>
+    <!-- Right arm -->
+    <path d="M204 104 L232 128 L244 186 L250 234 L242 240 L236 236 L232 190 L220 140"/>
+    <!-- Left leg — breeches + boots -->
+    <path d="M118 282 L112 340 L108 400 L102 458 L112 466 L118 462 L118 400 L122 340 L128 286"/>
+    <!-- Right leg -->
+    <path d="M172 286 L178 340 L182 400 L182 462 L192 466 L198 458 L192 400 L188 340 L182 282"/>
+  </g>
+
+  <!-- Coat detail lines -->
+  <g stroke="rgba(180,150,100,0.1)" stroke-width="0.5" fill="none">
+    <line x1="150" y1="96" x2="150" y2="280"/>
+    <path d="M108 200 L192 200"/>
+  </g>
+
+  <!-- Equipment slots -->
+  <g stroke="var(--slot-color, rgba(180,150,100,0.5))" stroke-width="1.5" fill="rgba(0,0,0,0.3)" stroke-dasharray="4 2" filter="url(#glow)">
+    <!-- Hat -->
+    <rect x="118" y="6" width="64" height="40" rx="6" data-slot="head"/>
+    <!-- Chest — coat/vest -->
+    <rect x="108" y="106" width="84" height="76" rx="6" data-slot="chest"/>
+    <!-- Musket / primary weapon (right) -->
+    <rect x="228" y="100" width="48" height="84" rx="6" data-slot="weapon-primary"/>
+    <!-- Sidearm — pistol (left) -->
+    <rect x="24" y="200" width="48" height="48" rx="6" data-slot="weapon-sidearm"/>
+    <!-- Legs — breeches -->
+    <rect x="120" y="288" width="60" height="56" rx="6" data-slot="legs"/>
+    <!-- Boots — tall cavalry boots -->
+    <rect x="120" y="434" width="60" height="40" rx="6" data-slot="feet"/>
+    <!-- Powder horn / ammo pouch -->
+    <rect x="24" y="120" width="44" height="44" rx="6" data-slot="ammo"/>
+    <!-- Belt / sash -->
+    <rect x="232" y="220" width="44" height="40" rx="6" data-slot="belt"/>
+  </g>
+
+  <!-- Slot labels -->
+  <g font-family="'Cinzel', 'Georgia', serif" font-size="7" fill="rgba(180,150,100,0.45)" text-anchor="middle" letter-spacing="1.5">
+    <text x="150" y="54">TRICORN</text>
+    <text x="150" y="194">COAT</text>
+    <text x="252" y="192">MUSKET</text>
+    <text x="48" y="256">SIDEARM</text>
+    <text x="150" y="352">BREECHES</text>
+    <text x="150" y="464">BOOTS</text>
+    <text x="46" y="172">AMMO</text>
+    <text x="254" y="268">BELT</text>
+  </g>
+</svg>

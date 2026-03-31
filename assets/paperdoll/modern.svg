@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 500" fill="none">
+  <!-- Modern / Tactical Paperdoll — clean angular operator silhouette -->
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(100,160,180,0.12)"/>
+      <stop offset="100%" stop-color="rgba(100,160,180,0.04)"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+
+  <!-- Body silhouette — tactical/angular -->
+  <g opacity="0.5" stroke="rgba(100,180,200,0.4)" stroke-width="1.5" fill="url(#bodyGrad)">
+    <!-- Head -->
+    <ellipse cx="150" cy="52" rx="26" ry="30"/>
+    <!-- Neck -->
+    <rect x="141" y="80" width="18" height="16" rx="3"/>
+    <!-- Torso — broader, tactical vest shape -->
+    <path d="M108 96 L96 106 L88 178 L96 238 L150 248 L204 238 L212 178 L204 106 L192 96 Z"/>
+    <!-- Left arm — angular -->
+    <path d="M96 106 L68 128 L56 188 L50 238 L58 244 L66 240 L72 192 L82 142"/>
+    <!-- Right arm -->
+    <path d="M204 106 L232 128 L244 188 L250 238 L242 244 L234 240 L228 192 L218 142"/>
+    <!-- Left leg — cargo pants shape -->
+    <path d="M116 244 L108 316 L104 396 L98 458 L108 466 L116 462 L118 396 L124 316 L130 248"/>
+    <!-- Right leg -->
+    <path d="M170 248 L176 316 L182 396 L184 462 L192 466 L202 458 L196 396 L192 316 L184 244"/>
+  </g>
+
+  <!-- Equipment slots — angular/military style -->
+  <g stroke="var(--slot-color, rgba(100,180,200,0.5))" stroke-width="1.5" fill="rgba(0,0,0,0.3)" stroke-dasharray="3 3" filter="url(#glow)">
+    <!-- Head — helmet/headset -->
+    <rect x="124" y="16" width="52" height="48" rx="4" data-slot="head"/>
+    <!-- Chest — vest/body armor -->
+    <rect x="110" y="108" width="80" height="76" rx="4" data-slot="chest"/>
+    <!-- Primary weapon (right) -->
+    <rect x="224" y="116" width="52" height="76" rx="4" data-slot="weapon-primary"/>
+    <!-- Sidearm (left) -->
+    <rect x="24" y="196" width="48" height="48" rx="4" data-slot="weapon-sidearm"/>
+    <!-- Legs — tactical pants -->
+    <rect x="120" y="258" width="60" height="60" rx="4" data-slot="legs"/>
+    <!-- Boots -->
+    <rect x="120" y="438" width="60" height="34" rx="4" data-slot="feet"/>
+    <!-- Utility 1 (belt left) -->
+    <rect x="24" y="256" width="44" height="32" rx="4" data-slot="utility-1"/>
+    <!-- Utility 2 (belt right) -->
+    <rect x="232" y="256" width="44" height="32" rx="4" data-slot="utility-2"/>
+  </g>
+
+  <!-- Slot labels -->
+  <g font-family="monospace, 'Courier New'" font-size="7" fill="rgba(100,180,200,0.45)" text-anchor="middle" letter-spacing="2">
+    <text x="150" y="72">HEADGEAR</text>
+    <text x="150" y="196">BODY ARMOR</text>
+    <text x="250" y="200">PRIMARY</text>
+    <text x="48" y="252">SIDEARM</text>
+    <text x="150" y="328">PANTS</text>
+    <text x="150" y="462">BOOTS</text>
+    <text x="46" y="296">UTIL-1</text>
+    <text x="254" y="296">UTIL-2</text>
+  </g>
+</svg>

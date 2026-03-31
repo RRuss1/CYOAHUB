@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 500" fill="none">
+  <!-- Sci-Fi Paperdoll — sleek power-armor silhouette with tech slots -->
+  <defs>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(120,80,220,0.12)"/>
+      <stop offset="100%" stop-color="rgba(60,180,220,0.06)"/>
+    </linearGradient>
+    <linearGradient id="slotGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="rgba(120,80,220,0.4)"/>
+      <stop offset="100%" stop-color="rgba(60,180,220,0.4)"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="2" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+
+  <!-- Body silhouette — powered armor, wider shoulders -->
+  <g opacity="0.5" stroke="url(#slotGrad)" stroke-width="1.5" fill="url(#bodyGrad)">
+    <!-- Helmet -->
+    <path d="M122 20 L118 40 L120 62 L130 72 L150 76 L170 72 L180 62 L182 40 L178 20 L160 10 L140 10 Z"/>
+    <!-- Neck seal -->
+    <rect x="138" y="76" width="24" height="14" rx="4"/>
+    <!-- Torso — power armor chestplate -->
+    <path d="M104 90 L88 104 L80 170 L86 232 L150 246 L214 232 L220 170 L212 104 L196 90 Z"/>
+    <!-- Left arm — armored -->
+    <path d="M88 104 L60 126 L46 186 L40 236 L50 244 L60 240 L64 190 L76 138"/>
+    <!-- Right arm -->
+    <path d="M212 104 L240 126 L254 186 L260 236 L250 244 L240 240 L236 190 L224 138"/>
+    <!-- Left leg — armored greaves -->
+    <path d="M114 242 L106 314 L102 394 L96 456 L106 466 L116 462 L116 394 L122 314 L128 246"/>
+    <!-- Right leg -->
+    <path d="M172 246 L178 314 L184 394 L184 462 L194 466 L204 456 L198 394 L194 314 L186 242"/>
+  </g>
+
+  <!-- Circuit line decorations -->
+  <g stroke="rgba(60,180,220,0.15)" stroke-width="0.5" fill="none">
+    <path d="M150 76 L150 90 M140 160 L160 160 M130 200 L170 200"/>
+    <path d="M106 314 L116 314 M184 314 L194 314"/>
+    <line x1="88" y1="170" x2="80" y2="170"/>
+    <line x1="212" y1="170" x2="220" y2="170"/>
+  </g>
+
+  <!-- Equipment slots — hexagonal/angular sci-fi feel -->
+  <g stroke="url(#slotGrad)" stroke-width="1.5" fill="rgba(0,0,0,0.35)" stroke-dasharray="5 2" filter="url(#glow)">
+    <!-- Helmet -->
+    <rect x="122" y="10" width="56" height="54" rx="6" data-slot="head"/>
+    <!-- Chest — power core -->
+    <rect x="106" y="108" width="88" height="78" rx="6" data-slot="chest"/>
+    <!-- Left arm — energy weapon -->
+    <rect x="16" y="206" width="50" height="54" rx="6" data-slot="weapon-left"/>
+    <!-- Right arm — weapon mount -->
+    <rect x="234" y="206" width="50" height="54" rx="6" data-slot="weapon-right"/>
+    <!-- Legs — exo frame -->
+    <rect x="118" y="256" width="64" height="62" rx="6" data-slot="legs"/>
+    <!-- Boots — mag boots -->
+    <rect x="118" y="438" width="64" height="36" rx="6" data-slot="feet"/>
+    <!-- Module 1 -->
+    <rect x="16" y="130" width="44" height="44" rx="6" data-slot="module-1"/>
+    <!-- Module 2 -->
+    <rect x="240" y="130" width="44" height="44" rx="6" data-slot="module-2"/>
+  </g>
+
+  <!-- Slot labels -->
+  <g font-family="'Orbitron', 'Rajdhani', monospace" font-size="7" fill="rgba(100,160,220,0.45)" text-anchor="middle" letter-spacing="2">
+    <text x="150" y="72">HELMET</text>
+    <text x="150" y="198">CHESTPLATE</text>
+    <text x="41" y="268">ARM-L</text>
+    <text x="259" y="268">ARM-R</text>
+    <text x="150" y="328">EXO-LEGS</text>
+    <text x="150" y="464">MAG-BOOTS</text>
+    <text x="38" y="182">MOD-1</text>
+    <text x="262" y="182">MOD-2</text>
+  </g>
+</svg>

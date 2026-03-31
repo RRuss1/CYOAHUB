@@ -571,12 +571,10 @@ html.lenis {
 @keyframes stormlightIn {
   from {
     opacity: 0;
-    filter: blur(6px);
     transform: scale(0.97);
   }
   to {
     opacity: 1;
-    filter: blur(0px);
     transform: scale(1);
   }
 }
@@ -627,12 +625,10 @@ html.lenis {
 @keyframes depthIn {
   from {
     opacity: 0;
-    filter: blur(5px);
     transform: translateY(10px) scale(0.98);
   }
   to {
     opacity: 1;
-    filter: blur(0px);
     transform: translateY(0) scale(1);
   }
 }

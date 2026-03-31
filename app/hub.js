@@ -609,6 +609,15 @@ function finishWizard(publish) {
   const lethality = _getWizSel('lethality', 'Balanced — Death is possible');
   const npcDepth = _getWizSel('npcDepth', 'Moderate — Personalities & motives');
   const titleFont = _getWizSel('titleFont', 'Cinzel');
+  // New world-building options
+  const moralityAxis = _getWizSel('moralityAxis', 'None — Moral ambiguity');
+  const climate = _getWizSel('climate', 'Temperate — Mild seasons');
+  const npcDialogue = _getWizSel('npcDialogue', 'Full sentences with personality');
+  const restRules = _getWizSel('restRules', 'Safe Rests — Always heal fully');
+  const lootStyle = _getWizSel('lootStyle', 'Balanced — Regular rewards');
+  const winCondition = _getWizSel('winCondition', 'Open-Ended — No fixed ending');
+  const loseCondition = _getWizSel('loseCondition', 'Total Party Kill');
+  const difficulty = _getWizSel('difficulty', 'Balanced — Fair challenge');
   // World Rules
   const physics = _getWizSel('physics', 'Cinematic');
   const deathRules = _getWizSel('deathRules', 'Revivable');
@@ -657,9 +666,12 @@ function finishWizard(publish) {
 It is powered by ${magicSource.toLowerCase()}. ${magicResource} is the resource spent to cast.
 Risk level: ${magicRisk.toLowerCase()}.`;
 
-  // Build tone instruction (includes world rules)
+  // Build tone instruction (includes world rules + new systems)
   const toneInstruction = `${tone} tone. ${narratorStyle} narration style. Story focus: ${storyFocus.toLowerCase()}. Combat frequency: ${combatFreq.toLowerCase()}. Lethality: ${lethality.toLowerCase()}. NPC depth: ${npcDepth.toLowerCase()}.
-Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Time: ${timeFlow.toLowerCase()}. Travel: ${travelSpeed.toLowerCase()}. Dialogue: ${dialogueStyle.toLowerCase()}.`;
+Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Time: ${timeFlow.toLowerCase()}. Travel: ${travelSpeed.toLowerCase()}. Dialogue: ${dialogueStyle.toLowerCase()}.
+Morality: ${moralityAxis.toLowerCase()}. Climate: ${climate.toLowerCase()}. Difficulty: ${difficulty.toLowerCase()}.
+Rest rules: ${restRules.toLowerCase()}. Loot style: ${lootStyle.toLowerCase()}.
+Win condition: ${winCondition.toLowerCase()}. Lose condition: ${loseCondition.toLowerCase()}.`;
 
   // Build worldConfig from ALL wizard form data
   const worldId = 'custom-' + Date.now();
@@ -692,7 +704,7 @@ Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Tim
       worldName: name,
       worldLore: gmLore,
       tone: toneInstruction,
-      npcFlavor: `${namingStyle} naming convention. NPC depth: ${npcDepth.toLowerCase()}.`,
+      npcFlavor: `${namingStyle} naming convention. NPC depth: ${npcDepth.toLowerCase()}. NPC dialogue style: ${npcDialogue.toLowerCase()}.`,
     },
     races: races
       ? races
@@ -706,7 +718,10 @@ Physics: ${physics.toLowerCase()}. Death rules: ${deathRules.toLowerCase()}. Tim
     progression,
     era,
     tech,
-    rules: { physics, deathRules, timeFlow, travelSpeed, dialogueStyle },
+    rules: { physics, deathRules, timeFlow, travelSpeed, dialogueStyle, restRules, lootStyle, winCondition, loseCondition, difficulty },
+    moralityAxis,
+    climate,
+    npcDialogue,
     enemies: { categories: _selectedEnemyCategories },
     ambientAudio: _selectedAmbientAudio,
     wizClasses: getWizClasses(),
@@ -956,7 +971,6 @@ async function renderWorldsGrid() {
 
   // 1. Render local worlds (yours — private + published)
   const myWorlds = _getSavedWorlds();
-  console.log('[WorldGrid] localStorage worlds:', myWorlds.map(w => w.id));
   myWorlds.forEach((w) => {
     try { if (w && w.id) _renderWorldCard(w, true, grid); }
     catch (e) { console.warn('[WorldGrid] Local card failed:', w?.id, e); }
@@ -964,18 +978,10 @@ async function renderWorldsGrid() {
 
   // 2. Render community worlds from DB (skip official + already-rendered)
   const OFFICIAL_IDS = new Set(['stormlight', 'dnd5e', 'wretcheddeep']);
-  console.log('[WorldGrid] community cache:', _communityWorldsCache.map(c => c.id + '(' + c.tier + ')'));
   _communityWorldsCache.forEach((cw) => {
-    if (OFFICIAL_IDS.has(cw.id) || cw.tier === 'official') {
-      console.log('[WorldGrid] skip official:', cw.id);
-      return;
-    }
+    if (OFFICIAL_IDS.has(cw.id) || cw.tier === 'official') return;
     const alreadyInDom = grid.querySelector('[data-world-id="' + cw.id + '"]');
-    if (alreadyInDom) {
-      console.log('[WorldGrid] skip dup:', cw.id);
-      return;
-    }
-    console.log('[WorldGrid] RENDERING:', cw.id, cw.name);
+    if (alreadyInDom) return;
     // Store config so pickWorld can load it
     const worldData = cw.config || {};
     worldData.id = cw.id;

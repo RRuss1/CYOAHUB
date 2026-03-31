@@ -15,52 +15,92 @@
  * ============================================================
  */
 
-// ══ AI DUNGEON MASTER — SYSTEM PROMPT ══
-// Build GM system prompt as array of content blocks for prompt caching.
-// Block 1 (STABLE — cached): world identity, craft rules, techniques, choices format
-// Block 2 (DYNAMIC — not cached): narrative context (NPCs, threads, factions, consequences)
-function getAiDmSystemPrompt() {
-  const ctx = window.SystemData?.gmContext || {};
-  const sysName = ctx.systemName || 'RPG';
-  const worldName = ctx.worldName || 'the world';
-  const worldLore = ctx.worldLore || '';
-  const tone = ctx.toneInstruction || 'Epic fantasy — mythic stakes, personal cost.';
-  const magicName = ctx.magicName || 'power';
-  const magicRules = ctx.magicRules || '';
-  const npcFlavor = ctx.npcFlavor || '';
-  const choiceTags =
-    ctx.choiceTagRules ||
-    (window.ActionEngine
-      ? window.ActionEngine.getActionTagsString()
-      : '[ATTACK], [DEFEND], [HEAL], [SURGE], [COMBAT], [DISCOVERY], [DECISION]');
+// ══ TOAST NOTIFICATIONS ══
+function _showToast(text, color) {
+  const t = document.createElement('div');
+  t.textContent = text;
+  t.style.cssText = `position:fixed;bottom:${80 + (document.querySelectorAll('.game-toast').length * 44)}px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid ${color || 'var(--teal2)'};color:${color || 'var(--teal2)'};padding:8px 20px;border-radius:20px;font-family:var(--font-d);font-size:12px;letter-spacing:1px;z-index:9998;pointer-events:none;white-space:nowrap;`;
+  t.className = 'game-toast';
+  document.body.appendChild(t);
+  if (window.gsap) gsap.fromTo(t, {opacity:0,y:10}, {opacity:1,y:0,duration:0.3});
+  setTimeout(() => { if (window.gsap) gsap.to(t, {opacity:0,y:-10,duration:0.3,onComplete:()=>t.remove()}); else t.remove(); }, 3000);
+}
 
-  const stableBlock = `You are the AI Game Master for ${sysName} — a digital RPG set in ${worldName}. You create immersive, responsive, cinematic experiences unique to this world.
+// ══ VICTORY / DEFEAT SCREEN ══
+function _showEndScreen(message, isVictory) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;animation:fadeIn 0.5s ease;';
+  const color = isVictory ? 'var(--teal2, #28a8a0)' : 'var(--coral2, #c44a28)';
+  const icon = isVictory ? '🏆' : '💀';
+  overlay.innerHTML = `
+    <div style="font-size:64px;">${icon}</div>
+    <div style="font-family:var(--font-h,Cinzel,serif);font-size:28px;color:${color};letter-spacing:3px;text-align:center;">${isVictory ? 'VICTORY' : 'DEFEAT'}</div>
+    <div style="font-size:16px;color:var(--text3);text-align:center;max-width:400px;line-height:1.6;">${message}</div>
+    <div style="display:flex;gap:12px;margin-top:16px;">
+      <button onclick="this.closest('div[style]').remove()" style="padding:10px 24px;border:1px solid ${color};border-radius:10px;background:transparent;color:${color};font-family:var(--font-d);font-size:12px;letter-spacing:2px;cursor:pointer;">CONTINUE PLAYING</button>
+      <button onclick="this.closest('div[style]').remove();location.hash='#worlds'" style="padding:10px 24px;border:1px solid var(--border2);border-radius:10px;background:transparent;color:var(--text4);font-family:var(--font-d);font-size:12px;letter-spacing:2px;cursor:pointer;">BACK TO WORLDS</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
 
-TWO-PARAGRAPH RULE (CRITICAL — NEVER BREAK):
+// ══ AI DUNGEON MASTER — SLOTTED SYSTEM PROMPT ══
+// Each named slot generates one section of the prompt.
+// STABLE slots are cached (ephemeral) — they don't change per-turn.
+// DYNAMIC slots change every turn and are NOT cached.
+// This makes it easy to add/remove/reorder sections without touching a monolith.
+
+const _PROMPT_SLOTS = {
+  // ── STABLE SLOTS (cached) ──────────────────────────────────────
+  identity: () => {
+    const ctx = window.SystemData?.gmContext || {};
+    const sysName = ctx.systemName || 'RPG';
+    const worldName = ctx.worldName || 'the world';
+    return `[IDENTITY] You are the AI Game Master for ${sysName} — a digital RPG set in ${worldName}. You create immersive, responsive, cinematic experiences unique to this world.`;
+  },
+
+  format: () => {
+    const ctx = window.SystemData?.gmContext || {};
+    const worldName = ctx.worldName || 'the world';
+    return `[FORMAT] TWO-PARAGRAPH RULE (CRITICAL — NEVER BREAK):
 Every response is EXACTLY two short paragraphs (2-3 sentences each, blank line between).
 P1: What the world does — consequence, environment, sensory detail rooted in ${worldName}.
 P2: What shifts — new tension, revelation, or setup. End on something unresolved.
-NEVER exceed 2 paragraphs. NEVER put choices in the narrative. Choices go in [CHOICES] only.
+NEVER exceed 2 paragraphs. NEVER put choices in the narrative. Choices go in [CHOICES] only.`;
+  },
 
-WORLD IDENTITY — THIS IS ${worldName.toUpperCase()}:
+  world: () => {
+    const ctx = window.SystemData?.gmContext || {};
+    const worldName = ctx.worldName || 'the world';
+    const worldLore = ctx.worldLore || '';
+    const tone = ctx.toneInstruction || 'Epic fantasy — mythic stakes, personal cost.';
+    const magicRules = ctx.magicRules || '';
+    const npcFlavor = ctx.npcFlavor || '';
+    return `[WORLD] THIS IS ${worldName.toUpperCase()}:
 ${worldLore}
 ${magicRules ? 'MAGIC: ' + magicRules : ''}
 ${npcFlavor ? 'NPCs: ' + npcFlavor : ''}
 Tone: ${tone}
-You are not a generic fantasy GM. Every sentence must feel like it belongs in ${worldName} and ONLY ${worldName}. Use the world's specific geography, cultures, creatures, and vocabulary. Never import concepts from other settings.
+You are not a generic fantasy GM. Every sentence must feel like it belongs in ${worldName} and ONLY ${worldName}. Use the world's specific geography, cultures, creatures, and vocabulary. Never import concepts from other settings.`;
+  },
 
-NARRATIVE CRAFT:
-- Present tense. Visceral, specific prose. Show through action, never tell through narration.
+  craft: () => {
+    return `[CRAFT] NARRATIVE RULES:
+- Present tense. Visceral, specific prose. Show through action, never tell.
 - No HP, damage values, roll results, or game jargon in narrative text.
 - Translate mechanics to fiction: "The blow drives you back three steps" not "you lose 4 HP"
 - Vary rhythm: short punches in combat, flowing imagery in calm. Never repeat sentence structures.
 - Injuries persist. Previous choices have consequences. The world remembers.
-- Each scene changes something permanently — no status quo returns.` +
-    (window.StoryEngine ? window.StoryEngine.getCraftPrinciples() : '') +
-    (window.StoryEngine ? window.StoryEngine.getTechniqueLibrary() : '') +
-    `
+- Each scene changes something permanently — no status quo returns.`
+      + (window.StoryEngine ? window.StoryEngine.getCraftPrinciples() : '')
+      + (window.StoryEngine ? window.StoryEngine.getTechniqueLibrary() : '');
+  },
 
-CHOICES FORMAT:
+  choices: () => {
+    const ctx = window.SystemData?.gmContext || {};
+    const magicName = ctx.magicName || 'power';
+    const choiceTags = ctx.choiceTagRules
+      || (window.ActionEngine ? window.ActionEngine.getActionTagsString() : '[ATTACK], [DEFEND], [HEAL], [SURGE], [COMBAT], [DISCOVERY], [DECISION]');
+    return `[CHOICES FORMAT]
 [CHOICES]
 - Exactly 4 numbered choices, first-person: "I [verb]..." — one vivid sentence each
 - Tagged: ${choiceTags}
@@ -68,19 +108,66 @@ CHOICES FORMAT:
 - Grounded in THIS moment — reference specific enemies, terrain, character state
 - NEVER generic ("I attack" / "I explore"). Always specific to what's happening NOW.
 - NEVER write choices for NPCs. Only the named player character.`;
+  },
 
-  // Dynamic block — narrative intelligence that changes every turn
-  const dynamicBlock = window.StoryEngine ? window.StoryEngine.getFullNarrativeContext() : '';
+  // ── DYNAMIC SLOTS (per-turn, not cached) ───────────────────────
+  narrative: () => {
+    if (!window.StoryEngine) return '';
+    const ctx = window.StoryEngine.getFullNarrativeContext();
+    return ctx ? `[NARRATIVE MEMORY]\n${ctx}` : '';
+  },
 
-  // Return as array of content blocks for Anthropic prompt caching
+  worldSystems: () => {
+    if (!window.WorldSystems || !window.gState) return '';
+    const ctx = window.WorldSystems.getGmContextBlock(window.gState);
+    return ctx ? `[WORLD SYSTEMS]\n${ctx}` : '';
+  },
+};
+
+// Slot order — stable first (cached), then dynamic
+const _STABLE_SLOT_ORDER = ['identity', 'format', 'world', 'craft', 'choices'];
+const _DYNAMIC_SLOT_ORDER = ['narrative', 'worldSystems'];
+
+function getAiDmSystemPrompt() {
+  // Assemble stable block from ordered slots
+  const stableText = _STABLE_SLOT_ORDER
+    .map(name => _PROMPT_SLOTS[name]())
+    .filter(Boolean)
+    .join('\n\n');
+
+  // Assemble dynamic block from ordered slots
+  const dynamicText = _DYNAMIC_SLOT_ORDER
+    .map(name => _PROMPT_SLOTS[name]())
+    .filter(Boolean)
+    .join('\n\n');
+
   const blocks = [
-    { type: 'text', text: stableBlock, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: stableText, cache_control: { type: 'ephemeral' } },
   ];
-  if (dynamicBlock) {
-    blocks.push({ type: 'text', text: dynamicBlock });
+  if (dynamicText) {
+    blocks.push({ type: 'text', text: dynamicText });
   }
   return blocks;
 }
+
+// Public API: add/replace/remove prompt slots at runtime
+window.PromptSlots = {
+  set(name, fn, dynamic) {
+    _PROMPT_SLOTS[name] = fn;
+    const order = dynamic ? _DYNAMIC_SLOT_ORDER : _STABLE_SLOT_ORDER;
+    if (!order.includes(name)) order.push(name);
+  },
+  remove(name) {
+    delete _PROMPT_SLOTS[name];
+    const si = _STABLE_SLOT_ORDER.indexOf(name);
+    if (si >= 0) _STABLE_SLOT_ORDER.splice(si, 1);
+    const di = _DYNAMIC_SLOT_ORDER.indexOf(name);
+    if (di >= 0) _DYNAMIC_SLOT_ORDER.splice(di, 1);
+  },
+  list() {
+    return { stable: [..._STABLE_SLOT_ORDER], dynamic: [..._DYNAMIC_SLOT_ORDER] };
+  },
+};
 function _currentSystemPrompt() {
   return getAiDmSystemPrompt();
 }
@@ -450,6 +537,9 @@ function renderPill() {
 
 // ══ CHARACTER SHEET ══
 function toggleSheet() {
+  // Redirect to new paperdoll modal
+  if (typeof openCharSheet === 'function') { openCharSheet(); return; }
+  // Legacy fallback
   sheetOpen = !sheetOpen;
   document.getElementById('sheet-panel').style.display = sheetOpen ? 'block' : 'none';
   document.getElementById('sheet-arrow').textContent = sheetOpen ? '▾' : '▸';
@@ -1008,7 +1098,8 @@ function renderCombatParty() {
         const notYetSubmitted = !(gState.pendingActions && gState.pendingActions[p.name]);
         const isActive = gState.combatPhase === 'choosing' && isMyChar && notYetSubmitted;
         const submitted = gState.pendingActions && gState.pendingActions[p.name];
-        return `<div class="char-combat-card${p.downed ? ' downed' : ''}${isActive ? ' active-turn' : ''}">
+        return `<div class="char-combat-card${p.downed ? ' downed' : ''}${isActive ? ' active-turn' : ''}" style="position:relative;">
+      <button class="ppip-sheet-btn" onclick="event.stopPropagation();openCharSheet(${i})" title="Character Sheet">📋</button>
       <div class="ccard-name-row">
         <div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0;"></div>
         <span style="font-family:var(--font-d);font-size:13px;font-weight:600;">${p.name}</span>
@@ -2120,6 +2211,12 @@ async function callGM(prompt) {
       maybeSpawnHoid(scene, (gState && gState.totalMoves) || 0);
       // Extract narrative intelligence (non-blocking)
       if (window.StoryEngine) window.StoryEngine.extractFromNarrative(scene, selActionText || '', (gState && gState.totalMoves) || 0).catch(function(){});
+      // Process world systems (factions, morality, win/loss)
+      if (window.WorldSystems && gState) {
+        const _wr = window.WorldSystems.processGmResponse(gState, scene);
+        if (_wr.winResult) _showEndScreen(_wr.winResult, true);
+        else if (_wr.loseResult) _showEndScreen(_wr.loseResult, false);
+      }
       return;
     }
     // Non-streaming fallback
@@ -2136,6 +2233,12 @@ async function callGM(prompt) {
     }
     await addLog({ type: 'gm', who: '', text: scene2, choices: choices2 });
     maybeSpawnHoid(scene2, (gState && gState.totalMoves) || 0);
+    // Process world systems (factions, morality, win/loss)
+    if (window.WorldSystems && gState) {
+      const _wr2 = window.WorldSystems.processGmResponse(gState, scene2);
+      if (_wr2.winResult) _showEndScreen(_wr2.winResult, true);
+      else if (_wr2.loseResult) _showEndScreen(_wr2.loseResult, false);
+    }
   } catch (e) {
     console.error('callGM error:', e.message);
     const errText = (window.SystemData?.gmContext?.errorFlavor || 'Something went wrong') + ' [' + e.message + ']';
@@ -2406,8 +2509,19 @@ async function exitCombat(won) {
     gState.beatsSinceLastCombat = 0;
     gState.preCombatTriggered = false;
     gState.pendingActions = {};
+    // Process post-combat: loot drops, difficulty adjustment, weather change
+    let _postCombat = null;
+    if (window.WorldSystems) {
+      _postCombat = window.WorldSystems.processPostCombat(gState, won ? 'win' : 'loss');
+    }
     await saveAndBroadcast(gState);
     showGameScreen(); // single call — showGameScreen already calls showScreen('game')
+    // Show loot toast if any drops
+    if (_postCombat && _postCombat.lootDrops && _postCombat.lootDrops.length) {
+      _postCombat.lootDrops.forEach(drop => {
+        _showToast(`${drop.player} found: ${drop.item.icon} ${drop.item.name} (${drop.item.rarityName})`, drop.item.rarityColor);
+      });
+    }
     setBottomLoading();
     await callGM(combatAftermathPrompt(won));
     const freshLog = await loadLog(true);

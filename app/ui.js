@@ -881,6 +881,8 @@ async function onEnter() {
       }
     }
     myChar = loadMyChar();
+    // Initialize world systems (factions, difficulty, morality, weather)
+    if (gState && window.WorldSystems) window.WorldSystems.initAll(gState);
     if (myChar && gState && gState.phase === 'playing') {
       mySlot = myChar.slot ?? mySlot;
       showGameScreen();
@@ -2990,7 +2992,8 @@ function renderParty() {
       const stage = getSprenStage(gState.totalMoves || 0);
       const sprenSVG = getSprenSVG(p.classId, bond, p.isRadiant === false, p.roleName || p.className);
       return `<div class="ppip-pair">
-      <div class="ppip${gState.turn === i ? ' active' : ''}${p.isNPC ? ' npc' : ''}" id="ppip-${p.name.replace(/\s/g, '_')}">
+      <div class="ppip${gState.turn === i ? ' active' : ''}${p.isNPC ? ' npc' : ''}" id="ppip-${p.name.replace(/\s/g, '_')}" style="position:relative;">
+        <button class="ppip-sheet-btn" onclick="event.stopPropagation();openCharSheet(${i})" title="Character Sheet">📋</button>
         <div class="ppip-top"><div class="ppip-dot" style="background:${p.color};"></div><span class="ppip-name">${p.name}</span></div>
         <div class="ppip-info">${p.className}${p.level ? ' Lv.' + p.level : ''} · ${p.hp}/${p.maxHp} HP · ◈ ${p.focus || 0}/${p.maxFocus || 3} Focus${(window.ConfigResolver ? window.ConfigResolver.hasClassPath(p) : p.isRadiant) && p.maxInvestiture ? ` · ✦ ${p.investiture || 0}/${p.maxInvestiture} ${window.ConfigResolver ? window.ConfigResolver.getMagicPoolLabel() : 'Inv'}` : ''}${p.deflect ? ` · DEF ${p.deflect}` : ''}${p.nextRollAdvantage === 'advantage' ? ' ▲ ADV' : p.nextRollAdvantage === 'disadvantage' ? ' ▼ DIS' : ''}${p.conditions && Object.keys(p.conditions).some((k) => p.conditions[k]) ? ' ⚠' : ''}</div>
         ${p.nextRollAdvantage ? `<div class="ppip-tag" style="color:${p.nextRollAdvantage === 'advantage' ? 'var(--teal2)' : 'var(--coral2)'};">${p.nextRollAdvantage === 'advantage' ? '▲ ADVANTAGE' : '▼ DISADVANTAGE'}</div>` : ''}
@@ -3249,13 +3252,22 @@ function onContinue() {
         const raw = (typeof c === 'string' ? c : c.text || '').replace(/\*\*/g, '').trim();
         const m = raw.match(/^\[(ATTACK|DEFEND|HEAL|SURGE|COMBAT|DISCOVERY|DECISION|SKILL)\]/i);
         const tag = m ? m[1].toUpperCase() : '';
-        const display = raw.replace(/^\[.*?\]\s*/, '').trim();
+        let display = raw.replace(/^\[.*?\]\s*/, '').trim();
         const tagCol = TAG_COLORS[tag] || 'var(--text4)';
         const tagBadge = tag
           ? `<span style="font-size:9px;padding:1px 7px;border-radius:8px;background:${tagCol}22;color:${tagCol};letter-spacing:.5px;margin-right:5px;">${tag}</span>`
           : '';
+        // Skill check badge — parse [CHECK:stat:dc] and show as a DC pill
+        let checkBadge = '';
+        if (window.WorldSystems) {
+          const check = window.WorldSystems.parseSkillCheck(display);
+          if (check) {
+            checkBadge = `<span style="font-size:9px;padding:1px 7px;border-radius:8px;background:rgba(100,180,200,0.15);color:rgba(100,180,200,0.8);letter-spacing:.5px;margin-left:6px;font-family:var(--font-d);">${check.stat.toUpperCase()} DC ${check.dc}</span>`;
+            display = window.WorldSystems.cleanCheckTag(display);
+          }
+        }
         const safeDisplay = display.replace(/`/g, "'");
-        return `<button class="achoice" onclick="selAct(this,\`${safeDisplay}\`,\`${tag}\`)"><span class="achoice-num">Option ${i + 1} ${tagBadge}</span>${display}</button>`;
+        return `<button class="achoice" onclick="selAct(this,\`${safeDisplay}\`,\`${tag}\`)"><span class="achoice-num">Option ${i + 1} ${tagBadge}</span>${display}${checkBadge}</button>`;
       });
       ch.innerHTML = choiceItems.join('');
       // Staggered entrance — choices drift up into view
@@ -3423,6 +3435,22 @@ async function onSubmitAction() {
     gState.preCombatTriggered = true;
   }
   selActionTag = ''; // clear after use
+  // ── Skill Check — if action had a [CHECK:stat:dc] tag, roll it ──
+  let _skillCheckResult = null;
+  if (window.WorldSystems && myChar) {
+    // Check the original raw choice text (before we cleaned it for display)
+    const _origChoice = (gState.lastGM && gState.lastGM.choices || []).find(c => {
+      const raw = (typeof c === 'string' ? c : c.text || '').replace(/\*\*/g,'').replace(/^\[.*?\]\s*/,'').trim();
+      return window.WorldSystems.cleanCheckTag(raw) === action || raw.includes(action);
+    });
+    if (_origChoice) {
+      const rawText = typeof _origChoice === 'string' ? _origChoice : _origChoice.text || '';
+      const check = window.WorldSystems.parseSkillCheck(rawText);
+      if (check) {
+        _skillCheckResult = window.WorldSystems.rollSkillCheck(myChar, check.stat, check.dc);
+      }
+    }
+  }
   isLoading = true;
   // Safety: auto-reset isLoading after 30s to prevent UI freeze
   _loadingTimer = setTimeout(() => {
@@ -3540,7 +3568,11 @@ async function onSubmitAction() {
   selActionText = '';
   document.getElementById('custom-in').value = '';
   document.querySelectorAll('.achoice').forEach((b) => b.classList.remove('sel'));
-  await callGM(turnPrompt(action, total, sk, from));
+  // Append skill check result to action if one was rolled
+  const _actionWithCheck = _skillCheckResult
+    ? action + '\n[SKILL CHECK: ' + window.WorldSystems.formatCheckResult(_skillCheckResult) + ']'
+    : action;
+  await callGM(turnPrompt(_actionWithCheck, total, sk, from));
   clearTimeout(_loadingTimer);
   isLoading = false;
   // If combat was triggered (by [COMBAT] tag or beat counter), transition now
@@ -4846,4 +4878,374 @@ async function saveThemeColors() {
     document.body.appendChild(toast);
     setTimeout(function(){ toast.remove(); }, 2000);
   } catch (e) { alert('Save failed: ' + e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CHARACTER SHEET + INVENTORY MODAL (Paperdoll)
+// ══════════════════════════════════════════════════════════════════
+
+// Era → paperdoll SVG mapping
+const _PAPERDOLL_MAP = {
+  Ancient: 'assets/paperdoll/fantasy.svg',
+  Medieval: 'assets/paperdoll/fantasy.svg',
+  Renaissance: 'assets/paperdoll/fantasy.svg',
+  Timeless: 'assets/paperdoll/fantasy.svg',
+  Colonial: 'assets/paperdoll/colonial.svg',
+  Modern: 'assets/paperdoll/modern.svg',
+  'Post-Apocalyptic': 'assets/paperdoll/postapoc.svg',
+  Futuristic: 'assets/paperdoll/scifi.svg',
+};
+// System → fallback paperdoll
+const _SYSTEM_PAPERDOLL = {
+  stormlight: 'assets/paperdoll/fantasy.svg',
+  dnd5e: 'assets/paperdoll/fantasy.svg',
+  wretcheddeep: 'assets/paperdoll/postapoc.svg',
+};
+const _paperdollCache = {};
+
+async function _loadPaperdoll() {
+  const sys = window.SystemData || {};
+  const era = (sys.theme && sys.theme.era) || sys._era || '';
+  const path = _PAPERDOLL_MAP[era] || _SYSTEM_PAPERDOLL[sys.id] || 'assets/paperdoll/fantasy.svg';
+  if (_paperdollCache[path]) return _paperdollCache[path];
+  try {
+    const res = await fetch(path);
+    const svg = await res.text();
+    _paperdollCache[path] = svg;
+    return svg;
+  } catch (e) {
+    console.warn('[charsheet] Failed to load paperdoll:', path, e);
+    return '<div style="width:200px;height:300px;display:flex;align-items:center;justify-content:center;color:var(--text5);">No paperdoll</div>';
+  }
+}
+
+function openCharSheet(playerIdx) {
+  if (!gState || !gState.players) return;
+  const idx = typeof playerIdx === 'number' ? playerIdx : gState.players.findIndex(p => p && !p.isNPC);
+  const player = gState.players[idx];
+  if (!player) return;
+  renderCharSheetModal(player);
+  document.getElementById('charsheet-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCharSheet() {
+  document.getElementById('charsheet-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Get class/race background image for paperdoll
+function _getClassBgImg(p) {
+  const classes = window.CLASSES || [];
+  const roles = window.HERO_ROLES || [];
+  const cls = classes.find(c => c.id === p.classId);
+  const role = roles.find(r => r.id === p.roleId);
+  const imgUrl = (cls && cls.imgUrl) || (cls && cls.image) || (role && role.imgUrl) || '';
+  if (!imgUrl) return '';
+  return `<img src="${imgUrl}" alt="${p.className || ''}" class="cs-paperdoll-bg">`;
+}
+
+// Build equipped-item text overlays for paperdoll slots
+// Positions are percentages relative to the 300x500 SVG viewBox
+function _buildSlotOverlays(p) {
+  const slots = [];
+
+  // Head slot — helm or headgear
+  // (no head equipment in current system, reserve for future)
+
+  // Chest — armor
+  if (p.armor) {
+    slots.push({ top: '26%', left: '50%', label: p.armor.name || 'Armor', color: 'var(--teal2)' });
+  }
+
+  // Weapons — left and right hand slots
+  const weapons = p.weapons || [];
+  if (weapons[0]) {
+    slots.push({ top: '48%', left: '12%', label: weapons[0].name, color: 'var(--amber2)' });
+  }
+  if (weapons[1]) {
+    slots.push({ top: '48%', left: '88%', label: weapons[1].name, color: 'var(--amber2)' });
+  } else if (p.shardblade) {
+    slots.push({ top: '48%', left: '88%', label: p.bladeName || p.shardblade, color: 'var(--gold)' });
+  }
+
+  // Legs — kit name
+  if (p.kitName) {
+    slots.push({ top: '62%', left: '50%', label: p.kitName, color: 'var(--text3)' });
+  }
+
+  // Shardplate or special armor
+  if (p.shardplate) {
+    slots.push({ top: '36%', left: '50%', label: 'Shardplate', color: 'var(--gold)' });
+  }
+
+  if (!slots.length) return '';
+
+  return slots.map(s => `<div class="cs-slot-item" style="top:${s.top};left:${s.left};transform:translateX(-50%);color:${s.color};">${s.label}</div>`).join('');
+}
+
+async function renderCharSheetModal(p) {
+  const el = document.getElementById('charsheet-content');
+  if (!el) return;
+
+  const sys = window.SystemData || {};
+  const rules = sys.rules || {};
+  const cc = sys.charCreation || {};
+  const cls = (window.CLASSES || []).find(c => c.id === p.classId) || {};
+  const bond = (window.SPREN_BONDS || {})[p.classId];
+  const stage = typeof getSprenStage === 'function' ? getSprenStage((gState && gState.totalMoves) || 0) : 0;
+  const stageDesc = bond ? (bond.stages[stage] || '') : '';
+  const mpLabel = (rules.magicPool && rules.magicPool.label) || 'Investiture';
+  const hasMP = window.ConfigResolver ? window.ConfigResolver.hasClassPath(p) : p.isRadiant;
+
+  // Defenses
+  const defs = window.ConfigResolver
+    ? window.ConfigResolver.calcDefensesFromConfig(p.stats || {}, p)
+    : { physDef: p.physDef || 10, cogDef: p.cogDef || 10, spirDef: p.spirDef || 10 };
+  const defConfigs = rules.defenses || [
+    { id: 'physDef', label: 'Physical Defense' },
+    { id: 'cogDef', label: 'Mental Defense' },
+    { id: 'spirDef', label: 'Spirit Defense' },
+  ];
+
+  // Load paperdoll SVG
+  const paperdollSVG = await _loadPaperdoll();
+
+  // Build stat boxes
+  const statKeys = window.STAT_KEYS || ['str','dex','con','int','wis','cha'];
+  const statNames = window.STAT_NAMES || statKeys.map(k => k.toUpperCase());
+  const statFull = window.STAT_FULL || statKeys;
+  const statBoxes = statKeys.map((k, i) => `
+    <div class="cs-stat-box">
+      <div class="cs-stat-label">${statFull[i]} (${statNames[i]})</div>
+      <div class="cs-stat-val">${(p.stats && p.stats[k]) || 0}</div>
+    </div>`).join('');
+
+  // Defense boxes
+  const defBoxes = defConfigs.map(d => `
+    <div class="cs-stat-box">
+      <div class="cs-stat-label">${d.label || d.id}</div>
+      <div class="cs-stat-val" style="color:var(--teal2);">${defs[d.id] || 10}</div>
+    </div>`).join('');
+
+  // Abilities
+  const abilities = (p.abilities || []).map(a => `<span class="cs-abil">${a}</span>`).join('');
+
+  // Surge skills
+  const surgesHTML = (p.surges && p.surges.length) ? p.surges.map(sid => {
+    const surge = (window.SURGES || []).find(s => s.id === sid);
+    if (!surge) return '';
+    const ranks = (p.surgeSkills && p.surgeSkills[sid]) || 0;
+    const attr = surge.attr || 'int';
+    const mod = ranks + ((p.stats && p.stats[attr]) || 0);
+    return `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;">
+      <span style="color:var(--text3);">${surge.name} <span style="color:var(--text5);">(${attr.toUpperCase()})</span></span>
+      <span style="color:var(--amber2);">+${mod}</span>
+    </div>`;
+  }).join('') : '';
+
+  // Equipment items for inventory grid
+  const invItems = [];
+  if (p.weapons && p.weapons.length) {
+    p.weapons.forEach(w => invItems.push({ icon: '⚔', name: w.name, detail: `${w.dmg || ''} ${w.dmgType || ''}`.trim(), type: 'weapon' }));
+  }
+  if (p.armor) {
+    invItems.push({ icon: '🛡', name: p.armor.name || 'Armor', detail: `Deflect ${p.deflect || 0}`, type: 'armor' });
+  }
+  if (p.shardblade) {
+    invItems.push({ icon: '⚔', name: p.bladeName || p.shardblade, detail: `Tier ${p.bladeLevel || 1}`, type: 'legendary' });
+  }
+  if (p.shardplate) {
+    invItems.push({ icon: '⬛', name: 'Shardplate', detail: 'Legendary Armor', type: 'legendary' });
+  }
+  // Kit extras
+  if (p.kitExtras && p.kitExtras.length) {
+    p.kitExtras.forEach(e => invItems.push({ icon: '🎒', name: e, detail: '', type: 'misc' }));
+  }
+  // Fragments / currency
+  if ((p.fragments || 0) > 0) {
+    invItems.push({ icon: '✦', name: `${p.fragments} Fragments`, detail: 'Crafting material', type: 'currency' });
+  }
+  // Loot from combat (stored in p.inventory if it exists)
+  if (p.inventory && p.inventory.length) {
+    p.inventory.forEach(item => invItems.push({ icon: item.icon || '📦', name: item.name, detail: item.detail || '', type: item.type || 'loot' }));
+  }
+
+  const invHTML = invItems.map(item => `
+    <div class="cs-inv-item">
+      <span class="cs-inv-icon">${item.icon}</span>
+      <div>
+        <div class="cs-inv-name">${item.name}</div>
+        ${item.detail ? `<div class="cs-inv-detail">${item.detail}</div>` : ''}
+      </div>
+    </div>`).join('');
+
+  // Philosophy / ideals
+  const idealsHTML = p.philosophy ? `
+    <div>
+      <div class="cs-section-title">Philosophy & Ideals</div>
+      <div style="font-size:13px;color:var(--amber2);font-style:italic;margin-bottom:6px;">"${p.philosophy}"</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;">
+        ${p.ideal1 ? `<div><span style="color:var(--text5);">1st:</span> ${p.ideal1}</div>` : ''}
+        ${p.oathStage >= 2 && p.ideal2 ? `<div><span style="color:var(--text5);">2nd:</span> ${p.ideal2}</div>` : ''}
+        ${p.oathStage >= 3 && p.ideal3 ? `<div><span style="color:var(--text5);">3rd:</span> ${p.ideal3}</div>` : ''}
+        ${p.oathStage >= 4 && p.ideal4 ? `<div><span style="color:var(--text5);">4th:</span> ${p.ideal4}</div>` : ''}
+      </div>
+    </div>` : '';
+
+  // Bond
+  const bondHTML = bond ? `
+    <div>
+      <div class="cs-section-title">Bond — ${bond.name}</div>
+      <div style="font-size:12px;color:${bond.color};margin-bottom:4px;">Stage ${stage + 1}/5</div>
+      <div style="font-size:12px;color:var(--text4);font-style:italic;">${stageDesc}</div>
+    </div>` : '';
+
+  // Origins
+  const originsHTML = p.ancestry ? `
+    <div>
+      <div class="cs-section-title">Origins</div>
+      <div style="font-size:13px;"><span style="color:var(--amber2);">${cc.ancestryLabel || 'Ancestry'}:</span> ${((window.ANCESTRIES || []).find(a => a.id === p.ancestry) || {}).name || p.ancestry}</div>
+      ${(p.culturalExpertises || []).map(cu => `<div style="font-size:12px;margin-top:2px;"><span style="color:var(--text4);">Culture:</span> <span style="color:var(--text);">${cu.name}</span> <span style="color:var(--text5);">(${cu.region})</span></div>`).join('')}
+    </div>` : '';
+
+  // Key talent
+  const talentHTML = p.keyTalent ? `
+    <div>
+      <div class="cs-section-title">Path — ${p.roleName || ''}</div>
+      <div style="font-size:13px;color:var(--amber2);font-weight:600;">${p.keyTalent}</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.5;margin-top:2px;">${p.keyTalentDesc || ''}</div>
+    </div>` : '';
+
+  el.innerHTML = `
+    <!-- Header -->
+    <div class="cs-header">
+      <div class="ppip-dot" style="background:${p.color};width:14px;height:14px;flex-shrink:0;"></div>
+      <div>
+        <div class="cs-name">${p.name}</div>
+        <div class="cs-subtitle">${p.className || ''}${p.level ? ' · Level ' + p.level : ''} · ${p.hp}/${p.maxHp} HP${hasMP && p.maxInvestiture ? ` · ${p.investiture || 0}/${p.maxInvestiture} ${mpLabel}` : ''}</div>
+      </div>
+    </div>
+
+    <!-- Body: paperdoll + stats -->
+    <div class="cs-body">
+      <!-- Left: Paperdoll -->
+      <div>
+        <div class="cs-paperdoll">${_getClassBgImg(p)}${paperdollSVG}${_buildSlotOverlays(p)}</div>
+
+        <!-- Inventory below paperdoll -->
+        <div class="cs-inventory">
+          <div class="cs-section-title">Equipment & Inventory${p.kitName ? ` — ${p.kitName}` : ''}</div>
+          <div class="cs-inv-grid">${invHTML || '<div style="color:var(--text5);font-size:12px;">No items</div>'}</div>
+        </div>
+      </div>
+
+      <!-- Right: Stats + details -->
+      <div class="cs-stats">
+        <div>
+          <div class="cs-section-title">Attributes</div>
+          <div class="cs-stat-grid">${statBoxes}</div>
+        </div>
+
+        <div>
+          <div class="cs-section-title">Defenses</div>
+          <div class="cs-stat-grid">${defBoxes}</div>
+        </div>
+
+        <div>
+          <div class="cs-section-title">Combat</div>
+          <div style="font-size:13px;">
+            <span style="color:var(--text4);">Crit:</span> <span style="color:var(--coral2);">+${cls.dmgBonus ? cls.dmgBonus.crit : 2}</span>
+            &nbsp;·&nbsp;
+            <span style="color:var(--text4);">Hit:</span> <span style="color:var(--teal2);">+${cls.dmgBonus ? cls.dmgBonus.hit : 1}</span>
+            &nbsp;·&nbsp;
+            <span style="color:var(--text4);">Deflect:</span> <span style="color:var(--text);">${p.deflect || 0}</span>
+          </div>
+        </div>
+
+        ${(p.abilities && p.abilities.length) ? `<div><div class="cs-section-title">Abilities</div><div class="cs-abilities">${abilities}</div></div>` : ''}
+
+        ${surgesHTML ? `<div><div class="cs-section-title">Surge Skills</div>${surgesHTML}</div>` : ''}
+
+        ${bondHTML}
+        ${idealsHTML}
+        ${talentHTML}
+        ${originsHTML}
+      </div>
+    </div>`;
+}
+
+// Close on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('charsheet-modal');
+    if (modal && modal.style.display !== 'none') closeCharSheet();
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════
+// WEATHER INDICATOR + REST BUTTON
+// ══════════════════════════════════════════════════════════════════
+
+function updateWeatherIndicator() {
+  const el = document.getElementById('weather-indicator');
+  if (!el || !gState) return;
+  if (!gState.currentWeather) {
+    el.style.display = 'none';
+    return;
+  }
+  const w = gState.currentWeather;
+  el.textContent = w.name;
+  el.title = w.effects ? w.effects.effect : w.name;
+  el.style.display = '';
+}
+
+function updateRestButton() {
+  const btn = document.getElementById('rest-btn');
+  if (!btn) return;
+  // Show rest button only during story mode (not combat)
+  const inCombat = gState && (gState.combatMode || gState.combatActive);
+  const hasRestRules = window.SystemData && window.SystemData.rules && window.SystemData.rules.restRules;
+  btn.style.display = (!inCombat && hasRestRules && !hasRestRules.startsWith('No Rests')) ? '' : 'none';
+}
+
+async function onRest() {
+  if (!gState || !window.WorldSystems) return;
+  const results = window.WorldSystems.performRest(gState);
+  if (!results || !results.length) return;
+
+  results.forEach(r => {
+    if (r.type === 'interrupt') {
+      _showToast(r.text, 'var(--coral2)');
+    } else if (r.type === 'denied') {
+      _showToast(r.text, 'var(--text4)');
+    } else if (r.type === 'time') {
+      _showToast(r.text, 'var(--amber2)');
+    } else if (r.type === 'heal') {
+      if (r.amount > 0) _showToast(`${r.name} healed ${r.amount} HP${r.partial ? ' (interrupted)' : ''}`, r.partial ? 'var(--amber2)' : 'var(--teal2)');
+    }
+  });
+
+  // Update UI
+  if (typeof renderParty === 'function') renderParty();
+  if (typeof saveAndBroadcast === 'function') await saveAndBroadcast(gState);
+
+  // If rest was interrupted, trigger a combat encounter
+  const wasInterrupted = results.some(r => r.type === 'interrupt');
+  if (wasInterrupted) {
+    gState.combatMode = true;
+    gState.preCombatTriggered = true;
+    if (typeof saveAndBroadcast === 'function') await saveAndBroadcast(gState);
+    _showToast('Ambush! Enemies found your camp!', 'var(--coral2)');
+  }
+}
+
+// Hook weather + rest updates into renderAll
+const _origRenderAll = window.renderAll;
+if (typeof _origRenderAll === 'function') {
+  window.renderAll = function() {
+    _origRenderAll.apply(this, arguments);
+    updateWeatherIndicator();
+    updateRestButton();
+  };
 }

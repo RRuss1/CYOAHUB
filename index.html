@@ -538,6 +538,30 @@
           <div class="wopt" onclick="selOpt(this)">Mixed / Cosmopolitan</div>
         </div>
       </div>
+      <div class="wfield">
+        <label class="wlabel">Morality System</label>
+        <p style="font-size:12px;color:rgba(40,168,160,0.5);margin-bottom:8px;">How the world judges right and wrong. Affects NPC reactions and story tone.</p>
+        <div class="wopts" data-field="moralityAxis">
+          <div class="wopt" onclick="selOpt(this)">Good vs Evil</div>
+          <div class="wopt" onclick="selOpt(this)">Honor vs Shame</div>
+          <div class="wopt" onclick="selOpt(this)">Corruption — A creeping darkness</div>
+          <div class="wopt" onclick="selOpt(this)">Karma — Actions echo back</div>
+          <div class="wopt" onclick="selOpt(this)">None — Moral ambiguity</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Climate &amp; Weather</label>
+        <p style="font-size:12px;color:rgba(40,168,160,0.5);margin-bottom:8px;">Sets environmental hazards and atmosphere the GM weaves into narration.</p>
+        <div class="wopts" data-field="climate">
+          <div class="wopt" onclick="selOpt(this)">Temperate — Mild seasons</div>
+          <div class="wopt" onclick="selOpt(this)">Harsh Desert — Heat, sandstorms</div>
+          <div class="wopt" onclick="selOpt(this)">Frozen Wasteland — Blizzards, frostbite</div>
+          <div class="wopt" onclick="selOpt(this)">Tropical — Humid, monsoons, disease</div>
+          <div class="wopt" onclick="selOpt(this)">Toxic / Irradiated — Hazmat survival</div>
+          <div class="wopt" onclick="selOpt(this)">Void / Space — No atmosphere</div>
+          <div class="wopt" onclick="selOpt(this)">Mixed — Varies by region</div>
+        </div>
+      </div>
     </div>
 
     <!-- Step 5 — Enemy Types & Ambient Audio -->
@@ -658,6 +682,66 @@
           <div class="wopt" onclick="selOpt(this)">Archaic</div>
           <div class="wopt" onclick="selOpt(this)">Poetic</div>
           <div class="wopt" onclick="selOpt(this)">Mixed</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">NPC Dialogue Style</label>
+        <p style="font-size:12px;color:rgba(40,168,160,0.5);margin-bottom:8px;">How NPCs speak in conversations.</p>
+        <div class="wopts" data-field="npcDialogue">
+          <div class="wopt" onclick="selOpt(this)">Full sentences with personality</div>
+          <div class="wopt" onclick="selOpt(this)">Terse survival grunts</div>
+          <div class="wopt" onclick="selOpt(this)">Formal court speech</div>
+          <div class="wopt" onclick="selOpt(this)">Alien / strange syntax</div>
+          <div class="wopt" onclick="selOpt(this)">Regional accents &amp; slang</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Rest &amp; Recovery</label>
+        <p style="font-size:12px;color:rgba(40,168,160,0.5);margin-bottom:8px;">How players heal between encounters.</p>
+        <div class="wopts" data-field="restRules">
+          <div class="wopt" onclick="selOpt(this)">Safe Rests — Always heal fully</div>
+          <div class="wopt" onclick="selOpt(this)">Risky Rests — Roll for interruptions</div>
+          <div class="wopt" onclick="selOpt(this)">No Rests — Survive with what you have</div>
+          <div class="wopt" onclick="selOpt(this)">Time-Limited — Rest costs game time</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Loot &amp; Rewards</label>
+        <div class="wopts" data-field="lootStyle">
+          <div class="wopt" onclick="selOpt(this)">Sparse &amp; Meaningful — Every item matters</div>
+          <div class="wopt" onclick="selOpt(this)">Balanced — Regular rewards</div>
+          <div class="wopt" onclick="selOpt(this)">Generous — Loot rains from the sky</div>
+          <div class="wopt" onclick="selOpt(this)">Crafting Only — Build your own gear</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Win Condition</label>
+        <p style="font-size:12px;color:rgba(40,168,160,0.5);margin-bottom:8px;">What does victory look like?</p>
+        <div class="wopts" data-field="winCondition">
+          <div class="wopt" onclick="selOpt(this)">Defeat the Final Boss</div>
+          <div class="wopt" onclick="selOpt(this)">Survive X Rounds</div>
+          <div class="wopt" onclick="selOpt(this)">Collect All Artifacts</div>
+          <div class="wopt" onclick="selOpt(this)">Escape the Dungeon</div>
+          <div class="wopt" onclick="selOpt(this)">Open-Ended — No fixed ending</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Lose Condition</label>
+        <div class="wopts" data-field="loseCondition">
+          <div class="wopt" onclick="selOpt(this)">Total Party Kill</div>
+          <div class="wopt" onclick="selOpt(this)">Corruption / Sanity Maxed</div>
+          <div class="wopt" onclick="selOpt(this)">Time Runs Out</div>
+          <div class="wopt" onclick="selOpt(this)">Narrative Only — GM decides</div>
+        </div>
+      </div>
+      <div class="wfield">
+        <label class="wlabel">Difficulty Curve</label>
+        <p style="font-size:12px;color:rgba(40,168,160,0.5);margin-bottom:8px;">How the world scales to your party.</p>
+        <div class="wopts" data-field="difficulty">
+          <div class="wopt" onclick="selOpt(this)">Punishing — No mercy</div>
+          <div class="wopt" onclick="selOpt(this)">Balanced — Fair challenge</div>
+          <div class="wopt" onclick="selOpt(this)">Cinematic — Heroes always win eventually</div>
+          <div class="wopt" onclick="selOpt(this)">Adaptive — Scales to party performance</div>
         </div>
       </div>
     </div>
@@ -1276,7 +1360,11 @@
           <span class="chronicle-title font-display text-xs tracking-widest uppercase" style="color:var(--text5)">
             <span data-tr>The Chronicle</span>
           </span>
-          <span class="text-xs italic" id="chronicle-act" style="color:var(--amber-dim)"></span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="text-xs" id="weather-indicator" style="color:var(--text5);font-family:var(--font-d);letter-spacing:1px;display:none;" title="Current weather"></span>
+            <button id="rest-btn" onclick="onRest()" style="display:none;font-size:10px;padding:3px 10px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--teal2);font-family:var(--font-d);letter-spacing:1px;cursor:pointer;" title="Make Camp">⛺ REST</button>
+            <span class="text-xs italic" id="chronicle-act" style="color:var(--amber-dim)"></span>
+          </div>
         </div>
         <div class="story-text" id="story-text">
           <div class="text-center italic py-8" style="color:var(--text5)">
@@ -1379,6 +1467,18 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
+     CHARACTER SHEET + INVENTORY MODAL (Paperdoll)
+     ═══════════════════════════════════════════════════════ -->
+<div id="charsheet-modal" class="charsheet-overlay" style="display:none;" onclick="if(event.target===this)closeCharSheet()">
+  <div class="charsheet-modal">
+    <button class="charsheet-close" onclick="closeCharSheet()" title="Close">&times;</button>
+    <div class="charsheet-content" id="charsheet-content">
+      <!-- Populated dynamically by renderCharSheetModal() -->
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
      SCREEN: COMBAT
      ═══════════════════════════════════════════════════════ -->
 <div id="s-combat" class="screen p-0 flex-col" style="background:var(--bg)">
@@ -1466,6 +1566,7 @@
 <script src="app/gameState.js"></script>
 <script src="app/rulesEngine.js"></script>
 <script src="app/storyEngine.js"></script>
+<script src="app/worldSystems.js"></script>
 <script src="app/hub.js"></script>
 <script src="app/ui.js"></script>
 <script src="app/combat.js"></script>
