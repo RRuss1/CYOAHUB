@@ -26,6 +26,232 @@ const _STAT_PRESETS = {
   minimal:    { keys:['edge','flaw','drive'], names:['EDGE','FLAW','DRIVE'], full:['Edge','Flaw','Drive'] },
 };
 
+// ── Era-based weapon / kit / armor pools ──────────────────────────────────
+// Each era defines heroWeapons (character creation picks), weapons (full stat
+// blocks), startingKits (equipment packages), and armors.
+const _ERA_WEAPON_POOLS = {
+  // ─── ANCIENT ───
+  Ancient: {
+    heroWeapons: [
+      {id:'spear',name:'Spear',type:'Polearm',dmgBonus:{crit:3,hit:2,miss:0},desc:'The weapon of armies since the dawn of war.',tiers:['Crude','Bronze','Iron','Blessed','Mythic']},
+      {id:'khopesh',name:'Khopesh',type:'Blade',dmgBonus:{crit:3,hit:2,miss:0},desc:'Curved sickle-sword of ancient empires.',tiers:['Crude','Bronze','Iron','Blessed','Mythic']},
+      {id:'sling',name:'Sling',type:'Ranged',dmgBonus:{crit:3,hit:1,miss:0},desc:'Simple but deadly at range. David knew.',tiers:['Crude','Woven','Lead-shot','Blessed','Mythic']},
+      {id:'club',name:'War Club',type:'Blunt',dmgBonus:{crit:4,hit:2,miss:0},desc:'Stone or hardwood — crushes bone.',tiers:['Crude','Stone-head','Iron-bound','Blessed','Mythic']},
+      {id:'javelin',name:'Javelin',type:'Thrown',dmgBonus:{crit:3,hit:2,miss:0},desc:'Thrown before the charge. One shot, one kill.',tiers:['Crude','Bronze','Iron','Blessed','Mythic']},
+      {id:'staff',name:'Ritual Staff',type:'Staff',dmgBonus:{crit:2,hit:2,miss:1},desc:'A channel for ancient power.',tiers:['Carved','Bound','Runed','Blessed','Mythic']},
+    ],
+    weapons: {
+      spear:    {name:'Spear',    skill:'heavyWeapon',attr:'str',dmg:'1d8',dmgType:'keen',traits:['Reach','Thrown [20/60]']},
+      khopesh:  {name:'Khopesh',  skill:'heavyWeapon',attr:'str',dmg:'1d8',dmgType:'keen',traits:['Disarm']},
+      sling:    {name:'Sling',    skill:'lightWeapon',attr:'dex',dmg:'1d4',dmgType:'impact',traits:['Ranged [30/120]']},
+      club:     {name:'War Club', skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'impact',traits:['Versatile']},
+      javelin:  {name:'Javelin',  skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'keen',traits:['Thrown [30/120]']},
+      staff:    {name:'Ritual Staff',skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'impact',traits:['Versatile','Arcane Focus']},
+      dagger:   {name:'Flint Dagger',skill:'lightWeapon',attr:'dex',dmg:'1d4',dmgType:'keen',traits:['Light','Thrown [20/60]']},
+      unarmed:  {name:'Unarmed',  skill:'athletics',attr:'str',dmg:'1d4',dmgType:'impact',traits:[]},
+    },
+    startingKits: [
+      {id:'warrior',name:'Warrior',weapons:['spear','dagger'],armor:'hide',spheres:'5gp',extras:['Waterskin','Dried meat x5','Flint','Rope'],expertise:'Warfare',desc:'Armed for battle.'},
+      {id:'priest',name:'Priest',weapons:['staff'],armor:'none',spheres:'10gp',extras:['Incense','Sacred oil','Clay tablets','Herbs'],expertise:'Lore',desc:'Servant of the gods.'},
+      {id:'hunter',name:'Hunter',weapons:['javelin','sling'],armor:'hide',spheres:'3gp',extras:['Trap x3','Skinning knife','Waterskin','Dried meat x5'],expertise:'Survival',desc:'Tracker and provider.'},
+      {id:'scout',name:'Scout',weapons:['dagger','dagger'],armor:'leather',spheres:'6gp',extras:['Rope','Signal horn','Chalk','Torches x3'],expertise:'Pathfinding',desc:'Eyes and ears of the tribe.'},
+    ],
+    armors: {none:{name:'No Armor',deflect:0,traits:[]},hide:{name:'Hide',deflect:1,traits:['Light']},leather:{name:'Leather',deflect:1,traits:['Light']},bronze:{name:'Bronze',deflect:3,traits:['Medium','Heavy']},shield:{name:'Shield',deflect:2,traits:['Shield']}},
+  },
+
+  // ─── MEDIEVAL (default) ───
+  Medieval: {
+    heroWeapons: [
+      {id:'sword',name:'Sword',type:'Blade',dmgBonus:{crit:3,hit:2,miss:0},desc:'A versatile blade for any warrior.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'axe',name:'Battle Axe',type:'Heavy',dmgBonus:{crit:4,hit:2,miss:0},desc:'Cleaves armor and bone.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'bow',name:'Longbow',type:'Ranged',dmgBonus:{crit:3,hit:1,miss:0},desc:'Strike from a distance.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'staff',name:'Magic Staff',type:'Arcane',dmgBonus:{crit:2,hit:2,miss:1},desc:'Channel arcane power.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'daggers',name:'Twin Daggers',type:'Dual',dmgBonus:{crit:3,hit:2,miss:0},desc:'Quick and concealable.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'spear',name:'Spear',type:'Polearm',dmgBonus:{crit:3,hit:2,miss:0},desc:'Reach and versatility.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'hammer',name:'Warhammer',type:'Blunt',dmgBonus:{crit:4,hit:2,miss:0},desc:'Crushes armor and shields.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'crossbow',name:'Crossbow',type:'Ranged',dmgBonus:{crit:3,hit:2,miss:0},desc:'Mechanical power, no training needed.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+    ],
+    weapons: {
+      dagger:     {name:'Dagger',     skill:'lightWeapon',attr:'dex',dmg:'1d4',dmgType:'keen',traits:['Light','Thrown']},
+      shortsword: {name:'Short Sword',skill:'lightWeapon',attr:'dex',dmg:'1d6',dmgType:'keen',traits:['Light','Finesse']},
+      longsword:  {name:'Long Sword', skill:'heavyWeapon',attr:'str',dmg:'1d8',dmgType:'keen',traits:['Versatile']},
+      greatsword: {name:'Greatsword', skill:'heavyWeapon',attr:'str',dmg:'2d6',dmgType:'keen',traits:['Two-Handed','Heavy']},
+      mace:       {name:'Mace',       skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'impact',traits:[]},
+      staff:      {name:'Staff',      skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'impact',traits:['Versatile','Arcane Focus']},
+      shortbow:   {name:'Shortbow',   skill:'lightWeapon',attr:'dex',dmg:'1d6',dmgType:'keen',traits:['Ranged [80/320]','Two-Handed']},
+      longbow:    {name:'Longbow',    skill:'heavyWeapon',attr:'dex',dmg:'1d8',dmgType:'keen',traits:['Ranged [150/600]','Two-Handed','Heavy']},
+      unarmed:    {name:'Unarmed',    skill:'athletics',  attr:'str',dmg:'1d4',dmgType:'impact',traits:[]},
+    },
+    startingKits: [
+      {id:'adventurer',name:'Adventurer',weapons:['sword','dagger'],armor:'leather',spheres:'10gp',extras:['Backpack','Rope','Torch x5','Rations x5'],expertise:'Survival',desc:'Basic gear for any adventurer.'},
+      {id:'scholar',name:'Scholar',weapons:['staff'],armor:'none',spheres:'15gp',extras:['Books','Ink','Parchment','Spell components'],expertise:'Lore',desc:'Tools of the learned.'},
+      {id:'soldier',name:'Soldier',weapons:['sword','shield'],armor:'chain',spheres:'5gp',extras:['Rations x5','Whetstone','Bedroll'],expertise:'Military',desc:'Standard military issue.'},
+      {id:'rogue',name:'Rogue',weapons:['dagger','dagger'],armor:'leather',spheres:'8gp',extras:['Lockpicks','Rope','Grappling hook','Smoke bomb'],expertise:'Underworld',desc:'Tools of the trade.'},
+    ],
+    armors: {none:{name:'No Armor',deflect:0,traits:[]},leather:{name:'Leather',deflect:1,traits:['Light']},chain:{name:'Chain',deflect:3,traits:['Medium']},plate:{name:'Plate',deflect:5,traits:['Heavy']},shield:{name:'Shield',deflect:2,traits:['Shield']}},
+  },
+
+  // ─── RENAISSANCE ───
+  Renaissance: {
+    heroWeapons: [
+      {id:'rapier',name:'Rapier',type:'Finesse',dmgBonus:{crit:3,hit:2,miss:0},desc:'Elegant thrusting blade of duelists.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'musket',name:'Musket',type:'Firearm',dmgBonus:{crit:4,hit:2,miss:0},desc:'Black powder and lead. Slow to reload, devastating on impact.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'cutlass',name:'Cutlass',type:'Blade',dmgBonus:{crit:3,hit:2,miss:0},desc:'Short, curved, and vicious. A sailor\'s companion.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'pistol',name:'Flintlock Pistol',type:'Firearm',dmgBonus:{crit:3,hit:2,miss:0},desc:'One shot. Make it count.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'halberd',name:'Halberd',type:'Polearm',dmgBonus:{crit:4,hit:2,miss:0},desc:'Axe, spear, and hook in one. The infantry\'s answer to cavalry.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+      {id:'crossbow',name:'Crossbow',type:'Ranged',dmgBonus:{crit:3,hit:2,miss:0},desc:'Mechanical precision from a distance.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
+    ],
+    weapons: {
+      rapier:   {name:'Rapier',   skill:'lightWeapon',attr:'dex',dmg:'1d8',dmgType:'keen',traits:['Finesse']},
+      musket:   {name:'Musket',   skill:'heavyWeapon',attr:'dex',dmg:'2d6',dmgType:'impact',traits:['Ranged [80/320]','Loading','Two-Handed']},
+      cutlass:  {name:'Cutlass',  skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'keen',traits:['Light']},
+      pistol:   {name:'Flintlock Pistol',skill:'lightWeapon',attr:'dex',dmg:'1d10',dmgType:'impact',traits:['Ranged [30/90]','Loading']},
+      halberd:  {name:'Halberd',  skill:'heavyWeapon',attr:'str',dmg:'1d10',dmgType:'keen',traits:['Reach','Two-Handed','Heavy']},
+      crossbow: {name:'Crossbow', skill:'heavyWeapon',attr:'dex',dmg:'1d8',dmgType:'keen',traits:['Ranged [100/400]','Loading']},
+      dagger:   {name:'Stiletto', skill:'lightWeapon',attr:'dex',dmg:'1d4',dmgType:'keen',traits:['Light','Thrown','Finesse']},
+      unarmed:  {name:'Unarmed',  skill:'athletics',attr:'str',dmg:'1d4',dmgType:'impact',traits:[]},
+    },
+    startingKits: [
+      {id:'duelist',name:'Duelist',weapons:['rapier','pistol'],armor:'leather',spheres:'12gp',extras:['Powder horn','Lead shot x10','Fine clothes','Perfume'],expertise:'High Society',desc:'Style and steel.'},
+      {id:'scholar',name:'Scholar',weapons:['dagger'],armor:'none',spheres:'20gp',extras:['Books','Ink','Parchment','Telescope','Compass'],expertise:'Lore',desc:'Enlightenment pursuer.'},
+      {id:'soldier',name:'Musketeer',weapons:['musket','cutlass'],armor:'chain',spheres:'8gp',extras:['Powder horn','Lead shot x20','Bedroll','Rations x5'],expertise:'Military',desc:'Crown\'s finest.'},
+      {id:'rogue',name:'Privateer',weapons:['cutlass','pistol'],armor:'leather',spheres:'15gp',extras:['Lockpicks','Rope','Grappling hook','Spyglass'],expertise:'Underworld',desc:'Licensed scoundrel.'},
+    ],
+    armors: {none:{name:'No Armor',deflect:0,traits:[]},leather:{name:'Leather',deflect:1,traits:['Light']},chain:{name:'Chain',deflect:3,traits:['Medium']},breastplate:{name:'Breastplate',deflect:4,traits:['Heavy']},shield:{name:'Buckler',deflect:1,traits:['Shield']}},
+  },
+
+  // ─── COLONIAL ───
+  Colonial: {
+    heroWeapons: [
+      {id:'musket',name:'Brown Bess Musket',type:'Firearm',dmgBonus:{crit:4,hit:2,miss:0},desc:'Standard military musket. Bayonet-ready.',tiers:['Standard','Military','Officer\'s','Masterwork','Legendary']},
+      {id:'blunderbuss',name:'Blunderbuss',type:'Firearm',dmgBonus:{crit:4,hit:3,miss:1},desc:'Scattershot devastation at close range.',tiers:['Standard','Military','Officer\'s','Masterwork','Legendary']},
+      {id:'handcannon',name:'Hand Cannon',type:'Firearm',dmgBonus:{crit:4,hit:2,miss:0},desc:'Heavy single-shot pistol. Kicks like a mule.',tiers:['Standard','Military','Officer\'s','Masterwork','Legendary']},
+      {id:'rapier',name:'Officer\'s Rapier',type:'Finesse',dmgBonus:{crit:3,hit:2,miss:0},desc:'The mark of rank and breeding.',tiers:['Standard','Military','Officer\'s','Masterwork','Legendary']},
+      {id:'tomahawk',name:'Tomahawk',type:'Thrown',dmgBonus:{crit:3,hit:2,miss:0},desc:'Balanced for throwing or close combat.',tiers:['Standard','Military','Officer\'s','Masterwork','Legendary']},
+      {id:'sabre',name:'Cavalry Sabre',type:'Blade',dmgBonus:{crit:3,hit:2,miss:0},desc:'Curved slashing blade for mounted and foot combat.',tiers:['Standard','Military','Officer\'s','Masterwork','Legendary']},
+      {id:'bayonet',name:'Bayonet',type:'Blade',dmgBonus:{crit:3,hit:2,miss:0},desc:'When the powder runs out, the steel speaks.',tiers:['Standard','Military','Officer\'s','Masterwork','Legendary']},
+    ],
+    weapons: {
+      musket:      {name:'Musket',      skill:'heavyWeapon',attr:'dex',dmg:'2d6',dmgType:'impact',traits:['Ranged [80/320]','Loading','Two-Handed']},
+      blunderbuss: {name:'Blunderbuss', skill:'heavyWeapon',attr:'str',dmg:'2d8',dmgType:'impact',traits:['Ranged [15/30]','Loading','Scatter']},
+      handcannon:  {name:'Hand Cannon', skill:'lightWeapon',attr:'dex',dmg:'1d10',dmgType:'impact',traits:['Ranged [30/90]','Loading']},
+      rapier:      {name:'Rapier',      skill:'lightWeapon',attr:'dex',dmg:'1d8',dmgType:'keen',traits:['Finesse']},
+      tomahawk:    {name:'Tomahawk',    skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'keen',traits:['Light','Thrown [20/60]']},
+      sabre:       {name:'Sabre',       skill:'heavyWeapon',attr:'str',dmg:'1d8',dmgType:'keen',traits:['Versatile']},
+      bayonet:     {name:'Bayonet',     skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'keen',traits:['Reach']},
+      dagger:      {name:'Knife',       skill:'lightWeapon',attr:'dex',dmg:'1d4',dmgType:'keen',traits:['Light','Thrown','Finesse']},
+      unarmed:     {name:'Unarmed',     skill:'athletics',attr:'str',dmg:'1d4',dmgType:'impact',traits:[]},
+    },
+    startingKits: [
+      {id:'soldier',name:'Soldier',weapons:['musket','bayonet'],armor:'leather',spheres:'5gp',extras:['Powder horn','Lead shot x20','Bedroll','Rations x5'],expertise:'Military',desc:'Line infantry standard issue.'},
+      {id:'officer',name:'Officer',weapons:['rapier','handcannon'],armor:'leather',spheres:'15gp',extras:['Compass','Map case','Writing kit','Fine coat'],expertise:'Leadership',desc:'Rank has its privileges.'},
+      {id:'frontiersman',name:'Frontiersman',weapons:['musket','tomahawk'],armor:'hide',spheres:'8gp',extras:['Trap x3','Waterskin','Flint','Fur cloak'],expertise:'Survival',desc:'Born on the frontier.'},
+      {id:'privateer',name:'Privateer',weapons:['blunderbuss','sabre'],armor:'leather',spheres:'12gp',extras:['Rope','Spyglass','Grappling hook','Rum'],expertise:'Underworld',desc:'Letters of marque included.'},
+    ],
+    armors: {none:{name:'No Armor',deflect:0,traits:[]},hide:{name:'Hide Coat',deflect:1,traits:['Light']},leather:{name:'Leather',deflect:1,traits:['Light']},chain:{name:'Chain Shirt',deflect:2,traits:['Medium']},breastplate:{name:'Breastplate',deflect:3,traits:['Heavy']},shield:{name:'Buckler',deflect:1,traits:['Shield']}},
+  },
+
+  // ─── MODERN ───
+  Modern: {
+    heroWeapons: [
+      {id:'pistol',name:'.45 Handgun',type:'Firearm',dmgBonus:{crit:3,hit:2,miss:0},desc:'Reliable sidearm. One in the chamber.',tiers:['Standard','Custom','Military','Prototype','Legendary']},
+      {id:'shotgun',name:'Tactical Shotgun',type:'Firearm',dmgBonus:{crit:4,hit:3,miss:1},desc:'Room-clearing devastation.',tiers:['Standard','Custom','Military','Prototype','Legendary']},
+      {id:'rifle',name:'Assault Rifle',type:'Firearm',dmgBonus:{crit:3,hit:2,miss:0},desc:'Full-auto or burst. The modern soldier\'s tool.',tiers:['Standard','Custom','Military','Prototype','Legendary']},
+      {id:'smg',name:'Submachine Gun',type:'Firearm',dmgBonus:{crit:3,hit:2,miss:0},desc:'Compact, fast-firing, close-quarters king.',tiers:['Standard','Custom','Military','Prototype','Legendary']},
+      {id:'sniper',name:'Sniper Rifle',type:'Firearm',dmgBonus:{crit:5,hit:2,miss:0},desc:'One shot, one kill. From half a mile.',tiers:['Standard','Custom','Military','Prototype','Legendary']},
+      {id:'stunstick',name:'Stun Baton',type:'Melee',dmgBonus:{crit:2,hit:2,miss:1},desc:'Non-lethal. Usually.',tiers:['Standard','Custom','Military','Prototype','Legendary']},
+      {id:'combatknife',name:'Combat Knife',type:'Blade',dmgBonus:{crit:3,hit:2,miss:0},desc:'Last resort or first choice. Depends who you ask.',tiers:['Standard','Custom','Military','Prototype','Legendary']},
+      {id:'dualglocks',name:'Twin Glocks',type:'Dual Firearm',dmgBonus:{crit:3,hit:2,miss:0},desc:'Twice the firepower. Twice the style.',tiers:['Standard','Custom','Military','Prototype','Legendary']},
+    ],
+    weapons: {
+      pistol:      {name:'.45 Handgun',    skill:'lightWeapon',attr:'dex',dmg:'2d6',dmgType:'impact',traits:['Ranged [50/150]','Semi-Auto']},
+      shotgun:     {name:'Tactical Shotgun',skill:'heavyWeapon',attr:'str',dmg:'2d8',dmgType:'impact',traits:['Ranged [30/90]','Scatter']},
+      rifle:       {name:'Assault Rifle',   skill:'heavyWeapon',attr:'dex',dmg:'2d6',dmgType:'impact',traits:['Ranged [100/400]','Auto','Two-Handed']},
+      smg:         {name:'SMG',             skill:'lightWeapon',attr:'dex',dmg:'2d4',dmgType:'impact',traits:['Ranged [50/150]','Auto']},
+      sniper:      {name:'Sniper Rifle',    skill:'heavyWeapon',attr:'dex',dmg:'2d10',dmgType:'impact',traits:['Ranged [300/1200]','Two-Handed','Scope']},
+      stunstick:   {name:'Stun Baton',      skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'energy',traits:['Stun']},
+      combatknife: {name:'Combat Knife',    skill:'lightWeapon',attr:'dex',dmg:'1d6',dmgType:'keen',traits:['Light','Thrown [20/60]','Finesse']},
+      dualglocks:  {name:'Twin Glocks',     skill:'lightWeapon',attr:'dex',dmg:'2d6',dmgType:'impact',traits:['Ranged [50/150]','Dual Wield','Semi-Auto']},
+      unarmed:     {name:'Hand-to-Hand',    skill:'athletics',attr:'str',dmg:'1d6',dmgType:'impact',traits:['Martial Arts']},
+    },
+    startingKits: [
+      {id:'soldier',name:'Soldier',weapons:['rifle','combatknife'],armor:'vest',spheres:'$200',extras:['Medkit','MRE x3','Radio','Flashlight'],expertise:'Military',desc:'Standard military loadout.'},
+      {id:'detective',name:'Detective',weapons:['pistol','stunstick'],armor:'concealed',spheres:'$500',extras:['Badge','Handcuffs','Flashlight','Notepad'],expertise:'Investigation',desc:'Carry the law.'},
+      {id:'operative',name:'Operative',weapons:['smg','combatknife'],armor:'concealed',spheres:'$300',extras:['Lockpick set','Burner phone','Disguise kit','Zip ties'],expertise:'Underworld',desc:'Off the books.'},
+      {id:'enforcer',name:'Enforcer',weapons:['shotgun','dualglocks'],armor:'vest',spheres:'$150',extras:['Brass knuckles','Bandages','Intimidating coat','Whiskey'],expertise:'Intimidation',desc:'Heavy artillery.'},
+    ],
+    armors: {none:{name:'No Armor',deflect:0,traits:[]},concealed:{name:'Concealed Vest',deflect:1,traits:['Light','Concealable']},vest:{name:'Tactical Vest',deflect:3,traits:['Medium']},heavy:{name:'Heavy Body Armor',deflect:5,traits:['Heavy']},riot:{name:'Riot Shield',deflect:2,traits:['Shield']}},
+  },
+
+  // ─── POST-APOCALYPTIC ───
+  'Post-Apocalyptic': {
+    heroWeapons: [
+      {id:'pipe',name:'Lead Pipe',type:'Blunt',dmgBonus:{crit:4,hit:2,miss:0},desc:'Ripped from the ruins. Gets the job done.',tiers:['Scrap','Reinforced','Spiked','Electrified','Masterwork']},
+      {id:'machete',name:'Machete',type:'Blade',dmgBonus:{crit:3,hit:2,miss:0},desc:'Clears brush and skulls alike.',tiers:['Rusty','Sharpened','Serrated','Hardened','Masterwork']},
+      {id:'shotgun',name:'Salvaged Shotgun',type:'Firearm',dmgBonus:{crit:4,hit:3,miss:1},desc:'Duct tape and prayers hold it together.',tiers:['Scrap','Patched','Reliable','Custom','Masterwork']},
+      {id:'crossbow',name:'Makeshift Crossbow',type:'Ranged',dmgBonus:{crit:3,hit:2,miss:0},desc:'Silent. Reusable bolts. Smart.',tiers:['Scrap','Reinforced','Compound','Precision','Masterwork']},
+      {id:'knuckles',name:'Spiked Knuckles',type:'Unarmed',dmgBonus:{crit:3,hit:2,miss:0},desc:'For when it gets personal.',tiers:['Scrap','Reinforced','Bladed','Powered','Masterwork']},
+      {id:'molotov',name:'Molotov Cocktail',type:'Thrown',dmgBonus:{crit:3,hit:2,miss:1},desc:'Gasoline and rage in a bottle.',tiers:['Crude','Standard','Incendiary','Napalm','Masterwork']},
+      {id:'revolver',name:'Rusty Revolver',type:'Firearm',dmgBonus:{crit:3,hit:2,miss:0},desc:'Six shots. Count them.',tiers:['Scrap','Cleaned','Tuned','Custom','Masterwork']},
+    ],
+    weapons: {
+      pipe:     {name:'Lead Pipe',    skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'impact',traits:['Versatile']},
+      machete:  {name:'Machete',      skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'keen',traits:['Light']},
+      shotgun:  {name:'Salvaged Shotgun',skill:'heavyWeapon',attr:'str',dmg:'2d6',dmgType:'impact',traits:['Ranged [20/60]','Loading','Scatter']},
+      crossbow: {name:'Makeshift Crossbow',skill:'heavyWeapon',attr:'dex',dmg:'1d8',dmgType:'keen',traits:['Ranged [80/320]','Loading']},
+      knuckles: {name:'Spiked Knuckles',skill:'athletics',attr:'str',dmg:'1d6',dmgType:'impact',traits:['Light']},
+      molotov:  {name:'Molotov',      skill:'lightWeapon',attr:'dex',dmg:'2d4',dmgType:'energy',traits:['Thrown [20/60]','Fire','Single-use']},
+      revolver: {name:'Revolver',     skill:'lightWeapon',attr:'dex',dmg:'1d10',dmgType:'impact',traits:['Ranged [40/120]']},
+      dagger:   {name:'Shiv',         skill:'lightWeapon',attr:'dex',dmg:'1d4',dmgType:'keen',traits:['Light','Thrown','Finesse']},
+      unarmed:  {name:'Bare Fists',   skill:'athletics',attr:'str',dmg:'1d4',dmgType:'impact',traits:[]},
+    },
+    startingKits: [
+      {id:'scavenger',name:'Scavenger',weapons:['machete','revolver'],armor:'scrap',spheres:'3 caps',extras:['Backpack','Water bottle','Canned food x3','Duct tape'],expertise:'Survival',desc:'Everything you own fits in one bag.'},
+      {id:'raider',name:'Raider',weapons:['pipe','shotgun'],armor:'scrap',spheres:'5 caps',extras:['Chains','War paint','Intimidating mask','Moonshine'],expertise:'Intimidation',desc:'Take what you want.'},
+      {id:'wastelander',name:'Wastelander',weapons:['crossbow','machete'],armor:'leather',spheres:'4 caps',extras:['Trap x2','Rope','Binoculars','Dried meat x3'],expertise:'Pathfinding',desc:'Born in the wastes.'},
+      {id:'tinker',name:'Tinker',weapons:['revolver','molotov'],armor:'leather',spheres:'8 caps',extras:['Tool kit','Scrap metal x5','Wire','Batteries'],expertise:'Lore',desc:'If it\'s broken, you fix it.'},
+    ],
+    armors: {none:{name:'No Armor',deflect:0,traits:[]},scrap:{name:'Scrap Armor',deflect:1,traits:['Light','Jury-rigged']},leather:{name:'Leather',deflect:1,traits:['Light']},plated:{name:'Plated Vest',deflect:3,traits:['Medium','Heavy']},shield:{name:'Car Door Shield',deflect:2,traits:['Shield','Improvised']}},
+  },
+
+  // ─── FUTURISTIC / SCI-FI ───
+  Futuristic: {
+    heroWeapons: [
+      {id:'blaster',name:'Plasma Blaster',type:'Energy',dmgBonus:{crit:4,hit:2,miss:0},desc:'Superheated plasma bolt. Melts through cover.',tiers:['Standard','Advanced','Military','Prototype','Legendary']},
+      {id:'laserPistol',name:'Laser Pistol',type:'Energy',dmgBonus:{crit:3,hit:2,miss:0},desc:'Precision beam weapon. Silent, accurate, lethal.',tiers:['Standard','Advanced','Military','Prototype','Legendary']},
+      {id:'railgun',name:'Rail Rifle',type:'Firearm',dmgBonus:{crit:5,hit:2,miss:0},desc:'Magnetically accelerated slugs. Penetrates anything.',tiers:['Standard','Advanced','Military','Prototype','Legendary']},
+      {id:'vibroblade',name:'Vibro-Blade',type:'Blade',dmgBonus:{crit:3,hit:2,miss:0},desc:'Molecularly sharp edge, vibrating at ultrasonic frequency.',tiers:['Standard','Advanced','Military','Prototype','Legendary']},
+      {id:'stunstick',name:'Shock Baton',type:'Melee',dmgBonus:{crit:2,hit:2,miss:1},desc:'Neural disruption on contact. Non-lethal setting available.',tiers:['Standard','Advanced','Military','Prototype','Legendary']},
+      {id:'grenades',name:'Pulse Grenades',type:'Explosive',dmgBonus:{crit:4,hit:3,miss:1},desc:'EMP burst shreds shields and circuits.',tiers:['Standard','Advanced','Military','Prototype','Legendary']},
+      {id:'smartgun',name:'Smart Pistol',type:'Energy',dmgBonus:{crit:3,hit:3,miss:0},desc:'AI-assisted targeting. The gun aims for you.',tiers:['Standard','Advanced','Military','Prototype','Legendary']},
+      {id:'plasmasword',name:'Plasma Sword',type:'Energy Melee',dmgBonus:{crit:4,hit:2,miss:0},desc:'Contained plasma edge. Cuts through bulkheads.',tiers:['Standard','Advanced','Military','Prototype','Legendary']},
+    ],
+    weapons: {
+      blaster:     {name:'Plasma Blaster',  skill:'heavyWeapon',attr:'dex',dmg:'2d8',dmgType:'energy',traits:['Ranged [100/400]','Two-Handed','Overheat']},
+      laserPistol: {name:'Laser Pistol',    skill:'lightWeapon',attr:'dex',dmg:'2d4',dmgType:'energy',traits:['Ranged [60/240]','Silent']},
+      railgun:     {name:'Rail Rifle',       skill:'heavyWeapon',attr:'dex',dmg:'2d10',dmgType:'impact',traits:['Ranged [200/800]','Two-Handed','Piercing']},
+      vibroblade:  {name:'Vibro-Blade',      skill:'lightWeapon',attr:'dex',dmg:'2d6',dmgType:'keen',traits:['Finesse','Armor Piercing']},
+      stunstick:   {name:'Shock Baton',      skill:'lightWeapon',attr:'str',dmg:'1d8',dmgType:'energy',traits:['Stun','Non-lethal']},
+      grenades:    {name:'Pulse Grenade',    skill:'lightWeapon',attr:'dex',dmg:'3d6',dmgType:'energy',traits:['Thrown [40/120]','AoE','Single-use']},
+      smartgun:    {name:'Smart Pistol',     skill:'lightWeapon',attr:'dex',dmg:'2d6',dmgType:'energy',traits:['Ranged [60/240]','Smart-targeting']},
+      plasmasword: {name:'Plasma Sword',     skill:'heavyWeapon',attr:'str',dmg:'2d8',dmgType:'energy',traits:['Two-Handed']},
+      unarmed:     {name:'Cybernetic Strike',skill:'athletics',attr:'str',dmg:'1d8',dmgType:'impact',traits:['Augmented']},
+    },
+    startingKits: [
+      {id:'trooper',name:'Trooper',weapons:['blaster','vibroblade'],armor:'tactical',spheres:'200cr',extras:['Medpatch x3','Ration pack x5','Comm unit','Flashlight'],expertise:'Military',desc:'Standard colonial trooper gear.'},
+      {id:'tech',name:'Technician',weapons:['laserPistol','stunstick'],armor:'light',spheres:'350cr',extras:['Datapad','Tool kit','Hacking module','Scanner'],expertise:'Lore',desc:'Brains over brawn.'},
+      {id:'bounty',name:'Bounty Hunter',weapons:['smartgun','grenades'],armor:'tactical',spheres:'150cr',extras:['Tracking beacon','Binders','Bioscanner','Stim x2'],expertise:'Tracking',desc:'Dead or alive.'},
+      {id:'smuggler',name:'Smuggler',weapons:['laserPistol','vibroblade'],armor:'light',spheres:'400cr',extras:['Hidden compartment','Forgery kit','Comm jammer','Stim x2'],expertise:'Underworld',desc:'What cargo? I don\'t see any cargo.'},
+    ],
+    armors: {none:{name:'No Armor',deflect:0,traits:[]},light:{name:'Light Shielding',deflect:1,traits:['Light','Energy Shield']},tactical:{name:'Tactical Armor',deflect:3,traits:['Medium','Powered']},heavy:{name:'Power Armor',deflect:5,traits:['Heavy','Powered','Sealed']},shield:{name:'Energy Buckler',deflect:2,traits:['Shield','Energy']}},
+  },
+
+  // ─── TIMELESS (fallback — uses Medieval) ───
+  Timeless: null, // resolved at runtime to Medieval
+};
+// Timeless resolves to Medieval
+_ERA_WEAPON_POOLS.Timeless = _ERA_WEAPON_POOLS.Medieval;
+
 function _resolveStats(statsOverride, systemId) {
   if (statsOverride && statsOverride.keys) return { statKeys: statsOverride.keys, statNames: statsOverride.names, statFull: statsOverride.full };
   const preset = _STAT_PRESETS[systemId] || _STAT_PRESETS.classic;
@@ -319,14 +545,7 @@ window.CustomSystem = {
         {id:'mystic',name:'Mystic',icon:'🔮',keyTalent:'Spirit Sight',keyTalentDesc:'You can sense magical auras and supernatural presences.',startingSkill:'insight',specialties:['Oracle','Shaman','Monk'],buildAttrs:['wis','cha'],buildSkills:['Insight','Religion'],multiPath:['Scholar','Explorer'],desc:'One who walks between worlds.',bonus:{str:0,dex:0,con:0,int:0,wis:1,cha:1},ideal:'The unseen world shapes the seen.',color:'#9370DB'},
       ],
 
-      heroWeapons: cfg.heroWeapons || [
-        {id:'sword',name:'Sword',type:'Blade',dmgBonus:{crit:3,hit:2,miss:0},desc:'A versatile blade.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
-        {id:'axe',name:'Axe',type:'Heavy',dmgBonus:{crit:4,hit:2,miss:0},desc:'A brutal chopping weapon.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
-        {id:'bow',name:'Bow',type:'Ranged',dmgBonus:{crit:3,hit:1,miss:0},desc:'Strike from a distance.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
-        {id:'staff',name:'Staff',type:'Arcane',dmgBonus:{crit:2,hit:2,miss:1},desc:'Channeling focus for casters.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
-        {id:'daggers',name:'Daggers',type:'Dual',dmgBonus:{crit:3,hit:2,miss:0},desc:'Quick and concealable.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
-        {id:'hammer',name:'Hammer',type:'Blunt',dmgBonus:{crit:4,hit:2,miss:0},desc:'Crushes armor and bone.',tiers:['Standard','Fine','Masterwork','Enchanted','Legendary']},
-      ],
+      heroWeapons: cfg.heroWeapons || (_ERA_WEAPON_POOLS[cfg.era] || _ERA_WEAPON_POOLS.Medieval).heroWeapons,
 
       ancestries: (cfg.races && cfg.races.length >= 2)
         ? cfg.races.map((name, i) => ({
@@ -352,32 +571,11 @@ window.CustomSystem = {
 
       singerForms: {},
 
-      startingKits: cfg.startingKits || [
-        {id:'adventurer',name:'Adventurer',weapons:['sword','dagger'],armor:'leather',spheres:'10gp',extras:['Backpack','Rope','Torch x5','Rations x5'],expertise:null,desc:'Basic gear for any adventurer.'},
-        {id:'scholar',name:'Scholar',weapons:['staff'],armor:'none',spheres:'15gp',extras:['Books','Ink','Parchment','Spell components'],expertise:'Lore',desc:'Tools of the learned.'},
-        {id:'soldier',name:'Soldier',weapons:['sword','shield'],armor:'chain',spheres:'5gp',extras:['Rations x5','Whetstone','Bedroll'],expertise:'Military',desc:'Standard military issue.'},
-        {id:'rogue',name:'Rogue',weapons:['dagger','dagger'],armor:'leather',spheres:'8gp',extras:['Lockpicks','Rope','Grappling hook','Smoke bomb'],expertise:'Underworld',desc:'Tools of the trade.'},
-      ],
+      startingKits: cfg.startingKits || (_ERA_WEAPON_POOLS[cfg.era] || _ERA_WEAPON_POOLS.Medieval).startingKits,
 
-      weapons: cfg.weapons || {
-        dagger:     {name:'Dagger',     skill:'lightWeapon',attr:'dex',dmg:'1d4',dmgType:'keen',traits:['Light','Thrown']},
-        shortsword: {name:'Short Sword',skill:'lightWeapon',attr:'dex',dmg:'1d6',dmgType:'keen',traits:['Light','Finesse']},
-        longsword:  {name:'Long Sword', skill:'heavyWeapon',attr:'str',dmg:'1d8',dmgType:'keen',traits:['Versatile']},
-        greatsword: {name:'Greatsword', skill:'heavyWeapon',attr:'str',dmg:'2d6',dmgType:'keen',traits:['Two-Handed','Heavy']},
-        mace:       {name:'Mace',       skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'impact',traits:[]},
-        staff:      {name:'Staff',      skill:'lightWeapon',attr:'str',dmg:'1d6',dmgType:'impact',traits:['Versatile','Arcane Focus']},
-        shortbow:   {name:'Shortbow',   skill:'lightWeapon',attr:'dex',dmg:'1d6',dmgType:'keen',traits:['Ranged [80/320]','Two-Handed']},
-        longbow:    {name:'Longbow',    skill:'heavyWeapon',attr:'dex',dmg:'1d8',dmgType:'keen',traits:['Ranged [150/600]','Two-Handed','Heavy']},
-        unarmed:    {name:'Unarmed',    skill:'athletics',  attr:'str',dmg:'1d4',dmgType:'impact',traits:[]},
-      },
+      weapons: cfg.weapons || (_ERA_WEAPON_POOLS[cfg.era] || _ERA_WEAPON_POOLS.Medieval).weapons,
 
-      armors: cfg.armors || {
-        none:    {name:'No Armor',   deflect:0, traits:[]},
-        leather: {name:'Leather',    deflect:1, traits:['Light']},
-        chain:   {name:'Chain',      deflect:3, traits:['Medium']},
-        plate:   {name:'Plate',      deflect:5, traits:['Heavy']},
-        shield:  {name:'Shield',     deflect:2, traits:['Shield']},
-      },
+      armors: cfg.armors || (_ERA_WEAPON_POOLS[cfg.era] || _ERA_WEAPON_POOLS.Medieval).armors,
 
       surges: cfg.surges || [
         {id:'arcaneBlast',name:'Arcane Blast',attr:'int',orders:['mage'],desc:'A bolt of raw magical energy.',dmgType:'energy',targetDef:'physDef'},

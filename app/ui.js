@@ -1202,16 +1202,16 @@ function renderKits() {
   grid.innerHTML = STARTING_KITS.map(
     (
       k
-    ) => `<div class="ccard${selKit && selKit.id === k.id ? ' sel' : ''}" onclick="pickKit('${k.id}')" style="border-color:${selKit && selKit.id === k.id ? 'var(--amber2)' : 'var(--border)'};cursor:pointer;padding:10px 12px;">
-    <div class="ccard-name" style="font-size:13px;">${k.name}</div>
-    <div style="font-size:11px;color:var(--text4);margin-bottom:4px;font-style:italic;">${k.desc}</div>
-    <div style="font-size:11px;color:var(--text3);">
+    ) => `<div class="ccard${selKit && selKit.id === k.id ? ' sel' : ''}" onclick="pickKit('${k.id}')" style="border-color:${selKit && selKit.id === k.id ? 'var(--amber2)' : 'var(--border)'};cursor:pointer;padding:12px 14px;">
+    <div class="ccard-name" style="font-size:15px;margin-bottom:4px;">${k.name}</div>
+    <div style="font-size:13px;color:var(--text4);margin-bottom:5px;font-style:italic;">${k.desc}</div>
+    <div style="font-size:13px;color:var(--text3);line-height:1.5;">
       ${k.weapons.length ? '⚔ ' + k.weapons.map((w) => (WEAPONS[w] ? WEAPONS[w].name : w)).join(', ') : 'No weapons'} &nbsp;|&nbsp;
       ${k.armor ? '🛡 ' + (ARMORS[k.armor] ? ARMORS[k.armor].name : k.armor) : 'No armor'}
     </div>
-    <div style="font-size:11px;color:var(--amber2);margin-top:3px;">💰 ${k.spheres}${k.bonus ? ' · ' + k.bonus : ''}</div>
-    ${k.expertise ? `<div style="font-size:11px;color:var(--teal2);margin-top:2px;">Expertise: ${k.expertise}</div>` : ''}
-    ${k.extras && k.extras.length ? `<div style="font-size:10px;color:var(--text5);margin-top:2px;">${k.extras.join(', ')}</div>` : ''}
+    <div style="font-size:13px;color:var(--amber2);margin-top:4px;">💰 ${k.spheres}${k.bonus ? ' · ' + k.bonus : ''}</div>
+    ${k.expertise ? `<div style="font-size:13px;color:var(--teal2);margin-top:3px;">Expertise: ${k.expertise}</div>` : ''}
+    ${k.extras && k.extras.length ? `<div style="font-size:12px;color:var(--text5);margin-top:3px;line-height:1.4;">${k.extras.join(', ')}</div>` : ''}
   </div>`
   ).join('');
 }
@@ -1593,7 +1593,8 @@ function renderStatsPointBuy() {
     const base = _pbAlloc[k] || 0;
     const bonus = b[k] || 0;
     const total = s[k];
-    const canInc = base < 3 && left > 0;
+    const _maxAttr = ATTR_MAX_CREATE || 3;
+    const canInc = base < _maxAttr && left > 0;
     const canDec = base > 0;
     return `<div class="sbox" style="position:relative;">
       <div class="sbox-name">${STAT_FULL[i]}</div>
@@ -1603,16 +1604,21 @@ function renderStatsPointBuy() {
         <div class="sbox-val">${total}</div>
         <button onclick="adjustStat('${k}',1)" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border2);background:${canInc ? 'var(--bg3)' : 'var(--bg2)'};color:${canInc ? 'var(--amber2)' : 'var(--text5)'};cursor:${canInc ? 'pointer' : 'default'};font-size:14px;line-height:1;transition:all 0.15s;" ${canInc ? '' : 'disabled'}>+</button>
       </div>
-      ${bonus > 0 ? `<div style="font-size:10px;color:var(--teal2);font-family:var(--font-d);">base ${base} +${bonus} class</div>` : `<div style="font-size:10px;color:var(--text5);">base ${base}/3</div>`}
+      ${bonus > 0 ? `<div style="font-size:10px;color:var(--teal2);font-family:var(--font-d);">base ${base} +${bonus} class</div>` : `<div style="font-size:10px;color:var(--text5);">base ${base}/${_maxAttr}</div>`}
     </div>`;
   }).join('');
 
   // Points remaining indicator
+  const _totalPts = ATTR_POINTS_START || 12;
+  const _mxA = ATTR_MAX_CREATE || 3;
   const pointsEl = document.getElementById('points-remaining');
   if (pointsEl) {
-    pointsEl.textContent = left > 0 ? `${left} point${left !== 1 ? 's' : ''} remaining` : `All 12 points allocated`;
+    pointsEl.textContent = left > 0 ? `${left} point${left !== 1 ? 's' : ''} remaining` : `All ${_totalPts} points allocated`;
     pointsEl.style.color = left === 0 ? 'var(--teal2)' : 'var(--amber2)';
   }
+  // Update hint text with current system's pool values
+  const hintEl = document.getElementById('stat-pool-hint');
+  if (hintEl) hintEl.textContent = `Click + / − to distribute ${_totalPts} points (max ${_mxA} per attribute)`;
 
   // Update derived stats panel
   renderStats(s);
@@ -1741,7 +1747,7 @@ async function onCreateChar() {
         pe.style.color = 'var(--coral2)';
         pe.textContent = `Allocate ${pLeft} more point${pLeft !== 1 ? 's' : ''} first`;
       }
-      err.textContent = `Distribute all 12 attribute points before continuing (${pLeft} remaining).`;
+      err.textContent = `Distribute all ${ATTR_POINTS_START || 12} attribute points before continuing (${pLeft} remaining).`;
       err.style.display = 'block';
       return;
     }

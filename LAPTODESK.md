@@ -94,6 +94,66 @@
 
 ---
 
+### Desktop Session — 2026-03-31 (Stat Pools + Era Weapons)
+
+**Stat Pool Display Fix (`app/ui.js` + `index.html`):**
+- All hardcoded `12` and `3` in stat allocation UI replaced with dynamic `ATTR_POINTS_START` and `ATTR_MAX_CREATE` (which read from `SystemData.charCreation.attributePoints` / `.maxPerAttribute`)
+- Hint text, "All X points allocated", error text, and per-stat `/max` display all dynamic now
+- Custom worlds with `pointBuyPool: 27` and 5 stats correctly show "27 points, max 6 per attribute"
+
+**Era-Based Weapon Pools (`app/systems/custom.js`):**
+- New `_ERA_WEAPON_POOLS` constant with 8 full eras, each defining `heroWeapons`, `weapons`, `startingKits`, `armors`:
+  - **Ancient** — Spear, Khopesh, Sling, War Club, Javelin, Ritual Staff
+  - **Medieval** — Sword, Battle Axe, Longbow, Magic Staff, Twin Daggers, Spear, Warhammer, Crossbow
+  - **Renaissance** — Rapier, Musket, Cutlass, Flintlock Pistol, Halberd, Crossbow
+  - **Colonial** — Brown Bess Musket, Blunderbuss, Hand Cannon, Officer's Rapier, Tomahawk, Cavalry Sabre, Bayonet
+  - **Modern** — .45 Handgun, Tactical Shotgun, Assault Rifle, SMG, Sniper Rifle, Stun Baton, Combat Knife, Twin Glocks
+  - **Post-Apocalyptic** — Lead Pipe, Machete, Salvaged Shotgun, Makeshift Crossbow, Spiked Knuckles, Molotov, Rusty Revolver
+  - **Futuristic** — Plasma Blaster, Laser Pistol, Rail Rifle, Vibro-Blade, Shock Baton, Pulse Grenades, Smart Pistol, Plasma Sword
+  - **Timeless** — resolves to Medieval
+- `build()` fallbacks rewired: `cfg.heroWeapons || eraPool.heroWeapons` (same for weapons, startingKits, armors)
+- Old hardcoded medieval weapon fallbacks removed from build()
+
+**Wizard Update (`index.html`):**
+- Added **Colonial** and **Modern** to era selector (8 total, chronological order)
+
+**DB Migration (`db/migrations/008_backfill_era_weapon_pools.sql`):**
+- Stamps `"era": "Medieval"` on custom worlds missing the field
+- Strips stale hardcoded medieval weapon data so worlds pick up fresh era pools
+
+### ACTION REQUIRED — Update Your Custom World in DB
+
+Your existing custom world is still using the old hardcoded medieval weapons. To switch it to Futuristic (or any era), run this against the Neon DB:
+
+```sql
+-- Replace <your-world-id> with the actual world ID from world_library
+-- Change 'Futuristic' to whichever era you want
+
+UPDATE world_library
+SET config = config || '{"era": "Futuristic"}'::jsonb - 'heroWeapons' - 'weapons' - 'startingKits' - 'armors'
+WHERE id = '<your-world-id>'
+  AND system = 'custom';
+```
+
+To find your world ID:
+```sql
+SELECT id, config->>'name' AS name, config->>'era' AS era FROM world_library WHERE system = 'custom';
+```
+
+Also run migration 008 if not already applied:
+```sql
+\i db/migrations/008_backfill_era_weapon_pools.sql
+```
+
+Or via the Neon console, paste the contents of `008_backfill_era_weapon_pools.sql`.
+
+### Migrations Still Pending
+- [ ] `006_narrative_craft_kb.sql` — narrative techniques table
+- [ ] `007_user_uploads.sql` — user upload tracking table
+- [ ] `008_backfill_era_weapon_pools.sql` — era backfill + stale weapon strip
+
+---
+
 ### Previous Session Summary (Desktop — 2026-03-30 AM)
 
 Built: dnd5e.js, wretcheddeep.js, custom.js, enemyPatterns.js, 7-step wizard, world library, auth, campaign ownership, theme pipeline, full dynamic character creation, ambient audio, mobile responsive, spren images, routing fixes, combat heal fix, stale doc sweep. See git log for details.

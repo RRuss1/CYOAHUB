@@ -350,9 +350,11 @@
       <div class="wfield">
         <label class="wlabel">Setting Era</label>
         <div class="wopts" data-field="era">
-          <div class="wopt" onclick="selOpt(this)">Medieval</div>
           <div class="wopt" onclick="selOpt(this)">Ancient</div>
+          <div class="wopt" onclick="selOpt(this)">Medieval</div>
           <div class="wopt" onclick="selOpt(this)">Renaissance</div>
+          <div class="wopt" onclick="selOpt(this)">Colonial</div>
+          <div class="wopt" onclick="selOpt(this)">Modern</div>
           <div class="wopt" onclick="selOpt(this)">Post-Apocalyptic</div>
           <div class="wopt" onclick="selOpt(this)">Futuristic</div>
           <div class="wopt" onclick="selOpt(this)">Timeless</div>
@@ -1151,7 +1153,7 @@
           <button class="btn btn-sm" onclick="rollStats()" data-tr>↻ Rebalance</button>
         </div>
         <div class="flex items-center justify-between mb-2">
-          <div class="text-xs italic" style="color:var(--text4)">Click + / − to distribute 12 points (max 3 per attribute)</div>
+          <div class="text-xs italic" id="stat-pool-hint" style="color:var(--text4)">Click + / − to distribute points</div>
           <div id="points-remaining" class="font-display text-xs tracking-widest whitespace-nowrap" style="color:var(--amber2)"></div>
         </div>
         <div class="grid grid-cols-3 gap-2.5" id="stats-grid"></div>
