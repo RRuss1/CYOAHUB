@@ -872,7 +872,12 @@ async function onEnter() {
       // Ensure the correct system is loaded for this campaign
       const worldId = gState.system || gState.worldId || 'stormlight';
       if (!window.SystemData || window.SystemData.id !== worldId) {
-        if (typeof loadSystem === 'function') loadSystem(worldId);
+        // Use _loadWorldFromId (which handles custom world config loading) if available
+        if (typeof _loadWorldFromId === 'function') {
+          await _loadWorldFromId(worldId);
+        } else if (typeof loadSystem === 'function') {
+          loadSystem(worldId);
+        }
       }
     }
     myChar = loadMyChar();
@@ -1158,7 +1163,14 @@ function renderCreate() {
     pickCharType(true);
     renderStatsPointBuy();
   }, 80);
-  } catch(e) { console.error('renderCreate crashed:', e); }
+  } catch(e) {
+    console.error('renderCreate crashed:', e);
+    const errEl = document.getElementById('create-err');
+    if (errEl) {
+      errEl.textContent = 'Character creation failed to load. Try refreshing the page.';
+      errEl.style.display = 'block';
+    }
+  }
 }
 
 function renderAncestryGrid() {

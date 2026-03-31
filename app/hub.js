@@ -1032,12 +1032,37 @@ function setGameHash(screen, worldId, campId) {
   if (window.location.hash !== hash) window.location.hash = hash;
 }
 
-function _loadWorldFromId(worldId) {
-  if (!worldId || !typeof loadSystem === 'function') return;
+async function _loadWorldFromId(worldId) {
+  if (!worldId || typeof loadSystem !== 'function') return;
   if (window.SystemData && window.SystemData.id === worldId) return; // already loaded
   if (worldId.startsWith('custom-')) {
+    // 1. Check localStorage (own worlds)
     const saved = _getSavedWorlds().find((w) => w.id === worldId);
-    if (saved) window._pendingWorldConfig = saved;
+    if (saved) {
+      window._pendingWorldConfig = saved;
+    } else {
+      // 2. Check community cache (prefetched published worlds)
+      const community = _communityWorldsCache.find((w) => w.id === worldId);
+      if (community && community.config) {
+        const cfg = community.config;
+        cfg.id = community.id;
+        cfg.name = community.name;
+        window._pendingWorldConfig = cfg;
+      } else {
+        // 3. Fallback — fetch from DB
+        try {
+          const res = await _dbFetch('/db/worlds/' + encodeURIComponent(worldId));
+          if (res && res.config) {
+            const cfg = typeof res.config === 'string' ? JSON.parse(res.config) : res.config;
+            cfg.id = res.world_id || worldId;
+            cfg.name = res.name || cfg.name;
+            window._pendingWorldConfig = cfg;
+          }
+        } catch (e) {
+          console.warn('_loadWorldFromId: DB fetch failed for', worldId, e.message);
+        }
+      }
+    }
   }
   localStorage.setItem('cyoa_active_world', worldId);
   loadSystem(worldId);
@@ -1050,6 +1075,7 @@ function _loadWorldFromId(worldId) {
   const logoName = document.getElementById('game-logo-name');
   if (logoName) logoName.textContent = sys.name || 'CYOAhub';
 }
+window._loadWorldFromId = _loadWorldFromId;
 
 function routeFromHash() {
   const { screen, worldId, campId } = parseHash();
@@ -1068,9 +1094,9 @@ function routeFromHash() {
     const token = worldId; // in #join/TOKEN, the "worldId" slot holds the token
     if (window.Auth && window.Auth.validateInvite) {
       window.Auth.validateInvite(token)
-        .then((info) => {
+        .then(async (info) => {
           if (info && info.valid) {
-            _loadWorldFromId(info.worldId);
+            await _loadWorldFromId(info.worldId);
             if (typeof campaignId !== 'undefined') campaignId = info.campaignId;
             // If logged in, join directly. If guest, show join modal.
             if (window.Auth.isLoggedIn()) {
@@ -1116,9 +1142,9 @@ function routeFromHash() {
       return;
     }
     const wid = worldId || localStorage.getItem('cyoa_active_world') || 'stormlight';
-    _loadWorldFromId(wid);
 
     if (screen === 'campaign') {
+      _loadWorldFromId(wid); // fire-and-forget OK for campaign picker
       showScreen('campaign');
       if (typeof initCampaignPicker === 'function') initCampaignPicker();
     } else if (campId) {
@@ -1126,8 +1152,9 @@ function routeFromHash() {
       if (typeof campaignId !== 'undefined') campaignId = campId;
       else window.campaignId = campId;
 
-      // Load state before rendering screen
+      // Load world + state before rendering screen
       (async () => {
+        await _loadWorldFromId(wid); // MUST complete before renderCreate
         try {
           if (typeof loadState === 'function') {
             gState = await loadState();

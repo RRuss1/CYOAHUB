@@ -498,6 +498,17 @@ export default {
       return json(rows);
     }
 
+    // GET /db/worlds/:worldId — fetch a single world by ID
+    if (pathname.startsWith('/db/worlds/') && !pathname.includes('/play') && method === 'GET') {
+      const worldId = decodeURIComponent(pathname.split('/db/worlds/')[1]);
+      const [row] = await sql`
+        SELECT world_id, tier, name, tagline, author, system, config, rating, plays, published
+        FROM world_library WHERE world_id = ${worldId}
+      `;
+      if (!row) return json({ error: 'World not found' }, 404);
+      return json(row);
+    }
+
     // POST /db/worlds — save a custom world (private or published)
     if (pathname === '/db/worlds' && method === 'POST') {
       const { worldId, name, tagline, author, system, config, published } = await request.json();
