@@ -275,10 +275,30 @@ export default {
     // ══════════════════════════════════════════════════════════
 
     // POST /img/upload — upload an image, returns URL
+    // Admin (ADMIN_USER_ID) = unlimited uploads. Others = max 20.
     if (pathname === '/img/upload' && method === 'POST') {
       if (!env.IMAGES) return json({ error: 'Image storage not configured' }, 503);
 
+      const ADMIN_USER_ID = '54f49563-7c59-4c28-b4c8-3f1fca4e42fa';
+      const MAX_UPLOADS = 20;
+
+      // Auth check — require login for uploads
+      const authUser = await getAuthUser(request, env);
+      if (!authUser) return json({ error: 'Login required to upload images' }, 401);
+
+      const userId = authUser.sub;
+      const isAdmin = userId === ADMIN_USER_ID;
+
+      // Enforce upload limit for non-admin users
+      if (!isAdmin) {
+        const [countRow] = await sql`SELECT COUNT(*) as cnt FROM user_uploads WHERE user_id = ${userId}`;
+        if (countRow && parseInt(countRow.cnt) >= MAX_UPLOADS) {
+          return json({ error: `Upload limit reached (${MAX_UPLOADS} images). Remove unused images to upload more.` }, 429);
+        }
+      }
+
       const contentType = request.headers.get('Content-Type') || '';
+      let fileStream, fileType, fileSize;
 
       // Handle multipart form data (file upload from <input type="file">)
       if (contentType.includes('multipart/form-data')) {
@@ -286,41 +306,62 @@ export default {
         const file = formData.get('file');
         if (!file || !file.size) return json({ error: 'No file provided' }, 400);
         if (file.size > 2 * 1024 * 1024) return json({ error: 'File too large (max 2MB)' }, 400);
-
-        const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        if (!allowed.includes(file.type)) return json({ error: 'Only JPEG, PNG, WebP, GIF allowed' }, 400);
-
-        const ext = file.type.split('/')[1] === 'jpeg' ? 'jpg' : file.type.split('/')[1];
-        const key = `uploads/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-
-        await env.IMAGES.put(key, file.stream(), {
-          httpMetadata: { contentType: file.type },
-        });
-
-        const imgUrl = url.origin + '/img/' + key;
-        return json({ ok: true, url: imgUrl, key });
-      }
-
-      // Handle base64 JSON upload
-      if (contentType.includes('application/json')) {
-        const { data, filename, mimeType } = await request.json();
+        fileStream = file.stream();
+        fileType = file.type;
+        fileSize = file.size;
+      } else if (contentType.includes('application/json')) {
+        const { data, mimeType } = await request.json();
         if (!data) return json({ error: 'No image data' }, 400);
-
         const binary = Uint8Array.from(atob(data), c => c.charCodeAt(0));
         if (binary.length > 2 * 1024 * 1024) return json({ error: 'File too large (max 2MB)' }, 400);
-
-        const ext = (mimeType || 'image/png').split('/')[1] === 'jpeg' ? 'jpg' : (mimeType || 'image/png').split('/')[1];
-        const key = `uploads/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-
-        await env.IMAGES.put(key, binary, {
-          httpMetadata: { contentType: mimeType || 'image/png' },
-        });
-
-        const imgUrl = url.origin + '/img/' + key;
-        return json({ ok: true, url: imgUrl, key });
+        fileStream = binary;
+        fileType = mimeType || 'image/png';
+        fileSize = binary.length;
+      } else {
+        return json({ error: 'Unsupported content type' }, 400);
       }
 
-      return json({ error: 'Unsupported content type' }, 400);
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowed.includes(fileType)) return json({ error: 'Only JPEG, PNG, WebP, GIF allowed' }, 400);
+
+      const ext = fileType.split('/')[1] === 'jpeg' ? 'jpg' : fileType.split('/')[1];
+      const key = `uploads/${userId.slice(0, 8)}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+
+      await env.IMAGES.put(key, fileStream, {
+        httpMetadata: { contentType: fileType },
+      });
+
+      // Track upload in DB for per-user counting
+      await sql`
+        INSERT INTO user_uploads (user_id, r2_key, size_bytes, created_at)
+        VALUES (${userId}, ${key}, ${fileSize}, NOW())
+      `;
+
+      const imgUrl = url.origin + '/img/' + key;
+      return json({ ok: true, url: imgUrl, key });
+    }
+
+    // DELETE /img/:key — remove an uploaded image (owner or admin only)
+    if (pathname.startsWith('/img/uploads/') && method === 'DELETE') {
+      if (!env.IMAGES) return json({ error: 'Image storage not configured' }, 503);
+
+      const ADMIN_USER_ID = '54f49563-7c59-4c28-b4c8-3f1fca4e42fa';
+      const authUser = await getAuthUser(request, env);
+      if (!authUser) return json({ error: 'Login required' }, 401);
+
+      const key = pathname.slice(5); // strip leading /img/
+      const userId = authUser.sub;
+      const isAdmin = userId === ADMIN_USER_ID;
+
+      // Check ownership (unless admin)
+      if (!isAdmin) {
+        const [row] = await sql`SELECT user_id FROM user_uploads WHERE r2_key = ${key}`;
+        if (!row || row.user_id !== userId) return json({ error: 'Not your image' }, 403);
+      }
+
+      await env.IMAGES.delete(key);
+      await sql`DELETE FROM user_uploads WHERE r2_key = ${key}`;
+      return json({ ok: true });
     }
 
     // GET /img/* — serve an image from R2

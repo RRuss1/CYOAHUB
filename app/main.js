@@ -87,8 +87,8 @@ window.addEventListener('load', () => {
     // Entrance animation — blur + fade + lift (cinematic depth reveal)
     gsap.fromTo(
       el,
-      { opacity: 0, y: 14, filter: 'blur(5px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.42, ease: 'power2.out', clearProps: 'all' }
+      { opacity: 0, y: 14 },
+      { opacity: 1, y: 0, duration: 0.42, ease: 'power2.out', clearProps: 'all' }
     );
 
     // Screen-specific entrance sequences
@@ -148,7 +148,7 @@ window.addEventListener('load', () => {
 function _animateCampaignScreen() {
   const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-  tl.from('#s-campaign .title-h1', { opacity: 0, y: 32, filter: 'blur(4px)', duration: 0.75, delay: 0.08 })
+  tl.from('#s-campaign .title-h1', { opacity: 0, y: 32, duration: 0.75, delay: 0.08 })
     .from('#s-campaign .title-h2', { opacity: 0, y: 20, duration: 0.5 }, '-=0.42')
     .from('#s-campaign .title-line', { opacity: 0, scaleX: 0, duration: 0.6, transformOrigin: 'center' }, '-=0.32');
 
@@ -174,7 +174,6 @@ function _animateCampaignScreen() {
           opacity: 0,
           y: 26,
           scale: 0.95,
-          filter: 'blur(3px)',
           duration: 0.48,
           stagger: 0.07,
           ease: 'power3.out',
@@ -189,8 +188,8 @@ function _animateCampaignScreen() {
 
 function _animateTitleScreen() {
   const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-  tl.from('#s-title .title-glyph', { opacity: 0, scale: 0.75, filter: 'blur(6px)', duration: 0.65, delay: 0.06 })
-    .from('#s-title .title-h1', { opacity: 0, y: 22, filter: 'blur(3px)', duration: 0.55 }, '-=0.30')
+  tl.from('#s-title .title-glyph', { opacity: 0, scale: 0.75, duration: 0.65, delay: 0.06 })
+    .from('#s-title .title-h1', { opacity: 0, y: 22, duration: 0.55 }, '-=0.30')
     .from('#s-title .title-h2', { opacity: 0, y: 16, duration: 0.42 }, '-=0.28')
     .from('#s-title .title-line', { opacity: 0, scaleX: 0, duration: 0.5, transformOrigin: 'center' }, '-=0.24')
     .from('#s-title .title-quote', { opacity: 0, y: 12, duration: 0.42 }, '-=0.20')
@@ -208,7 +207,6 @@ function _animateCreateScreen() {
   gsap.from('#s-create .create-wrap', {
     opacity: 0,
     y: 18,
-    filter: 'blur(4px)',
     duration: 0.44,
     ease: 'power2.out',
     delay: 0.06,
@@ -227,7 +225,6 @@ function _animateLobbyScreen() {
   gsap.from('#s-lobby .lobby-wrap > *', {
     opacity: 0,
     y: 16,
-    filter: 'blur(2px)',
     duration: 0.42,
     stagger: 0.07,
     ease: 'power2.out',
@@ -245,10 +242,10 @@ function _animateGameScreen() {
     el.style.transform = '';
   });
   const tl = gsap.timeline({ defaults: { ease: 'power2.out', clearProps: 'all' } });
-  tl.from('.game-top', { opacity: 0, y: -10, filter: 'blur(4px)', duration: 0.38, delay: 0.05 })
+  tl.from('.game-top', { opacity: 0, y: -10, duration: 0.38, delay: 0.05 })
     .from('.party-strip', { opacity: 0, y: -8, duration: 0.32 }, '-=0.18')
-    .from('.chronicle-card', { opacity: 0, y: 18, filter: 'blur(5px)', duration: 0.52 }, '-=0.16')
-    .from('.side-panel', { opacity: 0, x: -12, filter: 'blur(3px)', duration: 0.42, stagger: 0.1 }, '-=0.30');
+    .from('.chronicle-card', { opacity: 0, y: 18, duration: 0.52 }, '-=0.16')
+    .from('.side-panel', { opacity: 0, x: -12, duration: 0.42, stagger: 0.1 }, '-=0.30');
 
   // Init chronicle tilt parallax after layout settles
   setTimeout(_initChronicleTilt, 400);
@@ -267,14 +264,13 @@ function _animateCombatScreen() {
   });
 
   const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-  tl.from('.combat-top', { opacity: 0, y: -14, filter: 'blur(4px)', duration: 0.36, delay: 0.05 })
+  tl.from('.combat-top', { opacity: 0, y: -14, duration: 0.36, delay: 0.05 })
     .from(
       '.combat-party-col .char-combat-card',
       {
         opacity: 0,
         x: -26,
-        filter: 'blur(4px)',
-        duration: 0.48,
+            duration: 0.48,
         stagger: 0.09,
       },
       '-=0.10'
@@ -284,8 +280,7 @@ function _animateCombatScreen() {
       {
         opacity: 0,
         x: 26,
-        filter: 'blur(4px)',
-        duration: 0.48,
+            duration: 0.48,
         stagger: 0.09,
       },
       '-=0.48'
@@ -444,7 +439,6 @@ window.animateChoicesIn = function (container) {
     opacity: 0,
     y: 12,
     scale: 0.96,
-    filter: 'blur(2px)',
     duration: 0.34,
     stagger: 0.055,
     ease: 'power2.out',
@@ -457,8 +451,8 @@ window.animateStoryReveal = function (el) {
   if (!el) return;
   gsap.fromTo(
     el,
-    { opacity: 0, y: 10, filter: 'blur(3px)' },
-    { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.48, ease: 'power2.out', clearProps: 'all' }
+    { opacity: 0, y: 10 },
+    { opacity: 1, y: 0, duration: 0.48, ease: 'power2.out', clearProps: 'all' }
   );
 };
 

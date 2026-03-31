@@ -452,8 +452,8 @@ function showScreen(id) {
   if (isHub && typeof gsap !== 'undefined') {
     gsap.fromTo(
       target,
-      { opacity: 0, y: 16, filter: 'blur(6px)' },
-      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.42, ease: 'power2.out' }
+      { opacity: 0, y: 16 },
+      { opacity: 1, y: 0, duration: 0.42, ease: 'power2.out' }
     );
   }
 
@@ -4742,9 +4742,32 @@ function toggleThemeEditor() {
       { key: 'text', label: 'Text', val: tv.text || '#F8F3E8' },
       { key: 'text4', label: 'Muted Text', val: tv.text4 || '#c89840' },
     ];
-    panel.innerHTML = '<div style="font-family:Cinzel,serif;font-size:12px;letter-spacing:2px;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">Theme Colors<button onclick="toggleThemeEditor()" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:16px;">✕</button></div>' +
-      colors.map(function(c){ return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><input type="color" value="'+c.val+'" onchange="applyThemeColor(\''+c.key+'\',this.value)" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;"><span style="font-size:13px;color:rgba(255,255,255,0.6);">'+c.label+'</span></div>'; }).join('') +
-      '<button onclick="saveThemeColors()" style="width:100%;margin-top:8px;padding:8px;border:1px solid rgba(40,168,160,0.3);border-radius:8px;background:rgba(40,168,160,0.1);color:rgba(40,168,160,0.8);font-family:Cinzel,serif;font-size:12px;letter-spacing:1px;cursor:pointer;">Save to World</button>';
+    // Color pickers
+    const colorHtml = colors.map(function(c){ return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><input type="color" value="'+c.val+'" onchange="applyThemeColor(\''+c.key+'\',this.value)" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;"><span style="font-size:13px;color:rgba(255,255,255,0.6);">'+c.label+'</span></div>'; }).join('');
+
+    // Class/role image management
+    const classes = (sys.classes || []);
+    const imgHtml = classes.length ? classes.map(function(c, i) {
+      const hasImg = c.imgUrl || c.image;
+      const imgSrc = hasImg || '';
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+        (imgSrc ? '<img src="'+imgSrc+'" style="width:28px;height:28px;border-radius:4px;object-fit:cover;">' : '<div style="width:28px;height:28px;border-radius:4px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(255,255,255,0.2);">?</div>') +
+        '<span style="font-size:12px;color:rgba(255,255,255,0.6);flex:1;">' + (c.name || 'Class ' + (i+1)) + '</span>' +
+        '<label style="cursor:pointer;font-size:9px;color:rgba(40,168,160,0.6);border:1px solid rgba(40,168,160,0.2);border-radius:4px;padding:2px 6px;">' +
+          (imgSrc ? 'Change' : 'Upload') +
+          '<input type="file" accept="image/*" onchange="uploadClassImage('+i+',this)" style="display:none;">' +
+        '</label>' +
+        (imgSrc ? '<button onclick="removeClassImage('+i+')" style="background:none;border:none;color:rgba(176,56,40,0.6);cursor:pointer;font-size:12px;padding:0 4px;" title="Remove image">✕</button>' : '') +
+      '</div>';
+    }).join('') : '<div style="font-size:11px;color:rgba(255,255,255,0.3);font-style:italic;">No classes defined</div>';
+
+    panel.innerHTML =
+      '<div style="font-family:Cinzel,serif;font-size:12px;letter-spacing:2px;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">World Editor<button onclick="toggleThemeEditor()" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:16px;">✕</button></div>' +
+      '<div style="font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,0.25);text-transform:uppercase;margin-bottom:6px;">Colors</div>' +
+      colorHtml +
+      '<div style="font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,0.25);text-transform:uppercase;margin:12px 0 6px;">Class Images</div>' +
+      imgHtml +
+      '<button onclick="saveThemeColors()" style="width:100%;margin-top:12px;padding:8px;border:1px solid rgba(40,168,160,0.3);border-radius:8px;background:rgba(40,168,160,0.1);color:rgba(40,168,160,0.8);font-family:Cinzel,serif;font-size:12px;letter-spacing:1px;cursor:pointer;">Save to World</button>';
     panel.style.display = '';
   } else {
     panel.style.display = 'none';
@@ -4761,6 +4784,49 @@ function applyThemeColor(key, val) {
     window.SystemData.themeVars[key] = val;
     if (window.SystemData.theme) window.SystemData.theme[key] = val;
   }
+}
+async function uploadClassImage(classIdx, input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB.'); return; }
+  var formData = new FormData();
+  formData.append('file', file);
+  try {
+    var tok = localStorage.getItem('cyoa_auth_token');
+    var headers = {};
+    if (tok) headers['Authorization'] = 'Bearer ' + tok;
+    var res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData, headers: headers });
+    var data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    if (data.url && window.SystemData && window.SystemData.classes && window.SystemData.classes[classIdx]) {
+      window.SystemData.classes[classIdx].imgUrl = data.url;
+      window.SystemData.classes[classIdx].image = data.url;
+      // Re-render the editor to show the new image
+      _themeEditorOpen = false;
+      toggleThemeEditor();
+    }
+  } catch (e) { alert('Upload failed: ' + e.message); }
+}
+async function removeClassImage(classIdx) {
+  var sys = window.SystemData;
+  if (!sys || !sys.classes || !sys.classes[classIdx]) return;
+  var cls = sys.classes[classIdx];
+  var imgUrl = cls.imgUrl || cls.image || '';
+  // Extract R2 key from URL and delete from bucket
+  if (imgUrl.includes('/img/uploads/')) {
+    var key = imgUrl.split('/img/')[1];
+    try {
+      var tok = localStorage.getItem('cyoa_auth_token');
+      var headers = {};
+      if (tok) headers['Authorization'] = 'Bearer ' + tok;
+      await fetch(PROXY_URL + '/img/' + key, { method: 'DELETE', headers: headers });
+    } catch (e) { /* non-fatal — image may already be gone */ }
+  }
+  cls.imgUrl = '';
+  cls.image = '';
+  // Re-render editor
+  _themeEditorOpen = false;
+  toggleThemeEditor();
 }
 async function saveThemeColors() {
   if (!window.SystemData || !window.SystemData.id) return;
