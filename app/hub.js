@@ -871,11 +871,12 @@ function renderWorldsGrid() {
   const myIds = new Set(myWorlds.map((w) => w.id));
   myWorlds.forEach((w) => _renderWorldCard(w, true, grid));
 
-  // 2. Render community worlds from DB (skip duplicates + official worlds already in HTML)
+  // 2. Render community worlds from DB (skip official + already-rendered)
   const OFFICIAL_IDS = new Set(['stormlight', 'dnd5e', 'wretcheddeep']);
   _communityWorldsCache.forEach((cw) => {
-    if (myIds.has(cw.id)) return; // already rendered as your own
     if (OFFICIAL_IDS.has(cw.id) || cw.tier === 'official') return; // hardcoded in HTML
+    // Skip if already rendered by step 1 (check DOM, not just myIds — safer)
+    if (grid.querySelector('.wcard[data-world-id="' + cw.id + '"]')) return;
     // Store config so pickWorld can load it
     const worldData = cw.config || {};
     worldData.id = cw.id;
