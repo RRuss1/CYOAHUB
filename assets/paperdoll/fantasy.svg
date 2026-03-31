@@ -8,8 +8,8 @@
     <filter id="glow"><feGaussianBlur stdDeviation="2" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
 
-  <!-- Body silhouette -->
-  <g opacity="0.6" stroke="rgba(200,180,140,0.4)" stroke-width="1.5" fill="url(#bodyGrad)">
+  <!-- Body silhouette — transparent, outline only -->
+  <g opacity="0.3" stroke="rgba(200,180,140,0.3)" stroke-width="1" fill="none">
     <!-- Head -->
     <ellipse cx="150" cy="52" rx="28" ry="32"/>
     <!-- Neck -->
@@ -27,7 +27,7 @@
   </g>
 
   <!-- Equipment slot outlines -->
-  <g stroke="var(--slot-color, rgba(200,170,100,0.5))" stroke-width="1.5" fill="rgba(0,0,0,0.3)" stroke-dasharray="4 2" filter="url(#glow)">
+  <g stroke="var(--slot-color, rgba(200,170,100,0.5))" stroke-width="1.5" fill="rgba(0,0,0,0.15)" stroke-dasharray="4 2" filter="url(#glow)">
     <!-- Head slot -->
     <rect x="124" y="14" width="52" height="52" rx="8" data-slot="head"/>
     <!-- Chest slot -->

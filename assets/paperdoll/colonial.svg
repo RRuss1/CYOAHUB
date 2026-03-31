@@ -8,8 +8,8 @@
     <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
 
-  <!-- Body silhouette — tricorn hat, long coat -->
-  <g opacity="0.55" stroke="rgba(180,150,100,0.4)" stroke-width="1.5" fill="url(#bodyGrad)">
+  <!-- Body silhouette — transparent, outline only -->
+  <g opacity="0.3" stroke="rgba(180,150,100,0.3)" stroke-width="1" fill="none">
     <!-- Tricorn hat -->
     <path d="M108 30 L120 14 L150 8 L180 14 L192 30 L178 36 L172 24 L150 20 L128 24 L122 36 Z"/>
     <!-- Head -->
@@ -35,7 +35,7 @@
   </g>
 
   <!-- Equipment slots -->
-  <g stroke="var(--slot-color, rgba(180,150,100,0.5))" stroke-width="1.5" fill="rgba(0,0,0,0.3)" stroke-dasharray="4 2" filter="url(#glow)">
+  <g stroke="var(--slot-color, rgba(180,150,100,0.5))" stroke-width="1.5" fill="rgba(0,0,0,0.15)" stroke-dasharray="4 2" filter="url(#glow)">
     <!-- Hat -->
     <rect x="118" y="6" width="64" height="40" rx="6" data-slot="head"/>
     <!-- Chest — coat/vest -->

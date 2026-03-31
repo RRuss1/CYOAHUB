@@ -8,8 +8,8 @@
     <filter id="glow"><feGaussianBlur stdDeviation="1.5" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
 
-  <!-- Body silhouette — tactical/angular -->
-  <g opacity="0.5" stroke="rgba(100,180,200,0.4)" stroke-width="1.5" fill="url(#bodyGrad)">
+  <!-- Body silhouette — transparent, outline only -->
+  <g opacity="0.3" stroke="rgba(100,180,200,0.3)" stroke-width="1" fill="none">
     <!-- Head -->
     <ellipse cx="150" cy="52" rx="26" ry="30"/>
     <!-- Neck -->
@@ -27,7 +27,7 @@
   </g>
 
   <!-- Equipment slots — angular/military style -->
-  <g stroke="var(--slot-color, rgba(100,180,200,0.5))" stroke-width="1.5" fill="rgba(0,0,0,0.3)" stroke-dasharray="3 3" filter="url(#glow)">
+  <g stroke="var(--slot-color, rgba(100,180,200,0.5))" stroke-width="1.5" fill="rgba(0,0,0,0.15)" stroke-dasharray="3 3" filter="url(#glow)">
     <!-- Head — helmet/headset -->
     <rect x="124" y="16" width="52" height="48" rx="4" data-slot="head"/>
     <!-- Chest — vest/body armor -->

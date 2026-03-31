@@ -12,8 +12,8 @@
     <filter id="glow"><feGaussianBlur stdDeviation="2" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
 
-  <!-- Body silhouette — powered armor, wider shoulders -->
-  <g opacity="0.5" stroke="url(#slotGrad)" stroke-width="1.5" fill="url(#bodyGrad)">
+  <!-- Body silhouette — transparent, outline only -->
+  <g opacity="0.3" stroke="url(#slotGrad)" stroke-width="1" fill="none">
     <!-- Helmet -->
     <path d="M122 20 L118 40 L120 62 L130 72 L150 76 L170 72 L180 62 L182 40 L178 20 L160 10 L140 10 Z"/>
     <!-- Neck seal -->
@@ -39,7 +39,7 @@
   </g>
 
   <!-- Equipment slots — hexagonal/angular sci-fi feel -->
-  <g stroke="url(#slotGrad)" stroke-width="1.5" fill="rgba(0,0,0,0.35)" stroke-dasharray="5 2" filter="url(#glow)">
+  <g stroke="url(#slotGrad)" stroke-width="1.5" fill="rgba(0,0,0,0.15)" stroke-dasharray="5 2" filter="url(#glow)">
     <!-- Helmet -->
     <rect x="122" y="10" width="56" height="54" rx="6" data-slot="head"/>
     <!-- Chest — power core -->
