@@ -146,7 +146,7 @@ window.addEventListener('load', () => {
 // ── 4. SCREEN-SPECIFIC ENTRANCE ANIMATIONS ───────────────────
 
 function _animateCampaignScreen() {
-  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+  const tl = gsap.timeline({ defaults: { ease: 'power3.out', clearProps: 'all' } });
 
   tl.from('#s-campaign .title-h1', { opacity: 0, y: 32, duration: 0.75, delay: 0.08 })
     .from('#s-campaign .title-h2', { opacity: 0, y: 20, duration: 0.5 }, '-=0.42')
@@ -187,14 +187,18 @@ function _animateCampaignScreen() {
 }
 
 function _animateTitleScreen() {
-  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+  // Kill stale tweens on title elements to prevent stuck opacity
+  gsap.killTweensOf('#s-title .title-glyph, #s-title .title-h1, #s-title .title-h2, #s-title .title-line, #s-title .title-quote, #s-title .psz-wrap, #s-title .btn');
+  document.querySelectorAll('#s-title .title-glyph, #s-title .title-h1, #s-title .title-h2, #s-title .title-line, #s-title .title-quote, #s-title .psz-wrap, #s-title .btn').forEach(el => { el.style.opacity = ''; el.style.transform = ''; });
+
+  const tl = gsap.timeline({ defaults: { ease: 'power3.out', clearProps: 'all' } });
   tl.from('#s-title .title-glyph', { opacity: 0, scale: 0.75, duration: 0.65, delay: 0.06 })
     .from('#s-title .title-h1', { opacity: 0, y: 22, duration: 0.55 }, '-=0.30')
     .from('#s-title .title-h2', { opacity: 0, y: 16, duration: 0.42 }, '-=0.28')
     .from('#s-title .title-line', { opacity: 0, scaleX: 0, duration: 0.5, transformOrigin: 'center' }, '-=0.24')
     .from('#s-title .title-quote', { opacity: 0, y: 12, duration: 0.42 }, '-=0.20')
-    .from('#s-title .psz-wrap', { opacity: 0, y: 10, duration: 0.4, clearProps: 'all' }, '-=0.10')
-    .from('#s-title .btn', { opacity: 0, y: 8, duration: 0.35, stagger: 0.09, clearProps: 'all' }, '-=0.18');
+    .from('#s-title .psz-wrap', { opacity: 0, y: 10, duration: 0.4 }, '-=0.10')
+    .from('#s-title .btn', { opacity: 0, y: 8, duration: 0.35, stagger: 0.09 }, '-=0.18');
 
   // Idle float on title glyph
   const glyph = document.querySelector('#s-title .title-glyph');
@@ -210,6 +214,7 @@ function _animateCreateScreen() {
     duration: 0.44,
     ease: 'power2.out',
     delay: 0.06,
+    clearProps: 'all',
   });
   gsap.from('#create-steps .step-dot', {
     opacity: 0,
@@ -229,6 +234,7 @@ function _animateLobbyScreen() {
     stagger: 0.07,
     ease: 'power2.out',
     delay: 0.06,
+    clearProps: 'all',
   });
 }
 
@@ -241,7 +247,7 @@ function _animateGameScreen() {
     el.style.opacity = '';
     el.style.transform = '';
   });
-  const tl = gsap.timeline({ defaults: { ease: 'power2.out', clearProps: 'all' } });
+  const tl = gsap.timeline({ defaults: { ease: 'power2.out', clearProps: 'opacity,transform,filter' } });
   tl.from('.game-top', { opacity: 0, y: -10, duration: 0.38, delay: 0.05 })
     .from('.party-strip', { opacity: 0, y: -8, duration: 0.32 }, '-=0.18')
     .from('.chronicle-card', { opacity: 0, y: 18, duration: 0.52 }, '-=0.16')
@@ -263,7 +269,7 @@ function _animateCombatScreen() {
     onComplete: () => flash.remove(),
   });
 
-  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+  const tl = gsap.timeline({ defaults: { ease: 'power3.out', clearProps: 'all' } });
   tl.from('.combat-top', { opacity: 0, y: -14, duration: 0.36, delay: 0.05 })
     .from(
       '.combat-party-col .char-combat-card',

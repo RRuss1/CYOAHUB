@@ -859,9 +859,13 @@ function _renderWorldCard(w, isOwned, grid) {
   grid.appendChild(card);
 }
 
-function renderWorldsGrid() {
+async function renderWorldsGrid() {
   const grid = document.getElementById('worlds-grid');
   if (!grid) return;
+  // Ensure community worlds are loaded before rendering
+  if (!_communityWorldsCache.length) {
+    await _fetchCommunityWorlds().catch(() => {});
+  }
 
   // Remove all non-official cards (keep official hardcoded ones)
   grid.querySelectorAll('.wcard:not([data-tier="official"])').forEach((el) => el.remove());
