@@ -320,21 +320,45 @@ This does everything at once:
 - Same `toggleThemeEditor()` function, just accessible location
 - Old button below story card still works as fallback
 
+#### 14. Pure Narrative Mode — Non-Combat Worlds (same session, continued)
+
+**Wizard:**
+- "Combat" field moved from Step 6 → **Step 1** (World Identity), right after Technology Level
+- New first option: **"None — Pure Narrative"** with description: "disables all combat for a story-only experience"
+- Old duplicate removed from Step 6
+
+**Engine — 4 combat triggers gated by `_isCombatDisabled()`** (`gameState.js`):
+- Beat counter (NPC turn handler, `ui.js`)
+- Beat counter (human turn handler, `ui.js`)
+- `[COMBAT]` tag from player choices (`ui.js`)
+- Combat screen transition check (`ui.js`)
+
+**GM prompt changes when combat disabled:**
+- `[WORLD]` slot appends: "PURE NARRATIVE MODE: This world has NO combat. Never generate fights, enemies, or violence. Focus on story, dialogue, exploration, mystery, relationships, discovery. Never use [COMBAT] or [ATTACK] tags."
+- `[CHOICES FORMAT]` slot: tags swap to `[DISCOVERY], [DECISION], [SKILL]` only; approaches become "investigative, diplomatic, emotional, bold"
+
+**Data flow:**
+- `combatFrequency` stored in worldConfig (`hub.js`) and on SystemData as `_combatFrequency` (`custom.js`)
+- `_isCombatDisabled()` in `gameState.js` checks if it starts with "None"
+
+**Result:** A world set to "None — Pure Narrative" gets zero combat — no enemies, no combat screen, no beat counter. Pure story, dialogue, skill checks, faction politics, and exploration.
+
 ### Known Issues / Next Session
 - [ ] `performRest()` doesn't persist to DB yet — need `saveAndBroadcast` after rest in `onRest()`
 - [ ] `renderAll` monkey-patch for weather/rest update could break if `renderAll` is reassigned later
 - [ ] Mobile layout + per-world fonts still untested
 - [ ] World editor image management untested end-to-end (from laptop session)
 - [ ] Old `▸ Character Sheet` button + `sheet-panel` div below story card can be removed (replaced by modal)
+- [ ] Pure narrative worlds could hide weapon/armor selection in character creation (cosmetic only)
 
 ### File Counts (updated)
 - **app/systems/**: 4 files — ~3,200 lines (custom.js grew with era weapon pools)
-- **app/*.js**: 18 files — ~20,500 lines (+worldSystems.js)
+- **app/*.js**: 18 files — ~20,800 lines (+worldSystems.js, _isCombatDisabled)
 - **styles/*.css**: 4 files — ~4,600 lines
-- **index.html**: ~1,600 lines
+- **index.html**: ~1,620 lines
 - **assets/paperdoll/**: 5 SVGs
-- **db/migrations/**: 9 files
-- **Total JS**: ~23,700 lines
+- **db/migrations/**: 9 files (all applied)
+- **Total JS**: ~24,000 lines
 
 ---
 
