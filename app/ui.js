@@ -2463,7 +2463,8 @@ async function showGameScreen() {
   if (ab) ab.style.display = 'flex';
   // Show world editor button for custom world owners
   const sys = window.SystemData || {};
-  const isCustom = sys.id && sys.id.startsWith('custom-');
+  const _officialSystems = ['stormlight', 'dnd5e', 'wretcheddeep'];
+  const isCustom = sys.id && !_officialSystems.includes(sys.id);
   const themeBtn = document.getElementById('theme-edit-btn');
   if (themeBtn) themeBtn.style.display = isCustom ? '' : 'none';
   const worldEditBtn = document.getElementById('world-edit-btn');
