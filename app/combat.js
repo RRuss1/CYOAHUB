@@ -2036,6 +2036,13 @@ async function callGM(prompt) {
         .replace(/^Options?\s+for\s+[\w\s]+:\s*[\s\S]*/im, '')
         // Strip trailing numbered list — 2+ consecutive numbered lines = leaked choices
         .replace(/(\n\s*\d+[.)]\s+[^\n]+){2,}\s*$/s, '')
+        // Strip system tags from displayed narrative
+        .replace(/\[ITEM:[^\]]*\]/gi, '')
+        .replace(/\[FACTION:[^\]]*\]/gi, '')
+        .replace(/\[MORALITY:[^\]]*\]/gi, '')
+        .replace(/\[CHECK:[^\]]*\]/gi, '')
+        .replace(/\[COMBAT\]/gi, '')
+        .replace(/\[ATTACK\]/gi, '')
         // Strip bold markers
         .replace(/\*+/g, '')
         .trim()

@@ -1249,7 +1249,12 @@
   font-style: italic;
   color: var(--text);
   line-height: 1.92;
-  min-height: 90px;
+  min-height: 280px;
+  max-height: 52vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 .gm-label {
   font-family: var(--font-d);
@@ -1276,6 +1281,8 @@
 /* Bottom zone */
 .bottom-zone {
   border-top: 1px solid var(--border);
+  min-height: 80px;
+  position: relative;
 }
 .dice-flash {
   font-size: 18px;
@@ -1865,6 +1872,8 @@
   }
   .story-text {
     font-size: 28px;
+    min-height: 200px;
+    max-height: 60vh;
   }
   .achoice {
     font-size: 24px;

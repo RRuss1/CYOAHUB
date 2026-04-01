@@ -1150,6 +1150,8 @@ function renderCreate() {
   const weaponSection = document.getElementById('create-s4-weapon');
   if (bladeSection) bladeSection.style.display = cc.showBlade ? '' : 'none';
   if (weaponSection) weaponSection.style.display = cc.showWeapon ? '' : 'none';
+  const kitSection = document.getElementById('create-s4-kit');
+  if (kitSection) kitSection.style.display = cc.showKit !== false ? '' : 'none';
 
   showCreateStep(1);
   renderAncestryGrid();
@@ -3066,6 +3068,11 @@ function renderStory(log) {
               : '';
         const clean = raw
           .replace(/\[COMBAT\]|\[DISCOVERY\]|\[DECISION\]/g, '')
+          .replace(/\[ITEM:[^\]]*\]/gi, '')
+          .replace(/\[FACTION:[^\]]*\]/gi, '')
+          .replace(/\[MORALITY:[^\]]*\]/gi, '')
+          .replace(/\[CHECK:[^\]]*\]/gi, '')
+          .replace(/\[ATTACK\]/gi, '')
           .replace(/\[CHOICES\][\s\S]*/, '')
           .trim();
         return `<div style="border-left:2px solid var(--gold);padding-left:14px;margin-bottom:12px;">${badge}<span class="gm-label"><span data-tr>The Chronicle</span></span>${clean.replace(/\n/g, '<br/>')}</div>`;
@@ -3089,16 +3096,26 @@ function renderStory(log) {
 }
 
 // ══ BOTTOM ZONE STATE MACHINE ══
+function _showBottomPanel(panelId) {
+  ['bottom-loading', 'bottom-human', 'bottom-continue', 'bottom-waiting'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (id === panelId) {
+      el.style.display = id === 'bottom-continue' ? 'flex' : 'block';
+      el.style.opacity = '0';
+      requestAnimationFrame(() => { el.style.transition = 'opacity 0.18s ease'; el.style.opacity = '1'; });
+    } else {
+      el.style.display = 'none';
+      el.style.opacity = '';
+      el.style.transition = '';
+      if (id === 'bottom-continue') el.classList.remove('active');
+    }
+  });
+}
+
 function setBottomLoading() {
   bottomState = 'loading';
-  document.getElementById('bottom-loading').style.display = 'block';
-  document.getElementById('bottom-human').style.display = 'none';
-  const _bc = document.getElementById('bottom-continue');
-  if (_bc) {
-    _bc.style.display = 'none';
-    _bc.classList.remove('active');
-  }
-  document.getElementById('bottom-waiting').style.display = 'none';
+  _showBottomPanel('bottom-loading');
   const tb = document.getElementById('thinking-bar');
   if (tb) {
     tb.style.display = 'block';
@@ -3152,11 +3169,8 @@ function setBottomReadGate(choices) {
     glyph.classList.add('glyph-flare');
     setTimeout(() => glyph.classList.remove('glyph-flare'), 700);
   }
-  document.getElementById('bottom-loading').style.display = 'none';
-  document.getElementById('bottom-human').style.display = 'none';
-  document.getElementById('bottom-waiting').style.display = 'none';
+  _showBottomPanel('bottom-continue');
   const cont = document.getElementById('bottom-continue');
-  cont.style.display = 'flex';
   cont.classList.add('active');
   const btn = document.getElementById('continue-btn');
   const hint = document.getElementById('continue-hint');
@@ -3171,14 +3185,8 @@ function setBottomContinue(hintText) {
   bottomState = 'continue';
   const tb = document.getElementById('thinking-bar');
   if (tb) tb.style.display = 'none';
-  document.getElementById('bottom-loading').style.display = 'none';
-  document.getElementById('bottom-human').style.display = 'none';
-  document.getElementById('bottom-waiting').style.display = 'none';
+  _showBottomPanel('bottom-continue');
   const cont = document.getElementById('bottom-continue');
-  cont.style.display = 'flex';
-  cont.classList.add('active');
-  cont.style.removeProperty('display'); // let CSS handle it, then force
-  cont.style.display = 'flex';
   cont.classList.add('active');
   const btn = document.getElementById('continue-btn');
   const hint = document.getElementById('continue-hint');
@@ -3193,15 +3201,7 @@ function setBottomWaiting(name) {
   bottomState = 'waiting';
   const tb = document.getElementById('thinking-bar');
   if (tb) tb.style.display = 'none';
-  document.getElementById('bottom-loading').style.display = 'none';
-  document.getElementById('bottom-human').style.display = 'none';
-  const _bc = document.getElementById('bottom-continue');
-  if (_bc) {
-    _bc.style.display = 'none';
-    _bc.classList.remove('active');
-  }
-  const wait = document.getElementById('bottom-waiting');
-  wait.style.display = 'block';
+  _showBottomPanel('bottom-waiting');
   const wm = document.getElementById('waiting-msg');
   wm.textContent = name ? `Waiting for ${name}...` : 'Waiting...';
   const existing = document.getElementById('skip-btn-wrap');
@@ -3227,11 +3227,6 @@ function onContinue() {
   stopSpeaking(); // stop voice when player advances
   const btn = document.getElementById('continue-btn');
   const choices = btn && btn._pendingChoices;
-  const _bc = document.getElementById('bottom-continue');
-  if (_bc) {
-    _bc.style.display = 'none';
-    _bc.classList.remove('active');
-  }
   const cur = gState && gState.players[gState.turn];
   const mine = cur && myChar && !cur.isNPC && cur.name === myChar.name;
   const npc = cur && cur.isNPC;
@@ -3305,7 +3300,7 @@ function onContinue() {
     } else {
       ch.innerHTML = '';
     }
-    h.style.display = 'block';
+    _showBottomPanel('bottom-human');
     setTimeout(() => h.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
   } else if (npc && !isLoading) {
     loadLog(false).then((log) => handleNPC(log));
@@ -5077,6 +5072,7 @@ async function renderCharSheetModal(p) {
   const cc = sys.charCreation || {};
   const cls = (window.CLASSES || []).find(c => c.id === p.classId) || {};
   const bond = (window.SPREN_BONDS || {})[p.classId];
+  const _pureNarrative = typeof _isCombatDisabled === 'function' && _isCombatDisabled();
   const stage = typeof getSprenStage === 'function' ? getSprenStage((gState && gState.totalMoves) || 0) : 0;
   const stageDesc = bond ? (bond.stages[stage] || '') : '';
   const mpLabel = (rules.magicPool && rules.magicPool.label) || 'Investiture';
@@ -5243,13 +5239,13 @@ async function renderCharSheetModal(p) {
       <div class="ppip-dot" style="background:${p.color};width:14px;height:14px;flex-shrink:0;"></div>
       <div>
         <div class="cs-name">${p.name}</div>
-        <div class="cs-subtitle">${p.className || ''}${p.level ? ' · Level ' + p.level : ''} · ${p.hp}/${p.maxHp} HP${hasMP && p.maxInvestiture ? ` · ${p.investiture || 0}/${p.maxInvestiture} ${mpLabel}` : ''}</div>
+        <div class="cs-subtitle">${p.className || ''}${p.level ? ' · Level ' + p.level : ''}${_pureNarrative ? '' : ` · ${p.hp}/${p.maxHp} HP${hasMP && p.maxInvestiture ? ` · ${p.investiture || 0}/${p.maxInvestiture} ${mpLabel}` : ''}`}</div>
       </div>
     </div>
 
     <!-- Body: paperdoll + stats -->
     <div class="cs-body">
-      <!-- Left: Paperdoll -->
+      ${_pureNarrative ? '' : `<!-- Left: Paperdoll -->
       <div>
         <div class="cs-paperdoll">${_getClassBgImg(p)}${paperdollSVG}${_buildSlotOverlays(p)}</div>
 
@@ -5258,7 +5254,7 @@ async function renderCharSheetModal(p) {
           <div class="cs-section-title">Equipment & Inventory${p.kitName ? ` — ${p.kitName}` : ''}</div>
           <div class="cs-inv-grid">${invHTML}</div>
         </div>
-      </div>
+      </div>`}
 
       <!-- Right: Stats + details -->
       <div class="cs-stats">
@@ -5267,7 +5263,7 @@ async function renderCharSheetModal(p) {
           <div class="cs-stat-grid">${statBoxes}</div>
         </div>
 
-        <div>
+        ${_pureNarrative ? '' : `<div>
           <div class="cs-section-title">Defenses</div>
           <div class="cs-stat-grid">${defBoxes}</div>
         </div>
@@ -5285,7 +5281,7 @@ async function renderCharSheetModal(p) {
 
         ${(p.abilities && p.abilities.length) ? `<div><div class="cs-section-title">Abilities</div><div class="cs-abilities">${abilities}</div></div>` : ''}
 
-        ${surgesHTML ? `<div><div class="cs-section-title">Surge Skills</div>${surgesHTML}</div>` : ''}
+        ${surgesHTML ? `<div><div class="cs-section-title">Surge Skills</div>${surgesHTML}</div>` : ''}`}
 
         ${bondHTML}
         ${idealsHTML}

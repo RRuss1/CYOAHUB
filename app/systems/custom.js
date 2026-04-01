@@ -344,7 +344,8 @@ function _buildCharCreation(cfg) {
     startMessage: 'The party forms. The adventure begins in {location}.',
     actNames: ['The {loc}', 'Secrets of {loc}', 'The Reckoning of {loc}'],
     attributePoints: cfg.pointBuyPool || 27, maxPerAttribute: Math.ceil((cfg.pointBuyPool || 27) / ((_STAT_PRESETS[cfg.statSystem] || _STAT_PRESETS.classic).keys.length || 6)),
-    showBlade: false, showWeapon: true, showCompanion: false,
+    showBlade: false, showWeapon: !(cfg.combatFrequency || '').startsWith('None'), showCompanion: false,
+    showKit: !(cfg.combatFrequency || '').startsWith('None'),
     namePlaceholder: 'What do they call you?',
   };
 }

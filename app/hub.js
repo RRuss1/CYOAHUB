@@ -220,6 +220,9 @@ function renderStep() {
   document.getElementById('wiz-back-btn').style.visibility = _ws > 1 ? 'visible' : 'hidden';
   // Next button: hidden on final step (publish buttons replace it)
   document.getElementById('wiz-nav').style.display = _ws < WS_MAX ? 'flex' : 'none';
+  // Scroll to top of step so content is visible
+  const stepEl = document.getElementById('ws-' + _ws);
+  if (stepEl) stepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   // Animate step transition
   gsap.fromTo('#ws-' + _ws, { opacity: 0, x: 16 }, { opacity: 1, x: 0, duration: 0.26, ease: 'power2.out' });
   if (_ws === 4 && !_wizClassRows.length) initWizClassRows();

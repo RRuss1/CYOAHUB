@@ -690,18 +690,18 @@
 
 .wstep-eyebrow {
   font-family: var(--fd);
-  font-size: 18px;
-  letter-spacing: 3px;
+  font-size: 11px;
+  letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: rgba(40, 168, 160, 0.5);
-  margin-bottom: 7px;
+  color: rgba(40, 168, 160, 0.45);
+  margin-bottom: 5px;
 }
 .wstep-title {
   font-family: var(--fd);
-  font-size: 24px;
+  font-size: 20px;
   color: #28a8a0;
-  margin-bottom: 26px;
-  letter-spacing: 0.8px;
+  margin-bottom: 22px;
+  letter-spacing: 0.6px;
 }
 
 .wfield {
@@ -709,22 +709,22 @@
 }
 .wlabel {
   font-family: var(--fd);
-  font-size: 18px;
-  letter-spacing: 2px;
+  font-size: 12px;
+  letter-spacing: 1.8px;
   text-transform: uppercase;
   color: var(--muted);
   display: block;
-  margin-bottom: 7px;
+  margin-bottom: 6px;
 }
 .winput {
   width: 100%;
-  padding: 11px 15px;
+  padding: 10px 14px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 8px;
   color: var(--text);
   font-family: var(--fb);
-  font-size: 22px;
+  font-size: 15px;
   outline: none;
   transition: border-color 0.2s;
   resize: vertical;
@@ -742,14 +742,14 @@
   gap: 8px;
 }
 .wopt {
-  padding: 7px 15px;
-  border-radius: 20px;
+  padding: 6px 14px;
+  border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   background: transparent;
   color: var(--muted);
   font-family: var(--fd);
-  font-size: 18px;
-  letter-spacing: 1.5px;
+  font-size: 12px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.18s;
@@ -775,8 +775,8 @@
 }
 .wiz-back {
   font-family: var(--fd);
-  font-size: 18px;
-  letter-spacing: 2px;
+  font-size: 13px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--muted);
   transition: color 0.2s;
@@ -786,10 +786,10 @@
 }
 .wiz-next {
   font-family: var(--fd);
-  font-size: 18px;
-  letter-spacing: 2px;
+  font-size: 13px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  padding: 11px 28px;
+  padding: 10px 24px;
   border-radius: 8px;
   border: 1px solid rgba(40, 168, 160, 0.42);
   background: rgba(40, 168, 160, 0.08);
@@ -1338,14 +1338,14 @@ body[data-system='dnd5e'] {
     margin: 10px;
   }
   .wstep-title {
-    font-size: 18px;
+    font-size: 17px;
   }
   .wopts {
     gap: 6px;
   }
   .wopt {
-    font-size: 18px;
-    padding: 7px 10px;
+    font-size: 11px;
+    padding: 6px 10px;
   }
   .stat-system-grid {
     grid-template-columns: 1fr 1fr;
