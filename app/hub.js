@@ -974,9 +974,18 @@ async function renderWorldsGrid() {
   grid.querySelectorAll('.wcard:not([data-tier="official"])').forEach((el) => el.remove());
 
   // 1. Render local worlds (yours — private + published)
+  // Merge DB config fields (card image, classes) into local copy if DB is newer
   const myWorlds = _getSavedWorlds();
   myWorlds.forEach((w) => {
-    try { if (w && w.id) _renderWorldCard(w, true, grid); }
+    try {
+      if (!w || !w.id) return;
+      const dbVer = _communityWorldsCache.find((cw) => cw.id === w.id);
+      if (dbVer && dbVer.config) {
+        if (dbVer.config.cardImage) w.cardImage = dbVer.config.cardImage;
+        if (dbVer.config.classes && dbVer.config.classes.length) w.classes = dbVer.config.classes;
+      }
+      _renderWorldCard(w, true, grid);
+    }
     catch (e) { console.warn('[WorldGrid] Local card failed:', w?.id, e); }
   });
 

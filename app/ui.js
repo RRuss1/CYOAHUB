@@ -4874,6 +4874,8 @@ async function saveThemeColors() {
   if (_officialSys.includes(sys.id)) { alert('Theme editing is only available for custom worlds.'); return; }
   try {
     await _dbFetch('/worlds', { method: 'POST', body: JSON.stringify({ worldId: sys.id, name: sys.name, tagline: sys.tagline || sys.subtitle || '', author: window.Auth && window.Auth.getCurrentUser() ? window.Auth.getCurrentUser().displayName : 'Player', system: 'custom', config: sys }) });
+    // Sync to localStorage so world card renders correctly
+    if (typeof _saveWorld === 'function') _saveWorld(sys);
     var toast = document.createElement('div');
     toast.textContent = 'Theme saved!';
     toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--primary,#C9A84C);color:var(--primary,#C9A84C);padding:8px 20px;border-radius:20px;font-family:var(--font-d);font-size:12px;letter-spacing:2px;z-index:999;';
