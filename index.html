@@ -1365,7 +1365,6 @@
           <div style="display:flex;align-items:center;gap:10px;">
             <span class="text-xs" id="weather-indicator" style="color:var(--text5);font-family:var(--font-d);letter-spacing:1px;display:none;" title="Current weather"></span>
             <button id="rest-btn" onclick="onRest()" style="display:none;font-size:10px;padding:3px 10px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--teal2);font-family:var(--font-d);letter-spacing:1px;cursor:pointer;" title="Make Camp">⛺ REST</button>
-            <button id="world-edit-btn" onclick="toggleThemeEditor()" style="display:none;font-size:10px;padding:3px 10px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--amber2);font-family:var(--font-d);letter-spacing:1px;cursor:pointer;" title="Edit World">🎨 EDIT</button>
             <span class="text-xs italic" id="chronicle-act" style="color:var(--amber-dim)"></span>
           </div>
         </div>
@@ -1519,6 +1518,9 @@
      AUDIO BAR (fixed, bottom-right)
      ═══════════════════════════════════════════════════════ -->
 <div class="audio-bar" id="audio-bar">
+  <!-- World Editor (custom worlds only) -->
+  <button id="world-edit-btn" onclick="toggleThemeEditor()" style="display:none;font-size:10px;padding:2px 8px;border:1px solid var(--border2);border-radius:6px;background:transparent;color:var(--amber2);font-family:var(--font-d);letter-spacing:1px;cursor:pointer;" title="Edit World">🎨 EDIT</button>
+  <div id="world-edit-sep" style="display:none;width:1px;height:16px;background:var(--border2);"></div>
   <!-- Storm sound -->
   <button class="audio-btn" id="audio-toggle" onclick="toggleAudio()" title="Toggle Storm">🔇</button>
   <span class="audio-label font-display text-xs tracking-widest" id="audio-label" style="color:var(--text5)">OFF</span>

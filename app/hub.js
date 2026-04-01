@@ -1042,7 +1042,8 @@ function pickWorld(worldId) {
   // Persist active world so page refresh can restore it
   if (worldId) localStorage.setItem('cyoa_active_world', worldId);
   // For custom worlds, load config from local storage or community cache
-  if (worldId && worldId.startsWith('custom-')) {
+  const _officialIds = ['stormlight', 'dnd5e', 'wretcheddeep'];
+  if (worldId && !_officialIds.includes(worldId)) {
     const saved = _getSavedWorlds().find((w) => w.id === worldId);
     if (saved) {
       window._pendingWorldConfig = saved;
@@ -1147,7 +1148,8 @@ function setGameHash(screen, worldId, campId) {
 async function _loadWorldFromId(worldId) {
   if (!worldId || typeof loadSystem !== 'function') return;
   if (window.SystemData && window.SystemData.id === worldId) return; // already loaded
-  if (worldId.startsWith('custom-')) {
+  const _officialIds2 = ['stormlight', 'dnd5e', 'wretcheddeep'];
+  if (!_officialIds2.includes(worldId)) {
     // 1. Check localStorage (own worlds)
     const saved = _getSavedWorlds().find((w) => w.id === worldId);
     if (saved) {

@@ -2469,6 +2469,8 @@ async function showGameScreen() {
   if (themeBtn) themeBtn.style.display = isCustom ? '' : 'none';
   const worldEditBtn = document.getElementById('world-edit-btn');
   if (worldEditBtn) worldEditBtn.style.display = isCustom ? '' : 'none';
+  const worldEditSep = document.getElementById('world-edit-sep');
+  if (worldEditSep) worldEditSep.style.display = isCustom ? '' : 'none';
   startPolling();
   connectSession();
   // Load narrative memory from DB
@@ -4868,7 +4870,8 @@ async function removeClassImage(classIdx) {
 async function saveThemeColors() {
   if (!window.SystemData || !window.SystemData.id) return;
   var sys = window.SystemData;
-  if (!sys.id.startsWith('custom-')) { alert('Theme editing is only available for custom worlds.'); return; }
+  const _officialSys = ['stormlight', 'dnd5e', 'wretcheddeep'];
+  if (_officialSys.includes(sys.id)) { alert('Theme editing is only available for custom worlds.'); return; }
   try {
     await _dbFetch('/worlds', { method: 'POST', body: JSON.stringify({ worldId: sys.id, name: sys.name, tagline: sys.tagline || sys.subtitle || '', author: window.Auth && window.Auth.getCurrentUser() ? window.Auth.getCurrentUser().displayName : 'Player', system: 'custom', config: sys }) });
     var toast = document.createElement('div');

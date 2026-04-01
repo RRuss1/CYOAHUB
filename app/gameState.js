@@ -26,12 +26,12 @@ function loadSystem(systemId) {
     wretcheddeep: window.WretchedDeepSystem,
   };
   let sys;
-  // Custom worlds built via wizard
-  if (systemId && systemId.startsWith('custom-') && window.CustomSystem) {
+  // Official systems load directly; everything else is a custom world
+  if (systems[systemId]) {
+    sys = systems[systemId];
+  } else if (systemId && window.CustomSystem) {
     const cfg = window._pendingWorldConfig || {};
     sys = window.CustomSystem.build(cfg);
-  } else {
-    sys = systems[systemId];
   }
   if (!sys) {
     console.error('Unknown system:', systemId);
