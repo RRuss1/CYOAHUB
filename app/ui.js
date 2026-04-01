@@ -4942,8 +4942,25 @@ function _getClassBgImg(p) {
   const cls = classes.find(c => c.id === p.classId);
   const role = roles.find(r => r.id === p.roleId);
   const imgUrl = (cls && cls.imgUrl) || (cls && cls.image) || (role && role.imgUrl) || '';
-  if (!imgUrl) return '';
-  return `<img src="${imgUrl}" alt="${p.className || ''}" class="cs-paperdoll-bg">`;
+  if (imgUrl) return `<img src="${imgUrl}" alt="${p.className || ''}" class="cs-paperdoll-bg">`;
+
+  // Stormlight: spren images behind paperdoll
+  const sys = (gState && gState.system) || '';
+  if (sys === 'stormlight') {
+    const isHero = p.isRadiant === false;
+    const sprenSrc = isHero
+      ? _heroSprenForName(p.roleName || p.name || 'hero')
+      : (SPREN_IMG_MAP[p.classId] || '');
+    if (sprenSrc) return `<img src="${sprenSrc}" alt="Spren" class="cs-paperdoll-bg">`;
+  }
+
+  // D&D 5e: class/background images behind paperdoll
+  if (sys === 'dnd5e') {
+    const dndSrc = DND_CLASS_IMG_MAP[p.classId] || DND_BG_IMG_MAP[p.classId] || '';
+    if (dndSrc) return `<img src="${dndSrc}" alt="${p.className || ''}" class="cs-paperdoll-bg">`;
+  }
+
+  return '';
 }
 
 // Build equipped-item text overlays for paperdoll slots
