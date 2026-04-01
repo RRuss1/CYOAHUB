@@ -2566,6 +2566,8 @@ function renderAll(log) {
   renderProgress();
   renderPill();
   renderActionLog();
+  if (typeof updateWeatherIndicator === 'function') updateWeatherIndicator();
+  if (typeof updateRestButton === 'function') updateRestButton();
 }
 
 // ══ ACTION LOG + TLDR PANELS ══
@@ -4920,10 +4922,12 @@ async function _loadPaperdoll() {
   }
 }
 
+let _csPlayerIdx = -1; // track which player the charsheet modal is showing
+
 function openCharSheet(playerIdx) {
   if (!gState || !gState.players) return;
-  const idx = typeof playerIdx === 'number' ? playerIdx : gState.players.findIndex(p => p && !p.isNPC);
-  const player = gState.players[idx];
+  _csPlayerIdx = typeof playerIdx === 'number' ? playerIdx : gState.players.findIndex(p => p && !p.isNPC);
+  const player = gState.players[_csPlayerIdx];
   if (!player) return;
   renderCharSheetModal(player);
   document.getElementById('charsheet-modal').style.display = 'flex';
@@ -4933,6 +4937,68 @@ function openCharSheet(playerIdx) {
 function closeCharSheet() {
   document.getElementById('charsheet-modal').style.display = 'none';
   document.body.style.overflow = '';
+}
+
+// ── EQUIP / UNEQUIP SYSTEM ──
+
+function _toInventoryItem(equipped, type) {
+  // Convert an equipped weapon/armor into an inventory-format object
+  if (equipped.rarity !== undefined) return equipped; // already loot format
+  const item = { name: equipped.name, type, icon: type === 'weapon' ? '⚔' : '🛡', rarity: 0, rarityName: 'Common', rarityColor: '#aaa' };
+  if (type === 'weapon') item.detail = [equipped.dmg, equipped.dmgType].filter(Boolean).join(' ');
+  if (type === 'armor') item.detail = 'Deflect ' + (equipped.deflect || 0);
+  return item;
+}
+
+async function equipItem(invIdx) {
+  const p = gState && gState.players && gState.players[_csPlayerIdx];
+  if (!p || !p.inventory || !p.inventory[invIdx]) return;
+  const item = p.inventory[invIdx];
+
+  if (item.type === 'weapon') {
+    if (!p.weapons) p.weapons = [];
+    if (p.weapons.length >= 2) {
+      // Displace first weapon back to inventory
+      p.inventory.push(_toInventoryItem(p.weapons.shift(), 'weapon'));
+    }
+    p.weapons.push(item);
+  } else if (item.type === 'armor') {
+    if (p.armor) p.inventory.push(_toInventoryItem(p.armor, 'armor'));
+    p.armor = item;
+    // Parse deflect from detail if present, else use rarity+1
+    const defMatch = (item.detail || '').match(/(\d+)\s*deflect/i) || (item.detail || '').match(/deflect\s*(\d+)/i);
+    p.deflect = defMatch ? parseInt(defMatch[1]) : (item.rarity || 0) + 1;
+  } else {
+    return; // only weapons and armor can be equipped
+  }
+
+  // Remove from inventory
+  p.inventory.splice(invIdx, 1);
+  // Re-render + save
+  renderCharSheetModal(p);
+  if (typeof renderParty === 'function') renderParty();
+  if (typeof saveAndBroadcast === 'function') await saveAndBroadcast(gState);
+}
+
+async function unequipItem(type, slotIdx) {
+  const p = gState && gState.players && gState.players[_csPlayerIdx];
+  if (!p) return;
+  if (!p.inventory) p.inventory = [];
+
+  if (type === 'weapon' && p.weapons && p.weapons[slotIdx]) {
+    p.inventory.push(_toInventoryItem(p.weapons[slotIdx], 'weapon'));
+    p.weapons.splice(slotIdx, 1);
+  } else if (type === 'armor' && p.armor) {
+    p.inventory.push(_toInventoryItem(p.armor, 'armor'));
+    p.armor = null;
+    p.deflect = 0;
+  } else {
+    return;
+  }
+
+  renderCharSheetModal(p);
+  if (typeof renderParty === 'function') renderParty();
+  if (typeof saveAndBroadcast === 'function') await saveAndBroadcast(gState);
 }
 
 // Get class/race background image for paperdoll
@@ -5062,41 +5128,77 @@ async function renderCharSheetModal(p) {
     </div>`;
   }).join('') : '';
 
-  // Equipment items for inventory grid
-  const invItems = [];
+  // ── EQUIPPED ITEMS (with unequip buttons) ──
+  const equippedHTML = [];
   if (p.weapons && p.weapons.length) {
-    p.weapons.forEach(w => invItems.push({ icon: '⚔', name: w.name, detail: `${w.dmg || ''} ${w.dmgType || ''}`.trim(), type: 'weapon' }));
+    p.weapons.forEach((w, i) => {
+      const detail = w.dmg ? `${w.dmg} ${w.dmgType || ''}`.trim() : (w.detail || '');
+      equippedHTML.push(`<div class="cs-inv-item cs-equipped">
+        <span class="cs-inv-icon">⚔</span>
+        <div style="flex:1;">
+          <div class="cs-inv-name">${w.name} <span class="cs-eq-badge">EQUIPPED</span></div>
+          ${detail ? `<div class="cs-inv-detail">${detail}</div>` : ''}
+        </div>
+        <button class="cs-eq-btn cs-eq-unequip" onclick="unequipItem('weapon',${i})" title="Unequip">✕</button>
+      </div>`);
+    });
   }
   if (p.armor) {
-    invItems.push({ icon: '🛡', name: p.armor.name || 'Armor', detail: `Deflect ${p.deflect || 0}`, type: 'armor' });
+    equippedHTML.push(`<div class="cs-inv-item cs-equipped">
+      <span class="cs-inv-icon">🛡</span>
+      <div style="flex:1;">
+        <div class="cs-inv-name">${p.armor.name || 'Armor'} <span class="cs-eq-badge">EQUIPPED</span></div>
+        <div class="cs-inv-detail">Deflect ${p.armor.deflect ?? p.deflect ?? 0}</div>
+      </div>
+      <button class="cs-eq-btn cs-eq-unequip" onclick="unequipItem('armor',0)" title="Unequip">✕</button>
+    </div>`);
   }
+  // Legendary gear (not unequippable)
   if (p.shardblade) {
-    invItems.push({ icon: '⚔', name: p.bladeName || p.shardblade, detail: `Tier ${p.bladeLevel || 1}`, type: 'legendary' });
+    equippedHTML.push(`<div class="cs-inv-item cs-equipped">
+      <span class="cs-inv-icon">⚔</span>
+      <div><div class="cs-inv-name" style="color:var(--gold);">${p.bladeName || p.shardblade}</div><div class="cs-inv-detail">Tier ${p.bladeLevel || 1}</div></div>
+    </div>`);
   }
   if (p.shardplate) {
-    invItems.push({ icon: '⬛', name: 'Shardplate', detail: 'Legendary Armor', type: 'legendary' });
+    equippedHTML.push(`<div class="cs-inv-item cs-equipped">
+      <span class="cs-inv-icon">⬛</span>
+      <div><div class="cs-inv-name" style="color:var(--gold);">Shardplate</div><div class="cs-inv-detail">Legendary Armor</div></div>
+    </div>`);
+  }
+
+  // ── INVENTORY (backpack — with equip buttons on weapons/armor) ──
+  const invItems = [];
+  // Fragments / currency
+  if ((p.fragments || 0) > 0) {
+    invItems.push(`<div class="cs-inv-item">
+      <span class="cs-inv-icon">✦</span>
+      <div><div class="cs-inv-name">${p.fragments} Fragments</div><div class="cs-inv-detail">Crafting material</div></div>
+    </div>`);
   }
   // Kit extras
   if (p.kitExtras && p.kitExtras.length) {
-    p.kitExtras.forEach(e => invItems.push({ icon: '🎒', name: e, detail: '', type: 'misc' }));
+    p.kitExtras.forEach(e => invItems.push(`<div class="cs-inv-item">
+      <span class="cs-inv-icon">🎒</span><div><div class="cs-inv-name">${e}</div></div>
+    </div>`));
   }
-  // Fragments / currency
-  if ((p.fragments || 0) > 0) {
-    invItems.push({ icon: '✦', name: `${p.fragments} Fragments`, detail: 'Crafting material', type: 'currency' });
-  }
-  // Loot from combat (stored in p.inventory if it exists)
+  // Looted / granted items
   if (p.inventory && p.inventory.length) {
-    p.inventory.forEach(item => invItems.push({ icon: item.icon || '📦', name: item.name, detail: item.detail || '', type: item.type || 'loot' }));
+    p.inventory.forEach((item, idx) => {
+      const canEquip = item.type === 'weapon' || item.type === 'armor';
+      const rarityStyle = item.rarityColor ? `border-left:3px solid ${item.rarityColor};` : '';
+      invItems.push(`<div class="cs-inv-item" style="${rarityStyle}">
+        <span class="cs-inv-icon">${item.icon || '📦'}</span>
+        <div style="flex:1;">
+          <div class="cs-inv-name">${item.name}${item.rarityName && item.rarityName !== 'Common' ? ` <span style="color:${item.rarityColor};font-size:10px;">${item.rarityName}</span>` : ''}</div>
+          ${item.detail ? `<div class="cs-inv-detail">${item.detail}</div>` : ''}
+        </div>
+        ${canEquip ? `<button class="cs-eq-btn cs-eq-equip" onclick="equipItem(${idx})" title="Equip">EQUIP</button>` : ''}
+      </div>`);
+    });
   }
 
-  const invHTML = invItems.map(item => `
-    <div class="cs-inv-item">
-      <span class="cs-inv-icon">${item.icon}</span>
-      <div>
-        <div class="cs-inv-name">${item.name}</div>
-        ${item.detail ? `<div class="cs-inv-detail">${item.detail}</div>` : ''}
-      </div>
-    </div>`).join('');
+  const invHTML = equippedHTML.join('') + (invItems.length ? invItems.join('') : '<div style="color:var(--text5);font-size:12px;">No items</div>');
 
   // Philosophy / ideals
   const idealsHTML = p.philosophy ? `
@@ -5154,7 +5256,7 @@ async function renderCharSheetModal(p) {
         <!-- Inventory below paperdoll -->
         <div class="cs-inventory">
           <div class="cs-section-title">Equipment & Inventory${p.kitName ? ` — ${p.kitName}` : ''}</div>
-          <div class="cs-inv-grid">${invHTML || '<div style="color:var(--text5);font-size:12px;">No items</div>'}</div>
+          <div class="cs-inv-grid">${invHTML}</div>
         </div>
       </div>
 
@@ -5258,12 +5360,3 @@ async function onRest() {
   }
 }
 
-// Hook weather + rest updates into renderAll
-const _origRenderAll = window.renderAll;
-if (typeof _origRenderAll === 'function') {
-  window.renderAll = function() {
-    _origRenderAll.apply(this, arguments);
-    updateWeatherIndicator();
-    updateRestButton();
-  };
-}

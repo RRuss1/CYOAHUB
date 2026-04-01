@@ -618,6 +618,41 @@ window.WorldSystems = (() => {
 
   const MORALITY_TAG_REGEX = /\[MORALITY:([+-]?\d+)\]/gi;
 
+  // ── ITEM GRANTING TAG ──
+  // GM can grant items via narrative: [ITEM:Flame Sword] or [ITEM:weapon:Flame Sword] or [ITEM:armor:Dragon Plate:+3 deflect]
+  const ITEM_TAG_REGEX = /\[ITEM:([^\]]+)\]/gi;
+
+  function parseItemTags(text) {
+    const items = [];
+    let m;
+    while ((m = ITEM_TAG_REGEX.exec(text)) !== null) {
+      const parts = m[1].split(':').map(s => s.trim());
+      const TYPES = ['weapon', 'armor', 'consumable', 'misc'];
+      let type = 'misc', name, detail = '';
+      if (parts.length >= 2 && TYPES.includes(parts[0].toLowerCase())) {
+        type = parts[0].toLowerCase();
+        name = parts[1];
+        detail = parts.slice(2).join(': ');
+      } else {
+        name = parts[0];
+        detail = parts.slice(1).join(': ');
+      }
+      const icon = type === 'weapon' ? '⚔' : type === 'armor' ? '🛡' : type === 'consumable' ? '🧪' : '📦';
+      items.push({ name, detail, type, icon, rarity: 1, rarityName: 'Uncommon', rarityColor: '#2E8B57', granted: true });
+    }
+    ITEM_TAG_REGEX.lastIndex = 0;
+    return items;
+  }
+
+  function applyItemGrants(gs, items) {
+    if (!items.length) return;
+    // Grant to all non-NPC living players
+    const players = (gs.players || []).filter(p => p && !p.isNPC && p.hp > 0);
+    items.forEach(item => {
+      players.forEach(p => addLootToPlayer(p, item));
+    });
+  }
+
   function initMorality(gs) {
     if (gs.morality !== undefined) return;
     const sys = window.SystemData || {};
@@ -704,13 +739,15 @@ window.WorldSystems = (() => {
     if (rules.restRules) {
       block += `\nREST RULES: ${rules.restRules}. Factor this into pacing — if rests are risky or forbidden, the party is always under pressure.`;
     }
+    // Item granting instruction
+    block += '\nITEM GRANTS: When NPCs give, sell, or the party discovers items, use [ITEM:name] or [ITEM:type:name] (type = weapon, armor, consumable, misc). Examples: [ITEM:weapon:Flame Sword], [ITEM:consumable:Healing Elixir], [ITEM:Ancient Map]. Items are auto-added to player inventory.';
 
     return block;
   }
 
   // Process a GM response — parse tags, apply changes, check conditions
   function processGmResponse(gs, text) {
-    const results = { factionChanges: [], moralityChanges: [], loot: null, winResult: null, loseResult: null };
+    const results = { factionChanges: [], moralityChanges: [], itemGrants: [], winResult: null, loseResult: null };
 
     // Faction tags
     const fc = parseFactionTags(text);
@@ -724,6 +761,13 @@ window.WorldSystems = (() => {
     if (mc.length) {
       applyMoralityChanges(gs, mc);
       results.moralityChanges = mc;
+    }
+
+    // Item grants
+    const ig = parseItemTags(text);
+    if (ig.length) {
+      applyItemGrants(gs, ig);
+      results.itemGrants = ig;
     }
 
     // Win/loss check
@@ -761,8 +805,8 @@ window.WorldSystems = (() => {
     parseSkillCheck, rollSkillCheck, formatCheckResult, cleanCheckTag, getCheckLabel,
     // Factions
     initFactions, parseFactionTags, applyFactionChanges, getFactionSummary,
-    // Loot
-    rollLoot, addLootToPlayer,
+    // Loot & Items
+    rollLoot, addLootToPlayer, parseItemTags, applyItemGrants,
     // Difficulty
     initDifficulty, updateDifficulty, getDifficultyMultiplier, getDifficultySummary,
     // Win/Loss

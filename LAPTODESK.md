@@ -343,22 +343,83 @@ This does everything at once:
 
 **Result:** A world set to "None — Pure Narrative" gets zero combat — no enemies, no combat screen, no beat counter. Pure story, dialogue, skill checks, faction politics, and exploration.
 
+---
+
+### Desktop Session — 2026-03-31 (Evening — Inventory & Cleanup)
+
+#### 15. Spren Images Behind Paperdoll (`app/ui.js`)
+- `_getClassBgImg(p)` now falls back to spren images for Stormlight when no class `imgUrl` exists
+- Radiants get their bonded spren (from `SPREN_IMG_MAP`), Heroes get a deterministic random spren (from `HERO_SPREN_POOL`)
+- Also wired D&D 5e class/background images behind paperdoll as bonus
+- Uses existing `.cs-paperdoll-bg` CSS (opacity 0.85, z-index behind SVG)
+
+#### 16. Equip/Swap Inventory System (`app/ui.js` + `styles/components.css`)
+- New functions: `equipItem(invIdx)`, `unequipItem(type, slotIdx)`, `_toInventoryItem(equipped, type)`
+- `_csPlayerIdx` tracks which player the modal is showing
+- **Weapon equip**: adds to `p.weapons[]` (max 2), displaces oldest weapon to inventory if full
+- **Armor equip**: swaps current armor to inventory, parses deflect from item detail or uses `rarity + 1`
+- **Unequip**: moves equipped item back to inventory as loot-format object
+- Paperdoll modal redesigned:
+  - Equipped items: gold border, `EQUIPPED` badge, `✕` unequip button
+  - Inventory items: `EQUIP` button on weapons/armor, rarity color left-border
+  - Inventory grid changed from CSS grid to flex column for better item+button layout
+- Auto-saves via `saveAndBroadcast` and re-renders party strip after every equip/unequip
+- Handles both kit format (`{name, dmg, dmgType}`) and loot format (`{name, detail, rarity, icon, type}`)
+
+#### 17. GM Item Granting (`app/worldSystems.js` + `app/combat.js`)
+- New tag: `[ITEM:name]` or `[ITEM:type:name]` or `[ITEM:type:name:detail]`
+- Types: weapon, armor, consumable, misc (defaults to misc if no type given)
+- `parseItemTags(text)` + `applyItemGrants(gs, items)` — grants to all living non-NPC players
+- Wired into `processGmResponse()` pipeline alongside faction/morality tags
+- Toast notification on each grant: "Received: ⚔ Flame Sword"
+- Both `processGmResponse` call sites in `combat.js` (story turn + combat turn) show toasts
+- GM prompt instruction added to `getGmContextBlock()`: tells AI the tag syntax and when to use it
+
+#### 18. GM Prompt — Inventory Awareness (`app/combat.js`)
+- `getCharContext()` now includes `player.inventory[]` in the prompt context
+- Format: `"Inventory: Flame Sword (+2 fire damage), Healing Potion (Restore 10 HP)"`
+- Weapon display handles both kit format (`1d8 keen`) and loot format (`+2 fire damage`)
+- Armor deflect uses `armor.deflect` with fallback to `p.deflect` (handles both kit and loot armor)
+- GM can now reference looted/granted items narratively in future turns
+
+#### 19. Old Character Sheet Removal (~150 lines dead code)
+- `index.html` — removed old `▸ Character Sheet` button, duplicate `🎨 Edit Theme` button, `sheet-panel` div
+- `app/combat.js` — gutted `renderSheet()` (~100 lines), `toggleSheet()` now just calls `openCharSheet()`
+- `app/gameState.js` — removed `sheetOpen` variable
+- `styles/components.css` — removed `.sheet-panel`, `.sheet-row`, `.sheet-lbl`, `.sheet-val`, `.sheet-toggle` rules
+- `styles/base.css` — removed print media query references for old sheet classes
+
+#### 20. renderAll Monkey-Patch Fix (`app/ui.js`)
+- `updateWeatherIndicator()` and `updateRestButton()` moved directly into `renderAll()` function body
+- Deleted the fragile monkey-patch wrapper that saved `_origRenderAll` and replaced `window.renderAll`
+- No more risk of breakage if `renderAll` is reassigned or re-declared
+
+#### 21. Sci-Fi vs Robots World — DB Update (SQL)
+- Generated and ran SQL to update custom world config:
+  - Era → Futuristic (Plasma Blasters, Rail Rifles, Vibro-Blades, Smart Pistols)
+  - Climate → Void/Space, NPC Dialogue → Alien/strange syntax, Difficulty → Adaptive
+  - Rest → Risky, Loot → Balanced, Win → Defeat Boss, Lose → TPK, Morality → None
+
+#### Bug Confirmed Fixed
+- `performRest()` already persists to DB — `onRest()` calls `saveAndBroadcast(gState)` at line 5249. Known issue was stale.
+
 ### Known Issues / Next Session
-- [ ] `performRest()` doesn't persist to DB yet — need `saveAndBroadcast` after rest in `onRest()`
-- [ ] `renderAll` monkey-patch for weather/rest update could break if `renderAll` is reassigned later
 - [ ] Mobile layout + per-world fonts still untested
-- [ ] World editor image management untested end-to-end (from laptop session)
-- [ ] Old `▸ Character Sheet` button + `sheet-panel` div below story card can be removed (replaced by modal)
+- [ ] World editor image management untested end-to-end (upload/remove cycle with R2)
 - [ ] Pure narrative worlds could hide weapon/armor selection in character creation (cosmetic only)
+- [ ] Consumable usage — potions/medkits exist as inventory items but no "Use" mechanic yet
+- [ ] `[ITEM:...]` tags not stripped from displayed narrative text (consistent with `[FACTION:]`/`[MORALITY:]` which also show raw)
+- [ ] Kit extras (`kitExtras`) never populated during character creation — field is referenced in display but always empty
+- [ ] Crafting system — fragments accumulate but have no use yet (pluginRegistry exists but not wired to inventory)
 
 ### File Counts (updated)
-- **app/systems/**: 4 files — ~3,200 lines (custom.js grew with era weapon pools)
-- **app/*.js**: 18 files — ~20,800 lines (+worldSystems.js, _isCombatDisabled)
-- **styles/*.css**: 4 files — ~4,600 lines
-- **index.html**: ~1,620 lines
+- **app/systems/**: 4 files — ~3,200 lines
+- **app/*.js**: 18 files — ~20,900 lines (ui.js grew with equip system, worldSystems.js with item grants)
+- **styles/*.css**: 4 files — ~4,500 lines
+- **index.html**: ~1,580 lines (old sheet HTML removed)
 - **assets/paperdoll/**: 5 SVGs
 - **db/migrations/**: 9 files (all applied)
-- **Total JS**: ~24,000 lines
+- **Total JS**: ~24,100 lines
 
 ---
 

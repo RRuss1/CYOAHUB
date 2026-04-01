@@ -428,9 +428,13 @@ function getCharContext() {
   parts.push('Defenses — ' + (_defLabels || 'Physical:' + (_charDefs.physDef || 10) + ' Cognitive:' + (_charDefs.cogDef || 10)));
   // Inject kit and equipment
   if (myChar.kitName) parts.push('Starting kit: ' + myChar.kitName);
-  if (myChar.armor) parts.push('Armor: ' + myChar.armor.name + ' (Deflect ' + myChar.deflect + ')');
+  if (myChar.armor) parts.push('Armor: ' + myChar.armor.name + ' (Deflect ' + (myChar.armor.deflect ?? myChar.deflect ?? 0) + ')');
   if (myChar.weapons && myChar.weapons.length) {
-    parts.push('Weapons: ' + myChar.weapons.map((w) => w.name + ' [' + w.dmg + ' ' + w.dmgType + ']').join(', '));
+    parts.push('Weapons: ' + myChar.weapons.map((w) => w.dmg ? w.name + ' [' + w.dmg + ' ' + w.dmgType + ']' : w.name + (w.detail ? ' (' + w.detail + ')' : '')).join(', '));
+  }
+  // Inventory — let GM reference looted/granted items narratively
+  if (myChar.inventory && myChar.inventory.length) {
+    parts.push('Inventory: ' + myChar.inventory.map((it) => it.name + (it.detail ? ' (' + it.detail + ')' : '')).join(', '));
   }
   // Active conditions
   if (myChar.conditions && Object.keys(myChar.conditions).length) {
@@ -544,104 +548,7 @@ function renderPill() {
 
 // ══ CHARACTER SHEET ══
 function toggleSheet() {
-  // Redirect to new paperdoll modal
-  if (typeof openCharSheet === 'function') { openCharSheet(); return; }
-  // Legacy fallback
-  sheetOpen = !sheetOpen;
-  document.getElementById('sheet-panel').style.display = sheetOpen ? 'block' : 'none';
-  document.getElementById('sheet-arrow').textContent = sheetOpen ? '▾' : '▸';
-  if (sheetOpen && myChar) renderSheet();
-}
-function renderSheet() {
-  const p = document.getElementById('sheet-panel');
-  if (!p || !myChar) return;
-  const cls = CLASSES.find((c) => c.id === myChar.classId) || { dmgBonus: { crit: 2, hit: 1, miss: 0 } };
-  const bond = SPREN_BONDS[myChar.classId];
-  const stage = getSprenStage((gState && gState.totalMoves) || 0);
-  const stageDesc = bond ? bond.stages[stage] : '';
-  p.innerHTML = `
-    <div class="sheet-row"><span class="sheet-lbl">Name</span><span class="sheet-val">${myChar.name}</span></div>
-    <div class="sheet-row"><span class="sheet-lbl">Order</span><span class="sheet-val">${myChar.className}</span></div>
-    <div class="sheet-row"><span class="sheet-lbl">HP</span><span class="sheet-val">${myChar.hp} / ${myChar.maxHp}</span></div>
-    <div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);margin:6px 0 4px;">ATTRIBUTES</div>
-    ${STAT_KEYS.map((k, i) => `<div class="sheet-row"><span class="sheet-lbl">${STAT_FULL[i]} (${STAT_NAMES[i]})</span><span class="sheet-val">${myChar.stats[k] || 0} <span style="color:var(--text4);font-size:12px;">+${myChar.stats[k] || 0} to rolls</span></span></div>`).join('')}
-    <div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);margin:10px 0 4px;">DEFENSES</div>
-    <div class="sheet-row"><span class="sheet-lbl">Physical</span><span class="sheet-val" style="color:var(--teal2);">${myChar.physDef || 10 + ((myChar.stats.str || 0) + (myChar.stats.spd || 0))}</span></div>
-    <div class="sheet-row"><span class="sheet-lbl">Cognitive</span><span class="sheet-val" style="color:var(--amber2);">${myChar.cogDef || 10 + ((myChar.stats.int || 0) + (myChar.stats.wil || 0))}</span></div>
-    <div class="sheet-row"><span class="sheet-lbl">Spiritual</span><span class="sheet-val" style="color:var(--gold);">${myChar.spirDef || 10 + ((myChar.stats.awa || 0) + (myChar.stats.pre || 0))}</span></div>
-    <div style="font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);margin:10px 0 4px;">COMBAT</div>
-    <div class="sheet-row"><span class="sheet-lbl">Crit Dmg</span><span class="sheet-val" style="color:var(--coral2);">+${cls.dmgBonus.crit} / Hit +${cls.dmgBonus.hit}</span></div>
-    ${myChar.shardblade ? `<div class="sheet-row"><span class="sheet-lbl">⚔ Shardblade</span><span class="sheet-val" style="color:var(--amber2);">${myChar.shardblade} (Tier ${myChar.bladeLevel || 1})</span></div>` : ''}
-    ${myChar.shardplate ? `<div class="sheet-row"><span class="sheet-lbl">⬛ Shardplate</span><span class="sheet-val" style="color:var(--gold);">Equipped</span></div>` : ''}
-    <div class="sheet-row"><span class="sheet-lbl">✦ Fragments</span><span class="sheet-val" style="color:var(--teal2);">${myChar.fragments || 0}</span></div>
-    ${bond ? `<div class="sheet-row"><span class="sheet-lbl">Spren Bond</span><span class="sheet-val" style="color:${bond.color};">${bond.name} (${stage + 1}/5)</span></div>` : ''}
-    ${stageDesc ? `<div style="font-size:14px;font-style:italic;color:var(--text4);padding:6px 0;border-top:1px solid var(--border);margin-top:4px;">${stageDesc}</div>` : ''}
-    ${(myChar.fragments || 0) >= 3 && !myChar.shardblade ? `<div style="margin-top:8px;"><button class="btn btn-sm btn-gold" onclick="craftBlade()" style="font-size:12px;">⚔ Forge Blade (3 Frags)</button></div>` : ''}
-    ${(myChar.fragments || 0) >= 5 && (myChar.bladeLevel || 0) < 5 ? `<div style="margin-top:8px;"><button class="btn btn-sm btn-teal" onclick="upgradeBlade()" style="font-size:12px;">⬆ Upgrade Blade (5 Frags)</button></div>` : ''}
-    ${(() => {
-      const _mpCfg = (window.SystemData && window.SystemData.rules && window.SystemData.rules.magicPool) || {};
-      if (_mpCfg.formula === 'spellSlots' && _mpCfg.slotTable) {
-        const lvl = myChar.level || 1;
-        const slots = _mpCfg.slotTable[Math.min(lvl, 10)] || [2];
-        const slotHTML = slots
-          .map(
-            (n, i) =>
-              `<span style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:11px;"><span style="color:var(--text4);">Lv${i + 1}:</span> <span style="color:var(--teal2);font-weight:600;">${n}</span></span>`
-          )
-          .join(' ');
-        return `<div style="margin-top:10px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">SPELL SLOTS</div><div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">${slotHTML}</div>`;
-      }
-      return '';
-    })()}
-    <div style="margin-top:10px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">ABILITIES</div>
-    <div class="abils">${myChar.abilities.map((a) => `<span class="abil">${a}</span>`).join('')}</div>
-    ${
-      myChar.surges && myChar.surges.length
-        ? `
-    <div style="margin-top:8px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">SURGE SKILLS</div>
-    <div style="font-size:12px;padding:4px 0;">${myChar.surges
-      .map((sid) => {
-        const surge = SURGES.find((s) => s.id === sid);
-        const ranks = (myChar.surgeSkills && myChar.surgeSkills[sid]) || 0;
-        const attr = surge ? surge.attr : 'int';
-        const attrScore = (myChar.stats && myChar.stats[attr]) || 0;
-        const mod = ranks + attrScore;
-        return surge
-          ? `<div class="sheet-row"><span class="sheet-lbl">${surge.name} (${attr.toUpperCase()})</span><span class="sheet-val">Ranks ${ranks} +${mod} mod</span></div>`
-          : '';
-      })
-      .join('')}</div>`
-        : ''
-    }
-    ${
-      myChar.philosophy
-        ? `
-    <div style="margin-top:8px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">PHILOSOPHY & IDEALS</div>
-    <div style="font-size:12px;color:var(--amber2);font-style:italic;padding:4px 0;">"${myChar.philosophy}"</div>
-    <div style="font-size:11px;color:var(--text3);padding:2px 0;"><span style="color:var(--text4);">1st:</span> ${myChar.ideal1 || ''}</div>
-    ${myChar.oathStage >= 2 ? `<div style="font-size:11px;color:var(--teal2);padding:2px 0;"><span style="color:var(--text4);">2nd:</span> ${myChar.ideal2 || ''}</div>` : ''}
-    ${myChar.oathStage >= 3 ? `<div style="font-size:11px;color:var(--teal2);padding:2px 0;"><span style="color:var(--text4);">3rd:</span> ${myChar.ideal3 || ''}</div>` : ''}
-    ${myChar.oathStage >= 4 ? `<div style="font-size:11px;color:var(--gold);padding:2px 0;"><span style="color:var(--text4);">4th:</span> ${myChar.ideal4 || ''}</div>` : ''}
-    `
-        : ''
-    }
-    ${
-      myChar.keyTalent
-        ? `
-    <div style="margin-top:8px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">PATH: ${myChar.roleName || ''}</div>
-    <div style="font-size:12px;color:var(--amber2);padding:4px 0;font-weight:600;">${myChar.keyTalent}</div>
-    <div style="font-size:11px;color:var(--text3);line-height:1.5;">${myChar.keyTalentDesc || ''}</div>
-    `
-        : ''
-    }
-    ${myChar.kit ? `<div style="margin-top:10px;font-family:var(--font-d);font-size:10px;letter-spacing:2px;color:var(--text4);">EQUIPMENT — ${myChar.kitName || ''}</div>${(myChar.weapons || []).map((w) => `<div class=\"sheet-row\"><span class=\"sheet-lbl\">${w.name}</span><span class=\"sheet-val\">${w.dmg} ${dmgTypeLabel(w.dmgType)}</span></div>`).join('')}${myChar.armor ? `<div class=\"sheet-row\"><span class=\"sheet-lbl\">Armor</span><span class=\"sheet-val\">${myChar.armor.name} · Deflect ${myChar.deflect || 0}</span></div>` : ''}` : ''}
-    ${
-      myChar.ancestry
-        ? `<div style="margin-top:10px;font-size:12px;color:var(--text4);font-family:var(--font-d);letter-spacing:1px;">ORIGINS</div>
-    <div style="font-size:13px;padding:4px 0;"><span style="color:var(--amber2);">${(window.SystemData && window.SystemData.charCreation && window.SystemData.charCreation.ancestryLabel) || 'Ancestry'}:</span> ${(ANCESTRIES.find((a) => a.id === myChar.ancestry) || {}).name || myChar.ancestry}</div>
-    ${(myChar.culturalExpertises || []).map((cu) => `<div style="font-size:12px;padding:2px 0;"><span style="color:var(--text3);">Culture:</span> <span style="color:var(--text);">${cu.name}</span> <span style="color:var(--text5);font-size:11px;">(${cu.region})</span></div>`).join('')}`
-        : ''
-    }`;
+  if (typeof openCharSheet === 'function') openCharSheet();
 }
 
 // ══ PDF EXPORT ══
@@ -2218,9 +2125,10 @@ async function callGM(prompt) {
       maybeSpawnHoid(scene, (gState && gState.totalMoves) || 0);
       // Extract narrative intelligence (non-blocking)
       if (window.StoryEngine) window.StoryEngine.extractFromNarrative(scene, selActionText || '', (gState && gState.totalMoves) || 0).catch(function(){});
-      // Process world systems (factions, morality, win/loss)
+      // Process world systems (factions, morality, items, win/loss)
       if (window.WorldSystems && gState) {
         const _wr = window.WorldSystems.processGmResponse(gState, scene);
+        if (_wr.itemGrants && _wr.itemGrants.length) _wr.itemGrants.forEach(it => _showToast(`Received: ${it.icon} ${it.name}`, it.rarityColor || '#2E8B57'));
         if (_wr.winResult) _showEndScreen(_wr.winResult, true);
         else if (_wr.loseResult) _showEndScreen(_wr.loseResult, false);
       }
@@ -2240,9 +2148,10 @@ async function callGM(prompt) {
     }
     await addLog({ type: 'gm', who: '', text: scene2, choices: choices2 });
     maybeSpawnHoid(scene2, (gState && gState.totalMoves) || 0);
-    // Process world systems (factions, morality, win/loss)
+    // Process world systems (factions, morality, items, win/loss)
     if (window.WorldSystems && gState) {
       const _wr2 = window.WorldSystems.processGmResponse(gState, scene2);
+      if (_wr2.itemGrants && _wr2.itemGrants.length) _wr2.itemGrants.forEach(it => _showToast(`Received: ${it.icon} ${it.name}`, it.rarityColor || '#2E8B57'));
       if (_wr2.winResult) _showEndScreen(_wr2.winResult, true);
       else if (_wr2.loseResult) _showEndScreen(_wr2.loseResult, false);
     }
