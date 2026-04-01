@@ -403,25 +403,94 @@ This does everything at once:
 #### Bug Confirmed Fixed
 - `performRest()` already persists to DB — `onRest()` calls `saveAndBroadcast(gState)` at line 5249. Known issue was stale.
 
+---
+
+### Desktop Session — 2026-04-01 (Hardening & Polish)
+
+#### 1. Pure Narrative Mode — Character Creation & Sheet (`app/systems/custom.js`, `app/ui.js`, `index.html`)
+- When `combatFrequency` starts with "None", character creation now hides:
+  - Weapon selection (`showWeapon: false`)
+  - Starting Kit section (`showKit: false`, new `id="create-s4-kit"` on wrapper div)
+- Character sheet modal (`renderCharSheetModal`) in pure narrative mode hides:
+  - Paperdoll SVG + slot overlays (entire left column)
+  - Equipment & Inventory section
+  - HP and investiture from header subtitle
+  - Defenses, Combat stats, Abilities, Surge Skills
+- Still shows: name, class, level, Attributes, Bond, Ideals, Talent, Origins
+- Detection via existing `_isCombatDisabled()` function
+
+#### 2. System Tag Stripping — Clean Narrative Display (`app/combat.js`, `app/ui.js`)
+- `cleanScene()` in combat.js now strips: `[ITEM:...]`, `[FACTION:...]`, `[MORALITY:...]`, `[CHECK:...]`, `[COMBAT]`, `[ATTACK]`
+- `renderStory()` in ui.js also strips same tags when rendering stored log entries on reload
+- Tags are still parsed for game effects (items granted, faction rep changed, etc.) before being stripped from display
+
+#### 3. Chronicle Card Stability — Less Jank (`styles/components.css`)
+- `.story-text`: `min-height: 280px`, `max-height: 52vh`, `overflow-y: auto` — content scrolls inside stable container instead of resizing the card
+- `.bottom-zone`: `min-height: 80px` — state swaps don't collapse footer
+- Mobile breakpoints: tuned min/max heights (200px/60vh at 640px)
+
+#### 4. Bottom-Zone Transitions — Crisp State Machine (`app/ui.js`)
+- New `_showBottomPanel(id)` helper — hides all 4 panels, shows target with 0.18s opacity fade
+- Replaced all scattered manual `display:none/block` toggles in `setBottomLoading`, `setBottomReadGate`, `setBottomContinue`, `setBottomWaiting`, `onContinue`
+- Eliminated redundant double-set hacks in `setBottomContinue`
+
+#### 5. Wizard Readability & Scroll Fix (`styles/hub.css`, `app/hub.js`)
+- `renderStep()` now calls `scrollIntoView({ behavior: 'smooth', block: 'start' })` on step change — every step snaps to top
+- Font size reductions across all wizard elements:
+  - `.wstep-eyebrow`: 18px → 11px
+  - `.wstep-title`: 24px → 20px
+  - `.wlabel`: 18px → 12px
+  - `.winput`: 22px → 15px
+  - `.wopt`: 18px → 12px
+  - `.wiz-back` / `.wiz-next`: 18px → 13px
+- Mobile overrides updated to match
+
+#### 6. Custom World ID Detection — `startsWith('custom-')` Purge (4 files)
+- **Root cause**: Custom worlds from wizard get `custom-{timestamp}` IDs, but DB-loaded worlds get UUID IDs. All `startsWith('custom-')` guards failed for DB worlds.
+- **`gameState.js`** — `loadSystem()`: official systems load directly, everything else treated as custom
+- **`hub.js`** — `onEnterGameWorld()` + `_loadWorldFromId()`: replaced `startsWith('custom-')` with `!_officialIds.includes(worldId)`
+- **`ui.js`** — `showGameScreen()` isCustom check + `saveThemeColors()` guard: same pattern
+- This fixed: world editor button not showing, class names/images lost, card images lost
+
+#### 7. World Editor Button Moved to Audio Bar (`index.html`, `app/ui.js`)
+- Removed `🎨 EDIT` button from chronicle header bar
+- Added as first element inside `#audio-bar` with vertical separator
+- Sits at z-index 200 with audio controls, not covered by logged-in pill
+
+#### 8. Custom World Config Persistence Fix (`app/systems/custom.js`, `app/gameState.js`)
+- **Classes preserved on DB reload**: `build()` now checks if `cfg.classes` has fully-built objects (with `.id` field) and uses them directly instead of always rebuilding from `wizClasses`. Fixes custom class names, images, abilities lost on reload.
+- **Card image carried through**: `cardImage: cfg.cardImage || ''` added to `build()` output so round-trip saves don't lose it.
+- **System ID preserved**: `loadSystem()` now stamps `cfg.id = cfg.id || systemId` before calling `build()`, preventing new ID generation on each reload. **This fixed the infinite hash-change loop** where refreshing on a game URL caused the screen to flash and the ID to climb thousands of times.
+
+#### 9. Card Image Sync Fix (`app/hub.js`, `app/ui.js`)
+- `saveThemeColors()` now calls `_saveWorld(sys)` after DB save to keep localStorage in sync
+- `renderWorldsGrid()` merges DB config fields (cardImage, classes) into local copy before rendering, so DB-updated images show correctly even with stale localStorage
+
+#### 10. Cleanup
+- Deleted `CYOAhubfiles/` folder and all contents (duplicate of `GameCardImgs/`, nothing referenced it)
+
 ### Known Issues / Next Session
 - [ ] Mobile layout + per-world fonts still untested
 - [ ] World editor image management untested end-to-end (upload/remove cycle with R2)
-- [ ] Pure narrative worlds could hide weapon/armor selection in character creation (cosmetic only)
 - [ ] Consumable usage — potions/medkits exist as inventory items but no "Use" mechanic yet
-- [ ] `[ITEM:...]` tags not stripped from displayed narrative text (consistent with `[FACTION:]`/`[MORALITY:]` which also show raw)
 - [ ] Kit extras (`kitExtras`) never populated during character creation — field is referenced in display but always empty
 - [ ] Crafting system — fragments accumulate but have no use yet (pluginRegistry exists but not wired to inventory)
+- [ ] Card image may need re-save from editor if DB stored a pre-fix config without `cardImage`
 
 ### File Counts (updated)
 - **app/systems/**: 4 files — ~3,200 lines
-- **app/*.js**: 18 files — ~20,900 lines (ui.js grew with equip system, worldSystems.js with item grants)
-- **styles/*.css**: 4 files — ~4,500 lines
-- **index.html**: ~1,580 lines (old sheet HTML removed)
+- **app/*.js**: 18 files — ~21,000 lines
+- **styles/*.css**: 4 files — ~4,550 lines
+- **index.html**: ~1,580 lines
 - **assets/paperdoll/**: 5 SVGs
 - **db/migrations/**: 9 files (all applied)
-- **Total JS**: ~24,100 lines
+- **Total JS**: ~24,200 lines
 
 ---
+
+### Previous Session Summary (Desktop — 2026-03-31)
+
+Items 1-21: Stat pool fix, era weapons, wizard expansions, paperdoll modal, world systems engine, equip/swap, GM item granting, inventory awareness, old sheet removal, renderAll fix, pure narrative mode, loot tables, DB migration 009, prompt slot architecture, spren images, bug squash. See above for details.
 
 ### Previous Session Summary (Desktop — 2026-03-30 AM)
 
