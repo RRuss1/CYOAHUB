@@ -442,6 +442,7 @@ window.CustomSystem = {
       npcDialogue: cfg.npcDialogue || '',
       subtitle: cfg.tagline || 'A Custom Adventure',
       tagline: cfg.tagline || '',
+      cardImage: cfg.cardImage || '',
       glyph: '🌍',
       ambientAudio: cfg.ambientAudio || 'forest',
 
@@ -535,8 +536,8 @@ window.CustomSystem = {
 
       ..._resolveStats(null, cfg.statSystem),
 
-      // Classes — built from wizard class rows, or fallback to generic archetypes
-      classes: _buildClasses(cfg),
+      // Classes — use saved classes if present (DB reload), else build from wizard rows
+      classes: (cfg.classes && cfg.classes.length && cfg.classes[0].id) ? cfg.classes : _buildClasses(cfg),
 
       sprenBonds: cfg.sprenBonds || {
         warrior:{name:'Battle Spirit',nick:'Spirit',stages:['A fire kindles within you...','Your instincts sharpen — you see openings others miss.','Your body moves before your mind — reflexes perfected.','In combat, time slows. Every move is deliberate.','You are the weapon itself. Unstoppable.'],color:'#9B2335'},
