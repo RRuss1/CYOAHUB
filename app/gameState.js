@@ -31,6 +31,7 @@ function loadSystem(systemId) {
     sys = systems[systemId];
   } else if (systemId && window.CustomSystem) {
     const cfg = window._pendingWorldConfig || {};
+    cfg.id = cfg.id || systemId; // preserve the ID we were called with
     sys = window.CustomSystem.build(cfg);
   }
   if (!sys) {
