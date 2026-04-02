@@ -4806,7 +4806,8 @@ function toggleThemeEditor() {
     overlay.className = 'charsheet-overlay';
     overlay.style.display = 'none';
     overlay.onclick = function(e) { if (e.target === overlay) toggleThemeEditor(); };
-    overlay.innerHTML = '<div class="charsheet-modal" style="width:min(95vw,520px);max-height:90vh;overflow-y:auto;padding:20px 24px;" id="world-editor-content"></div>';
+    overlay.style.overflowY = 'auto';
+    overlay.innerHTML = '<div class="charsheet-modal" style="width:min(95vw,520px);margin:40px auto;padding:20px 24px;" id="world-editor-content"></div>';
     document.body.appendChild(overlay);
   }
   if (_themeEditorOpen) {
@@ -5012,6 +5013,11 @@ async function saveThemeColors() {
     await _dbFetch('/worlds', { method: 'POST', body: JSON.stringify({ worldId: sys.id, name: sys.name, tagline: sys.tagline || sys.subtitle || '', author: window.Auth && window.Auth.getCurrentUser() ? window.Auth.getCurrentUser().displayName : 'Player', system: 'custom', config: sys, published: !!sys._published }) });
     // Update in-memory cache so world card renders correctly
     if (typeof _saveWorld === 'function') _saveWorld(sys);
+    // Sync published state to cache
+    if (typeof _communityWorldsCache !== 'undefined') {
+      const _cw = _communityWorldsCache.find(w => w.id === sys.id);
+      if (_cw) { _cw.published = !!sys._published; _cw.tier = sys._published ? 'community' : 'private'; }
+    }
     var toast = document.createElement('div');
     toast.textContent = 'World saved!';
     toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--primary,#C9A84C);color:var(--primary,#C9A84C);padding:8px 20px;border-radius:20px;font-family:var(--font-d);font-size:12px;letter-spacing:2px;z-index:9999;';

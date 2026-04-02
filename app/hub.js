@@ -987,6 +987,7 @@ async function renderWorldsGrid() {
     worldData.name = cw.name;
     worldData.tagline = cw.tagline;
     worldData.author = cw.author;
+    worldData.published = cw.published;
     _renderWorldCard(worldData, isOwned, grid);
   });
 
