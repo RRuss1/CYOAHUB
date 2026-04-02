@@ -4814,6 +4814,9 @@ function toggleThemeEditor() {
     const tv = sys.themeVars || {};
     const theme = sys.theme || {};
     const gm = sys.gmContext || {};
+    // Read published state from DB cache (not config — it's a row-level field)
+    const _cachedWorld = typeof _communityWorldsCache !== 'undefined' ? _communityWorldsCache.find(w => w.id === sys.id) : null;
+    const isPublished = _cachedWorld ? !!_cachedWorld.published : !!sys._published;
 
     // ── Card Image ──
     const cardImg = sys.cardImage || '';
@@ -4866,7 +4869,7 @@ function toggleThemeEditor() {
       _edSection('Visibility') +
       `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         <label style="font-size:12px;color:rgba(255,255,255,0.5);cursor:pointer;display:flex;align-items:center;gap:6px;">
-          <input type="checkbox" id="we-published" ${sys._published ? 'checked' : ''} onchange="weSet('_published',this.checked)" style="accent-color:#28a8a0;"> Published (visible to all players)
+          <input type="checkbox" id="we-published" ${isPublished ? 'checked' : ''} onchange="weSet('_published',this.checked)" style="accent-color:#28a8a0;"> Published (visible to all players)
         </label>
       </div>` +
 

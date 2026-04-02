@@ -1367,7 +1367,6 @@
   backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center;
   animation: fadeIn 0.2s ease;
-  overflow: hidden;
 }
 .charsheet-modal {
   position: relative;
