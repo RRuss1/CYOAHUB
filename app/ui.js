@@ -3049,7 +3049,7 @@ function renderStory(log) {
   const hasContent = el.innerHTML && el.innerHTML.trim().length > 50;
   if (!isNew && hasContent) return;
 
-  el.innerHTML = dlog
+  const newHTML = dlog
     .map((e) => {
       if (e.type === 'gm') {
         const raw = e.text
@@ -3089,6 +3089,8 @@ function renderStory(log) {
       return '';
     })
     .join('');
+  // Only swap DOM if content actually changed — prevents flash
+  if (el.innerHTML !== newHTML) el.innerHTML = newHTML;
 
   if (isNew && latestGM) {
     lastGMTs = latestGM.ts || 'new';
@@ -4758,59 +4760,169 @@ async function applyThaiToElement(el) {
 
 // ══ PARALLAX ══
 
-// ══ IN-GAME THEME COLOR EDITOR (custom worlds — owner only) ══
+// ══ IN-GAME WORLD EDITOR (custom worlds — full wizard fields) ══
 let _themeEditorOpen = false;
+
+function _edSection(title) { return `<div style="font-size:10px;letter-spacing:1.5px;color:rgba(40,168,160,0.5);text-transform:uppercase;margin:14px 0 6px;border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;">${title}</div>`; }
+function _edColor(key, label, val) { return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><input type="color" value="${val}" onchange="applyThemeColor('${key}',this.value)" style="width:24px;height:24px;border:none;background:none;cursor:pointer;padding:0;"><span style="font-size:12px;color:rgba(255,255,255,0.5);">${label}</span></div>`; }
+function _edSelect(field, label, options, current) {
+  const opts = options.map(o => `<option value="${o}"${o === current ? ' selected' : ''}>${o}</option>`).join('');
+  return `<div style="margin-bottom:8px;"><label style="font-size:11px;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">${label}</label><select onchange="weSet('${field}',this.value)" style="width:100%;padding:6px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:6px;color:var(--text);font-family:var(--font-b);font-size:13px;">${opts}</select></div>`;
+}
+function _edText(field, label, val, placeholder) {
+  return `<div style="margin-bottom:8px;"><label style="font-size:11px;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">${label}</label><input type="text" value="${(val||'').replace(/"/g,'&quot;')}" onchange="weSet('${field}',this.value)" placeholder="${placeholder||''}" style="width:100%;padding:6px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:6px;color:var(--text);font-family:var(--font-b);font-size:13px;"></div>`;
+}
+function _edTextarea(field, label, val, placeholder) {
+  return `<div style="margin-bottom:8px;"><label style="font-size:11px;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">${label}</label><textarea onchange="weSet('${field}',this.value)" placeholder="${placeholder||''}" rows="3" style="width:100%;padding:6px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:6px;color:var(--text);font-family:var(--font-b);font-size:13px;resize:vertical;">${(val||'').replace(/</g,'&lt;')}</textarea></div>`;
+}
+
+// Set a value on the live SystemData config (for editor fields)
+function weSet(field, val) {
+  const sys = window.SystemData;
+  if (!sys) return;
+  // Dot-path support: e.g. 'theme.primary', 'gm.worldLore'
+  const parts = field.split('.');
+  let target = sys;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!target[parts[i]]) target[parts[i]] = {};
+    target = target[parts[i]];
+  }
+  target[parts[parts.length - 1]] = val;
+}
+
 function toggleThemeEditor() {
   _themeEditorOpen = !_themeEditorOpen;
-  let panel = document.getElementById('theme-editor-panel');
-  if (!panel) {
-    panel = document.createElement('div');
-    panel.id = 'theme-editor-panel';
-    panel.style.cssText = 'position:fixed;top:60px;right:12px;width:260px;background:rgba(5,12,26,0.94);backdrop-filter:blur(20px);border:1px solid rgba(40,168,160,0.15);border-radius:14px;padding:16px;z-index:200;font-family:"Crimson Pro",serif;display:none;';
-    document.body.appendChild(panel);
+  let overlay = document.getElementById('world-editor-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'world-editor-overlay';
+    overlay.className = 'charsheet-overlay';
+    overlay.style.display = 'none';
+    overlay.onclick = function(e) { if (e.target === overlay) toggleThemeEditor(); };
+    overlay.innerHTML = '<div class="charsheet-modal" style="width:min(95vw,520px);max-height:90vh;overflow-y:auto;padding:20px 24px;" id="world-editor-content"></div>';
+    document.body.appendChild(overlay);
   }
   if (_themeEditorOpen) {
     const sys = window.SystemData || {};
     const tv = sys.themeVars || {};
     const theme = sys.theme || {};
+    const gm = sys.gmContext || {};
+
+    // ── Card Image ──
+    const cardImg = sys.cardImage || '';
+    const cardImgHtml = `<div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;">
+      ${cardImg ? `<img src="${cardImg}" style="width:60px;height:40px;border-radius:6px;object-fit:cover;">` : '<div style="width:60px;height:40px;border-radius:6px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2);font-size:10px;">None</div>'}
+      <label style="cursor:pointer;font-size:10px;color:rgba(40,168,160,0.7);border:1px solid rgba(40,168,160,0.25);border-radius:6px;padding:4px 10px;">
+        ${cardImg ? 'Change' : 'Upload'} Card Image
+        <input type="file" accept="image/*" onchange="uploadWorldCardImage(this)" style="display:none;">
+      </label>
+    </div>`;
+
+    // ── Colors ──
     const colors = [
-      { key: 'primary', label: 'Primary', val: theme.primary || tv.primary || '#C9A84C' },
-      { key: 'secondary', label: 'Secondary', val: theme.secondary || tv.secondary || '#28A87A' },
-      { key: 'danger', label: 'Danger', val: theme.danger || tv.danger || '#B03828' },
+      { key: 'primary', label: 'Primary', val: theme.primary || '#C9A84C' },
+      { key: 'secondary', label: 'Secondary', val: theme.secondary || '#28A87A' },
+      { key: 'danger', label: 'Danger', val: theme.danger || '#B03828' },
       { key: 'bg', label: 'Background', val: tv.bg || '#0F0D08' },
       { key: 'text', label: 'Text', val: tv.text || '#F8F3E8' },
       { key: 'text4', label: 'Muted Text', val: tv.text4 || '#c89840' },
     ];
-    // Color pickers
-    const colorHtml = colors.map(function(c){ return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><input type="color" value="'+c.val+'" onchange="applyThemeColor(\''+c.key+'\',this.value)" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;"><span style="font-size:13px;color:rgba(255,255,255,0.6);">'+c.label+'</span></div>'; }).join('');
+    const colorHtml = colors.map(c => _edColor(c.key, c.label, c.val)).join('');
 
-    // Class/role image management
-    const classes = (sys.classes || []);
+    // ── Class Images ──
+    const classes = sys.classes || [];
     const imgHtml = classes.length ? classes.map(function(c, i) {
-      const hasImg = c.imgUrl || c.image;
-      const imgSrc = hasImg || '';
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
-        (imgSrc ? '<img src="'+imgSrc+'" style="width:28px;height:28px;border-radius:4px;object-fit:cover;">' : '<div style="width:28px;height:28px;border-radius:4px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(255,255,255,0.2);">?</div>') +
-        '<span style="font-size:12px;color:rgba(255,255,255,0.6);flex:1;">' + (c.name || 'Class ' + (i+1)) + '</span>' +
-        '<label style="cursor:pointer;font-size:9px;color:rgba(40,168,160,0.6);border:1px solid rgba(40,168,160,0.2);border-radius:4px;padding:2px 6px;">' +
-          (imgSrc ? 'Change' : 'Upload') +
-          '<input type="file" accept="image/*" onchange="uploadClassImage('+i+',this)" style="display:none;">' +
-        '</label>' +
-        (imgSrc ? '<button onclick="removeClassImage('+i+')" style="background:none;border:none;color:rgba(176,56,40,0.6);cursor:pointer;font-size:12px;padding:0 4px;" title="Remove image">✕</button>' : '') +
-      '</div>';
-    }).join('') : '<div style="font-size:11px;color:rgba(255,255,255,0.3);font-style:italic;">No classes defined</div>';
+      const imgSrc = c.imgUrl || c.image || '';
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        ${imgSrc ? `<img src="${imgSrc}" style="width:28px;height:28px;border-radius:4px;object-fit:cover;">` : '<div style="width:28px;height:28px;border-radius:4px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(255,255,255,0.2);">?</div>'}
+        <span style="font-size:12px;color:rgba(255,255,255,0.5);flex:1;">${c.name || 'Class '+(i+1)}</span>
+        <label style="cursor:pointer;font-size:9px;color:rgba(40,168,160,0.6);border:1px solid rgba(40,168,160,0.2);border-radius:4px;padding:2px 6px;">${imgSrc?'Change':'Upload'}<input type="file" accept="image/*" onchange="uploadClassImage(${i},this)" style="display:none;"></label>
+        ${imgSrc ? `<button onclick="removeClassImage(${i})" style="background:none;border:none;color:rgba(176,56,40,0.6);cursor:pointer;font-size:12px;padding:0 4px;">✕</button>` : ''}
+      </div>`;
+    }).join('') : '';
 
-    panel.innerHTML =
-      '<div style="font-family:Cinzel,serif;font-size:12px;letter-spacing:2px;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">World Editor<button onclick="toggleThemeEditor()" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:16px;">✕</button></div>' +
-      '<div style="font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,0.25);text-transform:uppercase;margin-bottom:6px;">Colors</div>' +
+    const el = document.getElementById('world-editor-content');
+    el.innerHTML =
+      // Header
+      `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <span style="font-family:Cinzel,serif;font-size:13px;letter-spacing:2px;color:rgba(40,168,160,0.7);text-transform:uppercase;">World Editor</span>
+        <button onclick="toggleThemeEditor()" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:18px;">✕</button>
+      </div>` +
+
+      // Identity
+      _edSection('Identity') +
+      _edText('name', 'World Name', sys.name, 'World name') +
+      _edText('tagline', 'Description', sys.tagline || sys.subtitle, 'One-line description') +
+      _edSelect('_era', 'Era', ['Ancient','Medieval','Renaissance','Colonial','Modern','Post-Apocalyptic','Futuristic','Timeless'], sys._era || 'Medieval') +
+
+      // Card Image
+      _edSection('Card Image') +
+      cardImgHtml +
+
+      // GM & Tone
+      _edSection('GM & Tone') +
+      _edSelect('_combatFrequency', 'Combat Frequency', ['None — Pure Narrative','Rare & Meaningful','Moderate','Action-Heavy','Constant Danger'], sys._combatFrequency || 'Moderate') +
+      _edSelect('moralityAxis', 'Morality System', ['Good vs Evil','Honor vs Shame','Corruption — A creeping darkness','Karma — Actions echo back','None — Moral ambiguity'], sys.moralityAxis || 'None — Moral ambiguity') +
+      _edSelect('climate', 'Climate', ['Temperate — Mild seasons','Harsh Desert — Heat, sandstorms','Frozen Wasteland — Blizzards, frostbite','Tropical — Humid, monsoons, disease','Toxic / Irradiated — Hazmat survival','Void / Space — No atmosphere','Mixed — Varies by region'], sys.climate || 'Temperate — Mild seasons') +
+      _edSelect('npcDialogue', 'NPC Dialogue Style', ['Full sentences with personality','Terse survival grunts','Formal court speech','Alien / strange syntax','Regional accents & slang'], sys.npcDialogue || 'Full sentences with personality') +
+
+      // World Rules
+      _edSection('World Rules') +
+      _edSelect('rules.restRules', 'Rest & Recovery', ['Safe Rests — Always heal fully','Risky Rests — Roll for interruptions','No Rests — Survive with what you have','Time-Limited — Rest costs game time'], (sys.rules||{}).restRules || 'Safe Rests — Always heal fully') +
+      _edSelect('rules.lootStyle', 'Loot & Rewards', ['Sparse & Meaningful — Every item matters','Balanced — Regular rewards','Generous — Loot rains from the sky','Crafting Only — Build your own gear'], (sys.rules||{}).lootStyle || 'Balanced — Regular rewards') +
+      _edSelect('rules.winCondition', 'Win Condition', ['Defeat the Final Boss','Survive X Rounds','Collect All Artifacts','Escape the Dungeon','Open-Ended — No fixed ending'], (sys.rules||{}).winCondition || 'Open-Ended — No fixed ending') +
+      _edSelect('rules.loseCondition', 'Lose Condition', ['Total Party Kill','Corruption / Sanity Maxed','Time Runs Out','Narrative Only — GM decides'], (sys.rules||{}).loseCondition || 'Total Party Kill') +
+      _edSelect('rules.difficulty', 'Difficulty', ['Punishing — No mercy','Balanced — Fair challenge','Cinematic — Heroes always win eventually','Adaptive — Scales to party performance'], (sys.rules||{}).difficulty || 'Balanced — Fair challenge') +
+      _edSelect('rules.physics', 'Physics', ['Realistic','Cinematic','Rule of Cool'], (sys.rules||{}).physics || 'Cinematic') +
+      _edSelect('rules.deathRules', 'Death Rules', ['Permanent','Revivable','Narrative — Death serves the story'], (sys.rules||{}).deathRules || 'Revivable') +
+
+      // Lore
+      _edSection('Lore') +
+      _edText('_factions', 'Factions', sys._factions, 'Comma-separated faction names') +
+      _edTextarea('gmContext.worldLore', 'World Lore', gm.worldLore, 'History, myths, tone...') +
+
+      // Colors
+      _edSection('Colors') +
       colorHtml +
-      '<div style="font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,0.25);text-transform:uppercase;margin:12px 0 6px;">Class Images</div>' +
-      imgHtml +
-      '<button onclick="saveThemeColors()" style="width:100%;margin-top:12px;padding:8px;border:1px solid rgba(40,168,160,0.3);border-radius:8px;background:rgba(40,168,160,0.1);color:rgba(40,168,160,0.8);font-family:Cinzel,serif;font-size:12px;letter-spacing:1px;cursor:pointer;">Save to World</button>';
-    panel.style.display = '';
+
+      // Class Images
+      (imgHtml ? _edSection('Class Images') + imgHtml : '') +
+
+      // Save
+      `<div style="margin-top:16px;display:flex;gap:8px;">
+        <button onclick="saveThemeColors()" style="flex:1;padding:10px;border:1px solid rgba(40,168,160,0.3);border-radius:8px;background:rgba(40,168,160,0.1);color:rgba(40,168,160,0.8);font-family:Cinzel,serif;font-size:12px;letter-spacing:1px;cursor:pointer;">Save to World</button>
+        <button onclick="toggleThemeEditor()" style="padding:10px 16px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:rgba(255,255,255,0.4);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">Cancel</button>
+      </div>`;
+
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
   } else {
-    panel.style.display = 'none';
+    overlay.style.display = 'none';
+    document.body.style.overflow = '';
   }
+}
+
+// Upload card image from world editor
+async function uploadWorldCardImage(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const compressed = typeof _compressImage === 'function' ? await _compressImage(file) : file;
+  const formData = new FormData();
+  formData.append('file', compressed);
+  try {
+    const tok = localStorage.getItem('cyoa_auth_token');
+    const headers = {};
+    if (tok) headers['Authorization'] = 'Bearer ' + tok;
+    const res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData, headers });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    if (data.url && window.SystemData) {
+      window.SystemData.cardImage = data.url;
+      // Re-render editor to show new image
+      _themeEditorOpen = false;
+      toggleThemeEditor();
+    }
+  } catch (e) { alert('Upload failed: ' + e.message); }
 }
 function applyThemeColor(key, val) {
   var r = document.documentElement.style;
@@ -4874,13 +4986,15 @@ async function saveThemeColors() {
   if (_officialSys.includes(sys.id)) { alert('Theme editing is only available for custom worlds.'); return; }
   try {
     await _dbFetch('/worlds', { method: 'POST', body: JSON.stringify({ worldId: sys.id, name: sys.name, tagline: sys.tagline || sys.subtitle || '', author: window.Auth && window.Auth.getCurrentUser() ? window.Auth.getCurrentUser().displayName : 'Player', system: 'custom', config: sys }) });
-    // Sync to localStorage so world card renders correctly
+    // Update in-memory cache so world card renders correctly
     if (typeof _saveWorld === 'function') _saveWorld(sys);
     var toast = document.createElement('div');
-    toast.textContent = 'Theme saved!';
-    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--primary,#C9A84C);color:var(--primary,#C9A84C);padding:8px 20px;border-radius:20px;font-family:var(--font-d);font-size:12px;letter-spacing:2px;z-index:999;';
+    toast.textContent = 'World saved!';
+    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--primary,#C9A84C);color:var(--primary,#C9A84C);padding:8px 20px;border-radius:20px;font-family:var(--font-d);font-size:12px;letter-spacing:2px;z-index:9999;';
     document.body.appendChild(toast);
     setTimeout(function(){ toast.remove(); }, 2000);
+    // Close editor on success
+    if (_themeEditorOpen) toggleThemeEditor();
   } catch (e) { alert('Save failed: ' + e.message); }
 }
 

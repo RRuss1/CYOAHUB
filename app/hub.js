@@ -562,7 +562,7 @@ function updatePreview() {
   if (actionText) actionText.style.color = text;
 }
 
-function finishWizard(publish) {
+async function finishWizard(publish) {
   const name = document.getElementById('wiz-name')?.value.trim() || '';
   const desc = document.getElementById('wiz-desc')?.value.trim() || '';
   const color = document.getElementById('cp')?.value || '#C9A84C';
@@ -738,12 +738,14 @@ Win condition: ${winCondition.toLowerCase()}. Lose condition: ${loseCondition.to
   // Store config for system loader
   window._pendingWorldConfig = worldConfig;
 
-  // Persist to localStorage
-  _saveWorld(worldConfig);
-
-  // Always save to DB (private or published)
+  // Save to DB (single source of truth)
   try {
-    _saveWorldToDb(worldConfig, publish);
+    await _saveWorldToDb(worldConfig, publish);
+    // Update in-memory cache so grid renders immediately
+    const cacheEntry = { id: worldConfig.id, name: worldConfig.name, tagline: worldConfig.tagline || '', author: window.Auth && window.Auth.getCurrentUser() ? window.Auth.getCurrentUser().displayName : 'Player', system: 'custom', config: worldConfig, published: !!publish, owner_id: window.Auth && window.Auth.getCurrentUser() ? window.Auth.getCurrentUser().id : null };
+    const idx = _communityWorldsCache.findIndex(w => w.id === worldConfig.id);
+    if (idx >= 0) _communityWorldsCache[idx] = cacheEntry;
+    else _communityWorldsCache.push(cacheEntry);
   } catch (e) {
     console.warn('DB save failed:', e);
   }
@@ -838,45 +840,46 @@ async function _saveWorldToDb(cfg, publish) {
 }
 
 /* ── WORLD OWNERSHIP & PERSISTENCE ── */
-function _getSavedWorlds() {
-  try {
-    return JSON.parse(localStorage.getItem('cyoa_my_worlds') || '[]');
-  } catch (e) {
-    return [];
+function _getMyWorlds() {
+  // Returns worlds owned by the current user from the DB-backed cache
+  const user = window.Auth && window.Auth.getCurrentUser();
+  if (!user) return [];
+  return _communityWorldsCache.filter(w => w.owner_id === user.id);
+}
+// Legacy alias — some callers still reference this
+function _getSavedWorlds() { return _getMyWorlds(); }
+function _saveWorld(cfg) {
+  // Update in-memory cache only — DB is the source of truth
+  const idx = _communityWorldsCache.findIndex(w => w.id === cfg.id);
+  if (idx >= 0) {
+    _communityWorldsCache[idx].config = cfg;
+    _communityWorldsCache[idx].name = cfg.name || _communityWorldsCache[idx].name;
+    _communityWorldsCache[idx].tagline = cfg.tagline || _communityWorldsCache[idx].tagline;
   }
 }
-function _saveWorld(worldConfig) {
-  const worlds = _getSavedWorlds();
-  // Replace if same ID, else push
-  const idx = worlds.findIndex((w) => w.id === worldConfig.id);
-  if (idx >= 0) worlds[idx] = worldConfig;
-  else worlds.push(worldConfig);
-  localStorage.setItem('cyoa_my_worlds', JSON.stringify(worlds));
-}
-function _deleteWorld(worldId) {
-  const worlds = _getSavedWorlds().filter((w) => w.id !== worldId);
-  localStorage.setItem('cyoa_my_worlds', JSON.stringify(worlds));
+async function _deleteWorldFromDb(worldId) {
+  try {
+    const tok = localStorage.getItem('cyoa_auth_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (tok) headers['Authorization'] = 'Bearer ' + tok;
+    await fetch(PROXY_URL + '/db/worlds/' + encodeURIComponent(worldId), { method: 'DELETE', headers });
+  } catch (e) { console.warn('DB delete failed:', e); }
 }
 function _isOwnedWorld(worldId) {
-  // DB-first: check community cache for owner_id match
-  if (window.Auth && window.Auth.isLoggedIn()) {
-    const user = window.Auth.getCurrentUser();
-    if (user) {
-      const cached = _communityWorldsCache.find((w) => w.id === worldId);
-      if (cached && cached.owner_id === user.id) return true;
-    }
-  }
-  // Fallback: localStorage
-  return _getSavedWorlds().some((w) => w.id === worldId);
+  const user = window.Auth && window.Auth.getCurrentUser();
+  if (!user) return false;
+  const cached = _communityWorldsCache.find((w) => w.id === worldId);
+  return cached && cached.owner_id === user.id;
 }
 
-function deleteWorld(worldId) {
+async function deleteWorld(worldId) {
   if (!_isOwnedWorld(worldId)) {
     alert('You can only delete worlds you created.');
     return;
   }
   if (!confirm('Delete this world permanently?')) return;
-  _deleteWorld(worldId);
+  await _deleteWorldFromDb(worldId);
+  _communityWorldsCache = _communityWorldsCache.filter(w => w.id !== worldId);
   renderWorldsGrid();
 }
 
@@ -973,35 +976,18 @@ async function renderWorldsGrid() {
   // Remove all non-official cards (keep official hardcoded ones)
   grid.querySelectorAll('.wcard:not([data-tier="official"])').forEach((el) => el.remove());
 
-  // 1. Render local worlds (yours — private + published)
-  // Merge DB config fields (card image, classes) into local copy if DB is newer
-  const myWorlds = _getSavedWorlds();
-  myWorlds.forEach((w) => {
-    try {
-      if (!w || !w.id) return;
-      const dbVer = _communityWorldsCache.find((cw) => cw.id === w.id);
-      if (dbVer && dbVer.config) {
-        if (dbVer.config.cardImage) w.cardImage = dbVer.config.cardImage;
-        if (dbVer.config.classes && dbVer.config.classes.length) w.classes = dbVer.config.classes;
-      }
-      _renderWorldCard(w, true, grid);
-    }
-    catch (e) { console.warn('[WorldGrid] Local card failed:', w?.id, e); }
-  });
-
-  // 2. Render community worlds from DB (skip official + already-rendered)
+  // Render all custom worlds from DB cache (single source of truth)
   const OFFICIAL_IDS = new Set(['stormlight', 'dnd5e', 'wretcheddeep']);
+  const user = window.Auth && window.Auth.getCurrentUser();
   _communityWorldsCache.forEach((cw) => {
     if (OFFICIAL_IDS.has(cw.id) || cw.tier === 'official') return;
-    const alreadyInDom = grid.querySelector('[data-world-id="' + cw.id + '"]');
-    if (alreadyInDom) return;
-    // Store config so pickWorld can load it
+    const isOwned = user && cw.owner_id === user.id;
     const worldData = cw.config || {};
     worldData.id = cw.id;
     worldData.name = cw.name;
     worldData.tagline = cw.tagline;
     worldData.author = cw.author;
-    _renderWorldCard(worldData, false, grid);
+    _renderWorldCard(worldData, isOwned, grid);
   });
 
   // Re-init tilt for new cards
@@ -1053,19 +1039,13 @@ function pickWorld(worldId) {
   // For custom worlds, load config from local storage or community cache
   const _officialIds = ['stormlight', 'dnd5e', 'wretcheddeep'];
   if (worldId && !_officialIds.includes(worldId)) {
-    const saved = _getSavedWorlds().find((w) => w.id === worldId);
-    if (saved) {
-      window._pendingWorldConfig = saved;
-    } else {
-      // Check community cache (someone else's published world)
-      const community = _communityWorldsCache.find((w) => w.id === worldId);
-      if (community && community.config) {
-        const cfg = community.config;
-        cfg.id = community.id;
-        cfg.name = community.name;
-        cfg.tagline = community.tagline;
-        window._pendingWorldConfig = cfg;
-      }
+    const cached = _communityWorldsCache.find((w) => w.id === worldId);
+    if (cached && cached.config) {
+      const cfg = cached.config;
+      cfg.id = cached.id;
+      cfg.name = cached.name;
+      cfg.tagline = cached.tagline;
+      window._pendingWorldConfig = cfg;
     }
   }
   if (typeof loadSystem === 'function') loadSystem(worldId);
@@ -1159,31 +1139,27 @@ async function _loadWorldFromId(worldId) {
   if (window.SystemData && window.SystemData.id === worldId) return; // already loaded
   const _officialIds2 = ['stormlight', 'dnd5e', 'wretcheddeep'];
   if (!_officialIds2.includes(worldId)) {
-    // 1. Check localStorage (own worlds)
-    const saved = _getSavedWorlds().find((w) => w.id === worldId);
-    if (saved) {
-      window._pendingWorldConfig = saved;
+    // 1. Check community cache (prefetched from DB)
+    const community = _communityWorldsCache.find((w) => w.id === worldId);
+    if (community && community.config) {
+      const cfg = community.config;
+      cfg.id = community.id;
+      cfg.name = community.name;
+      window._pendingWorldConfig = cfg;
     } else {
-      // 2. Check community cache (prefetched published worlds)
-      const community = _communityWorldsCache.find((w) => w.id === worldId);
-      if (community && community.config) {
-        const cfg = community.config;
-        cfg.id = community.id;
-        cfg.name = community.name;
-        window._pendingWorldConfig = cfg;
-      } else {
-        // 3. Fallback — fetch from DB
-        try {
-          const res = await _dbFetch('/db/worlds/' + encodeURIComponent(worldId));
-          if (res && res.config) {
-            const cfg = typeof res.config === 'string' ? JSON.parse(res.config) : res.config;
-            cfg.id = res.world_id || worldId;
-            cfg.name = res.name || cfg.name;
-            window._pendingWorldConfig = cfg;
-          }
-        } catch (e) {
-          console.warn('_loadWorldFromId: DB fetch failed for', worldId, e.message);
+      // 2. Fallback — fetch directly from DB
+      try {
+        const res = await _dbFetch('/db/worlds/' + encodeURIComponent(worldId));
+        if (res && res.config) {
+          const cfg = typeof res.config === 'string' ? JSON.parse(res.config) : res.config;
+          cfg.id = res.world_id || worldId;
+          cfg.name = res.name || cfg.name;
+          window._pendingWorldConfig = cfg;
+          // Populate cache for future lookups
+          _communityWorldsCache.push({ id: cfg.id, name: cfg.name, tagline: cfg.tagline || '', config: cfg, owner_id: res.owner_id || null, published: res.published !== false });
         }
+      } catch (e) {
+        console.warn('_loadWorldFromId: DB fetch failed for', worldId, e.message);
       }
     }
   }

@@ -557,12 +557,29 @@ export default {
       // Get owner from auth token if present
       const authUser = await getAuthUser(request, env);
       const ownerId = authUser ? authUser.sub : null;
+      // Extract promoted columns from config for indexed queries
+      const cfg = config || {};
+      const era = cfg.era || 'Medieval';
+      const tone = (cfg.gm && cfg.gm.tone) || cfg.tone || 'Epic Heroic';
+      const combatFreq = cfg.combatFrequency || 'Moderate';
+      const cardImage = cfg.cardImage || '';
+      const themePrimary = (cfg.theme && cfg.theme.primary) || '#C9A84C';
+      const narratorStyle = cfg.narratorStyle || (cfg.gm && cfg.gm.narratorStyle) || 'Epic & Mythic';
+      const lethalityVal = cfg.lethality || (cfg.gm && cfg.gm.lethality) || 'Balanced';
+      const climateVal = cfg.climate || 'Temperate';
+      const difficultyVal = (cfg.rules && cfg.rules.difficulty) || cfg.difficulty || 'Balanced';
       await sql`
-        INSERT INTO world_library (world_id, tier, name, tagline, author, system, config, published, owner_id)
-        VALUES (${worldId}, ${isPublished ? 'community' : 'private'}, ${name}, ${tagline ?? ''}, ${author ?? 'Anonymous'}, ${system ?? 'custom'}, ${JSON.stringify(config ?? {})}, ${isPublished}, ${ownerId})
+        INSERT INTO world_library (world_id, tier, name, tagline, author, system, config, published, owner_id,
+                                   era, tone, combat_freq, card_image, theme_primary, narrator_style, lethality, climate, difficulty)
+        VALUES (${worldId}, ${isPublished ? 'community' : 'private'}, ${name}, ${tagline ?? ''}, ${author ?? 'Anonymous'}, ${system ?? 'custom'}, ${JSON.stringify(cfg)}, ${isPublished}, ${ownerId},
+                ${era}, ${tone}, ${combatFreq}, ${cardImage}, ${themePrimary}, ${narratorStyle}, ${lethalityVal}, ${climateVal}, ${difficultyVal})
         ON CONFLICT (world_id)
         DO UPDATE SET name = EXCLUDED.name, tagline = EXCLUDED.tagline, config = EXCLUDED.config,
-                      published = EXCLUDED.published, owner_id = COALESCE(EXCLUDED.owner_id, world_library.owner_id)
+                      published = EXCLUDED.published, owner_id = COALESCE(EXCLUDED.owner_id, world_library.owner_id),
+                      era = EXCLUDED.era, tone = EXCLUDED.tone, combat_freq = EXCLUDED.combat_freq,
+                      card_image = EXCLUDED.card_image, theme_primary = EXCLUDED.theme_primary,
+                      narrator_style = EXCLUDED.narrator_style, lethality = EXCLUDED.lethality,
+                      climate = EXCLUDED.climate, difficulty = EXCLUDED.difficulty
       `;
       return json({ ok: true, worldId });
     }
@@ -574,10 +591,21 @@ export default {
       return json({ ok: true });
     }
 
-    // DELETE /db/worlds/:worldId
+    // DELETE /db/worlds/:worldId (auth required — owner only)
     if (pathname.startsWith('/db/worlds/') && method === 'DELETE') {
-      const worldId = pathname.split('/db/worlds/')[1];
-      await sql`DELETE FROM world_library WHERE world_id = ${worldId} AND tier != 'official'`;
+      const worldId = decodeURIComponent(pathname.split('/db/worlds/')[1]);
+      const authHeader = request.headers.get('Authorization') || '';
+      const token = authHeader.replace('Bearer ', '');
+      let userId = null;
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          userId = payload.sub || payload.id;
+        } catch (e) {}
+      }
+      if (!userId) return json({ error: 'Authentication required' }, 401);
+      const result = await sql`DELETE FROM world_library WHERE world_id = ${worldId} AND owner_id = ${userId} AND tier != 'official' RETURNING world_id`;
+      if (!result.length) return json({ error: 'World not found or not owned by you' }, 404);
       return json({ ok: true });
     }
 

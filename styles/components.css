@@ -537,8 +537,8 @@
   text-align: left;
   color: var(--text);
   font-family: var(--font-b);
-  font-size: 25px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 1.55;
   transition: all 0.2s;
   position: relative;
   overflow: hidden;
@@ -1244,21 +1244,22 @@
 
 .story-text {
   padding: 22px 26px;
-  font-size: 31px;
+  font-size: 19px;
   font-family: var(--font-b);
   font-style: italic;
   color: var(--text);
-  line-height: 1.92;
-  min-height: 280px;
-  max-height: 52vh;
+  line-height: 1.75;
+  height: 48vh;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
 .gm-label {
   font-family: var(--font-d);
-  font-size: 18px;
+  font-size: 11px;
   letter-spacing: 2px;
   color: var(--gold);
   text-transform: uppercase;
@@ -1266,7 +1267,7 @@
   margin-bottom: 9px;
 }
 .entry-player {
-  font-size: 24px;
+  font-size: 15px;
   font-family: var(--font-b);
   font-style: italic;
   color: var(--text3);
@@ -1871,12 +1872,11 @@
     width: 100%;
   }
   .story-text {
-    font-size: 28px;
-    min-height: 200px;
-    max-height: 60vh;
+    font-size: 17px;
+    height: 44vh;
   }
   .achoice {
-    font-size: 24px;
+    font-size: 13px;
   }
   .title-h1 {
     font-size: 28px;
@@ -1923,7 +1923,7 @@
     font-size: 64px;
   }
   .story-text {
-    font-size: 25px;
+    font-size: 16px;
   }
 }
 
