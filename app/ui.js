@@ -4799,15 +4799,6 @@ function wePickCard(src) {
 
 function toggleThemeEditor() {
   _themeEditorOpen = !_themeEditorOpen;
-  let overlay = document.getElementById('world-editor-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'world-editor-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);overflow-y:scroll;display:none;';
-    overlay.onclick = function(e) { if (e.target === overlay) toggleThemeEditor(); };
-    overlay.innerHTML = '<div style="width:min(95vw,520px);margin:40px auto;padding:20px 24px;background:var(--bg,#0a0c10);border:1px solid var(--border,rgba(255,255,255,0.08));border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,0.6);" id="world-editor-content"></div>';
-    document.body.appendChild(overlay);
-  }
   if (_themeEditorOpen) {
     const sys = window.SystemData || {};
     const tv = sys.themeVars || {};
@@ -4917,11 +4908,17 @@ function toggleThemeEditor() {
         <button onclick="toggleThemeEditor()" style="padding:10px 16px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:rgba(255,255,255,0.4);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">Cancel</button>
       </div>`;
 
-    overlay.style.display = 'block';
-    document.body.style.overflow = 'hidden';
+    // Navigate to editor screen — preserve return context
+    window._weReturnScreen = document.querySelector('.screen.active')?.id?.replace('s-', '') || 'game';
+    showScreen('world-editor');
   } else {
-    overlay.style.display = 'none';
-    document.body.style.overflow = '';
+    // Return to where we came from
+    const ret = window._weReturnScreen || 'game';
+    if (ret === 'game' && typeof showGameScreen === 'function') {
+      showGameScreen();
+    } else {
+      showScreen(ret);
+    }
   }
 }
 
