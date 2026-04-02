@@ -1244,7 +1244,7 @@
 
 .story-text {
   padding: 22px 26px;
-  font-size: 19px;
+  font-size: 25px;
   font-family: var(--font-b);
   font-style: italic;
   color: var(--text);
@@ -1367,6 +1367,7 @@
   backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center;
   animation: fadeIn 0.2s ease;
+  overflow: hidden;
 }
 .charsheet-modal {
   position: relative;
@@ -1375,6 +1376,8 @@
   border: 1px solid var(--border, rgba(255,255,255,0.08));
   border-radius: 16px;
   overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   box-shadow: 0 24px 80px rgba(0,0,0,0.6);
 }
 .charsheet-close {
@@ -1872,7 +1875,7 @@
     width: 100%;
   }
   .story-text {
-    font-size: 17px;
+    font-size: 22px;
     height: 44vh;
   }
   .achoice {
@@ -1923,7 +1926,7 @@
     font-size: 64px;
   }
   .story-text {
-    font-size: 16px;
+    font-size: 20px;
   }
 }
 

@@ -4790,6 +4790,13 @@ function weSet(field, val) {
   target[parts[parts.length - 1]] = val;
 }
 
+function wePickCard(src) {
+  if (window.SystemData) window.SystemData.cardImage = src;
+  // Re-render editor to update selection highlight
+  _themeEditorOpen = false;
+  toggleThemeEditor();
+}
+
 function toggleThemeEditor() {
   _themeEditorOpen = !_themeEditorOpen;
   let overlay = document.getElementById('world-editor-overlay');
@@ -4855,9 +4862,23 @@ function toggleThemeEditor() {
       _edText('tagline', 'Description', sys.tagline || sys.subtitle, 'One-line description') +
       _edSelect('_era', 'Era', ['Ancient','Medieval','Renaissance','Colonial','Modern','Post-Apocalyptic','Futuristic','Timeless'], sys._era || 'Medieval') +
 
-      // Card Image
+      // Visibility
+      _edSection('Visibility') +
+      `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <label style="font-size:12px;color:rgba(255,255,255,0.5);cursor:pointer;display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="we-published" ${sys._published ? 'checked' : ''} onchange="weSet('_published',this.checked)" style="accent-color:#28a8a0;"> Published (visible to all players)
+        </label>
+      </div>` +
+
+      // Card Image — bundled gallery + upload
       _edSection('Card Image') +
-      cardImgHtml +
+      `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;" id="we-card-grid">
+        ${(typeof CARD_IMAGES !== 'undefined' ? CARD_IMAGES : []).map(src => `<div onclick="wePickCard('${src}')" style="width:56px;height:38px;border-radius:5px;overflow:hidden;cursor:pointer;border:2px solid ${cardImg === src ? 'rgba(40,168,160,0.8)' : 'transparent'};"><img src="${src}" style="width:100%;height:100%;object-fit:cover;"></div>`).join('')}
+        <label style="width:56px;height:38px;border-radius:5px;border:2px dashed rgba(40,168,160,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(40,168,160,0.5);font-size:18px;">
+          +<input type="file" accept="image/*" onchange="uploadWorldCardImage(this)" style="display:none;">
+        </label>
+      </div>
+      ${cardImg && !(typeof CARD_IMAGES !== 'undefined' && CARD_IMAGES.includes(cardImg)) ? `<div style="font-size:11px;color:rgba(40,168,160,0.5);margin-bottom:6px;">Custom: <img src="${cardImg}" style="height:24px;border-radius:3px;vertical-align:middle;"></div>` : ''}` +
 
       // GM & Tone
       _edSection('GM & Tone') +
@@ -4985,7 +5006,7 @@ async function saveThemeColors() {
   const _officialSys = ['stormlight', 'dnd5e', 'wretcheddeep'];
   if (_officialSys.includes(sys.id)) { alert('Theme editing is only available for custom worlds.'); return; }
   try {
-    await _dbFetch('/worlds', { method: 'POST', body: JSON.stringify({ worldId: sys.id, name: sys.name, tagline: sys.tagline || sys.subtitle || '', author: window.Auth && window.Auth.getCurrentUser() ? window.Auth.getCurrentUser().displayName : 'Player', system: 'custom', config: sys }) });
+    await _dbFetch('/worlds', { method: 'POST', body: JSON.stringify({ worldId: sys.id, name: sys.name, tagline: sys.tagline || sys.subtitle || '', author: window.Auth && window.Auth.getCurrentUser() ? window.Auth.getCurrentUser().displayName : 'Player', system: 'custom', config: sys, published: !!sys._published }) });
     // Update in-memory cache so world card renders correctly
     if (typeof _saveWorld === 'function') _saveWorld(sys);
     var toast = document.createElement('div');

@@ -2013,7 +2013,7 @@ async function callGM(prompt) {
   }
   const stEl = document.getElementById('story-text');
   function renderText(t) {
-    return t.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>');
+    return t.replace(/\n/g, '<br>');
   }
   function parseChoices(raw) {
     const choices = [];
