@@ -7,7 +7,7 @@
 # ============================================================
 
 name = "cyoahub-proxy"
-main = "src/index.js"
+main = "worker_index.js"
 compatibility_date = "2026-01-01"
 
 # Durable Objects for WebSocket sessions

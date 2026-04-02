@@ -469,32 +469,101 @@ This does everything at once:
 #### 10. Cleanup
 - Deleted `CYOAhubfiles/` folder and all contents (duplicate of `GameCardImgs/`, nothing referenced it)
 
+---
+
+### Desktop Session — 2026-04-02 (Architecture & Editor Overhaul)
+
+#### 11. Chronicle Card — Font & Flicker Fix (`styles/components.css`, `app/combat.js`, `app/ui.js`)
+- Font sizes reduced from absurdly large to readable:
+  - `.story-text`: 31px → 25px (desktop), 28px → 22px (640px), 25px → 20px (400px)
+  - `.gm-label`: 18px → 11px
+  - `.entry-player`: 24px → 15px
+  - `.achoice`: 25px → 14px (640px: 13px)
+- Chronicle card uses fixed `height: 48vh` with `overflow-y: auto` — no more resizing
+- `renderText()` no longer wraps `\n\n` in `</p><p>` tags — just `<br>` for all newlines. Eliminates paragraph-block layout shift flicker during streaming.
+- `renderStory()` compares `newHTML !== el.innerHTML` before swapping DOM — prevents flash on poll cycles
+- Touch scroll support: `-webkit-overflow-scrolling: touch`, `overscroll-behavior: contain`
+
+#### 12. localStorage Removed for Custom Worlds — DB Only (`app/hub.js`)
+- **`_getSavedWorlds()` → `_getMyWorlds()`**: Returns owned worlds from `_communityWorldsCache` (DB-backed), not localStorage
+- **`_saveWorld()`**: Updates in-memory cache only — DB is the single source of truth
+- **`_deleteWorld()` → `_deleteWorldFromDb()`**: Hits `DELETE /db/worlds/:id` with auth
+- **`finishWizard`**: Now `async`, saves to DB only, updates in-memory cache for immediate grid render
+- **`_loadWorldFromId` / `onEnterGameWorld`**: Community cache → DB fetch fallback, no localStorage
+- **`renderWorldsGrid`**: Single pass over `_communityWorldsCache` — no more local/DB merge logic
+- **`deleteWorld`**: Calls DB delete, removes from cache, re-renders grid
+- `cyoa_my_worlds` localStorage key is no longer written or read
+
+#### 13. Migration 010 — Split Config Into Columns (`db/migrations/010_split_world_config.sql`)
+- New columns on `world_library`: `era`, `tone`, `combat_freq`, `card_image`, `theme_primary`, `narrator_style`, `lethality`, `climate`, `difficulty`, `owner_id`
+- Backfill from existing JSONB `config` column for all `system = 'custom'` rows
+- Backfill `owner_id` from `campaigns` table (first campaign creator owns the world)
+- Backfill `published = true` for worlds with known owners
+- Indexes on `era`, `combat_freq`, `tone`, `owner_id`
+- Config JSONB column kept as-is — new columns are for display, filtering, quick lookups
+
+#### 14. Worker — Promoted Columns + Auth Delete (`db/worker_index.js`)
+- `POST /db/worlds`: Extracts `era`, `tone`, `combat_freq`, `card_image`, `theme_primary`, `narrator_style`, `lethality`, `climate`, `difficulty` from config and writes to promoted columns on every save
+- `DELETE /db/worlds/:id`: Now requires auth — decodes JWT, checks `owner_id` matches before deleting. Returns 401/404 on failure.
+
+#### 15. Full World Editor — Dedicated Page (`app/ui.js`, `index.html`)
+- **Replaced broken popup modal with a full page** (`#s-world-editor`)
+- Normal `<div class="screen">` in index.html — scrolls like any regular page
+- `← Back` button returns to the exact screen you came from (game, combat, etc.) via `window._weReturnScreen`
+- **Sections**: Identity (name, tagline, era), Visibility (published toggle), Card Image (15 bundled thumbnails + upload), GM & Tone (combat freq, morality, climate, NPC dialogue), World Rules (rest, loot, win/lose, difficulty, physics, death), Lore (factions, world lore textarea), Colors (6 pickers), Class Images (upload/change/remove per class)
+- `weSet(field, val)` helper supports dot-path fields (e.g. `'rules.difficulty'`, `'gmContext.worldLore'`)
+- `wePickCard(src)` for selecting bundled card images
+- `uploadWorldCardImage()` with compression for custom uploads
+- Save sends `published` flag to DB, syncs to in-memory cache (published + tier)
+- Published state reads from `_communityWorldsCache` on editor open (not from config JSONB)
+
+#### 16. Published Badge Fix (`app/hub.js`)
+- `renderWorldsGrid` now copies `cw.published` onto `worldData` before passing to `_renderWorldCard`
+- Card badge correctly shows "🌐 Community" vs "🔒 Private" based on actual DB published state
+
+#### 17. Cleanup
+- Deleted `CYOAhubfiles/` folder (duplicate of `GameCardImgs/`)
+- Removed all `startsWith('custom-')` guards across 4 files — replaced with `!officialIds.includes()`
+- Removed old overlay-based world editor (charsheet-overlay approach)
+
+### Migrations — All Applied
+- [x] `010_split_world_config.sql` — promotes config fields to columns, backfills existing data, indexes
+
+### Worker Deployments This Session
+1. Promoted columns on save + auth-gated delete — deployed to `cyoahub-proxy.rruss7997.workers.dev` (version `a8900d94`)
+   - `db/wrangler.toml` fixed: `main` changed from `src/index.js` → `worker_index.js`
+   - `db/package.json` created, `@neondatabase/serverless` installed for bundling
+
 ### Known Issues / Next Session
 - [ ] Mobile layout + per-world fonts still untested
-- [ ] World editor image management untested end-to-end (upload/remove cycle with R2)
 - [ ] Consumable usage — potions/medkits exist as inventory items but no "Use" mechanic yet
 - [ ] Kit extras (`kitExtras`) never populated during character creation — field is referenced in display but always empty
 - [ ] Crafting system — fragments accumulate but have no use yet (pluginRegistry exists but not wired to inventory)
-- [ ] Card image may need re-save from editor if DB stored a pre-fix config without `cardImage`
+- [ ] Card image for SYNTHOABYSS needs re-upload via world editor (was never saved to DB config)
+- [ ] World editor needs narrator style, story focus, lethality, NPC depth fields (currently only in wizard step 6)
+- [ ] `_published` field on SystemData is a runtime flag — not persisted in config JSONB. Works via cache + DB save, but could be cleaner.
+- [ ] SYNTHOABYSS world: `published` was set to true in DB manually, verify card shows "Community" badge after next deploy
 
 ### File Counts (updated)
 - **app/systems/**: 4 files — ~3,200 lines
-- **app/*.js**: 18 files — ~21,000 lines
-- **styles/*.css**: 4 files — ~4,550 lines
-- **index.html**: ~1,580 lines
+- **app/*.js**: 18 files — ~21,400 lines
+- **styles/*.css**: 4 files — ~4,560 lines
+- **index.html**: ~1,610 lines
 - **assets/paperdoll/**: 5 SVGs
-- **db/migrations/**: 9 files (all applied)
-- **Total JS**: ~24,200 lines
+- **db/migrations/**: 10 files (all applied)
+- **db/worker_index.js**: ~930 lines
+- **db/package.json**: added (neon serverless dependency)
+- **Total JS**: ~24,600 lines
 
 ---
 
-### Previous Session Summary (Desktop — 2026-03-31)
+### Previous Sessions
 
-Items 1-21: Stat pool fix, era weapons, wizard expansions, paperdoll modal, world systems engine, equip/swap, GM item granting, inventory awareness, old sheet removal, renderAll fix, pure narrative mode, loot tables, DB migration 009, prompt slot architecture, spren images, bug squash. See above for details.
+**Desktop 2026-04-01**: Items 1-10 (pure narrative, tag stripping, chronicle stability, bottom-zone transitions, wizard readability, custom-ID purge, world editor button, config persistence, card image sync, CYOAhubfiles cleanup). See above.
 
-### Previous Session Summary (Desktop — 2026-03-30 AM)
+**Desktop 2026-03-31**: Items 1-21 (stat pool, era weapons, wizard expansions, paperdoll, world systems, equip/swap, GM item granting, inventory, old sheet removal, renderAll fix, pure narrative mode, loot tables, migration 009, prompt slots, spren images, bug squash).
 
-Built: dnd5e.js, wretcheddeep.js, custom.js, enemyPatterns.js, 7-step wizard, world library, auth, campaign ownership, theme pipeline, full dynamic character creation, ambient audio, mobile responsive, spren images, routing fixes, combat heal fix, stale doc sweep. See git log for details.
+**Desktop 2026-03-30 AM**: dnd5e.js, wretcheddeep.js, custom.js, enemyPatterns.js, 7-step wizard, world library, auth, campaign ownership, theme pipeline, character creation, ambient audio, mobile responsive, spren images, routing fixes.
 
 ---
 
