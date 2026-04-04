@@ -48,6 +48,7 @@ function handleSessionMessage(msg) {
       const prevPlayersStr = JSON.stringify(gState && gState.players);
       const prevPhase = gState && gState.phase;
       gState = msg.gState;
+      if (gState.players) _repairPlayers(gState);
       invalidateLogCache(); // State synced — invalidate log cache
       const playersChanged = JSON.stringify(gState.players) !== prevPlayersStr;
       const phaseChanged = gState.phase !== prevPhase;
@@ -208,10 +209,79 @@ async function _dbFetch(path, opts = {}) {
 async function loadState() {
   if (!campaignId) return null;
   try {
-    return await _dbFetch('/state/' + encodeURIComponent(campaignId));
+    const s = await _dbFetch('/state/' + encodeURIComponent(campaignId));
+    if (s && s.players) _repairPlayers(s);
+    return s;
   } catch (e) {
     return null;
   }
+}
+
+// ── Repair pass: fix NPCs (and ex-NPCs) with NaN/null/0 HP or missing stats ──
+function _repairPlayers(gs) {
+  if (!gs || !gs.players) return false;
+  const _rulesCfg = (window.SystemData && window.SystemData.rules) || {};
+  const _hpCfg = _rulesCfg.hp || { base: 10, stat: 'str' };
+  const _focusCfg = _rulesCfg.focus || { base: 2, stat: 'wil' };
+  const statKeys = (window.SystemData && window.SystemData.statKeys) || STAT_KEYS || [];
+  let dirty = false;
+
+  gs.players.forEach((p, i) => {
+    if (!p || p.isPlaceholder) return;
+    let touched = false;
+
+    // ── Repair missing/empty stats ──
+    if (!p.stats || typeof p.stats !== 'object') p.stats = {};
+    const hasAnyStats = statKeys.some((k) => typeof p.stats[k] === 'number' && p.stats[k] > 0);
+    if (!hasAnyStats && statKeys.length) {
+      const cls = CLASSES.find((c) => c.id === p.classId) || { bonus: {} };
+      statKeys.forEach((k) => {
+        if (typeof p.stats[k] !== 'number' || p.stats[k] <= 0) {
+          p.stats[k] = Math.min(20, r4d6() + (cls.bonus[k] || 0));
+        }
+      });
+      touched = true;
+    }
+
+    // ── Repair HP (NaN, null, 0, or negative) ──
+    if (!p.hp || !p.maxHp || isNaN(p.hp) || isNaN(p.maxHp)) {
+      const correctHp = Math.max(1, _hpCfg.base + (p.stats[_hpCfg.stat] || 0));
+      p.maxHp = correctHp;
+      if (!p.downed) p.hp = correctHp;
+      else p.hp = 0;
+      touched = true;
+    }
+
+    // ── Repair focus ──
+    if (!p.maxFocus || isNaN(p.maxFocus)) {
+      const correctFocus = Math.max(1, _focusCfg.base + (p.stats[_focusCfg.stat] || 0));
+      p.focus = correctFocus;
+      p.maxFocus = correctFocus;
+      touched = true;
+    }
+
+    // ── Repair defenses ──
+    if (!p.physDef || isNaN(p.physDef)) {
+      const defs = window.ConfigResolver
+        ? window.ConfigResolver.calcDefensesFromConfig(p.stats, {})
+        : { physDef: 10, cogDef: 10, spirDef: 10 };
+      p.physDef = defs.physDef || 10;
+      p.cogDef = defs.cogDef || 10;
+      p.spirDef = defs.spirDef || 10;
+      touched = true;
+    }
+
+    // ── Repair missing structural fields ──
+    if (!p.conditions || typeof p.conditions !== 'object') { p.conditions = {}; touched = true; }
+    if (!Array.isArray(p.injuries)) { p.injuries = []; touched = true; }
+    if (!Array.isArray(p.weapons)) { p.weapons = []; touched = true; }
+    if (!Array.isArray(p.inventory)) { p.inventory = []; touched = true; }
+    if (!p.skillRanks || typeof p.skillRanks !== 'object') { p.skillRanks = {}; touched = true; }
+
+    if (touched) { gs.players[i] = p; dirty = true; }
+  });
+
+  return dirty;
 }
 async function saveState(s) {
   if (!campaignId) return;
@@ -798,10 +868,8 @@ function pickSize(n) {
 
 // ══ NPC GENERATION ══
 function genNPC(slot) {
-  const cls = CLASSES[Math.floor(Math.random() * CLASSES.length)];
-  // Assign adversary role based on slot/context (Ch.13)
-  const roleKeys = Object.keys(ADVERSARY_ROLES);
-  const npcRole = slot === 0 ? 'boss' : slot <= 1 ? 'rival' : 'minion'; // slot 0 = boss, 1 = rival, 2+ = minion
+  const cls = CLASSES[Math.floor(Math.random() * CLASSES.length)] || { name: 'Companion', id: 'companion', bonus: {}, abilities: [], spren: null };
+  const npcRole = slot === 0 ? 'boss' : slot <= 1 ? 'rival' : 'minion';
   const used = gState && gState.players ? gState.players.filter(Boolean).map((p) => p.name) : [];
   const avail = NPC_ALL.filter((n) => !used.includes(n));
   const isFemale = Math.random() < 0.5;
@@ -809,10 +877,22 @@ function genNPC(slot) {
   const finalPool = pool.length ? pool : avail.length ? avail : NPC_ALL;
   const name = finalPool[Math.floor(Math.random() * finalPool.length)];
   const color = NPC_COLORS[Math.floor(Math.random() * NPC_COLORS.length)];
+  const gender = isFemale ? 'she/her' : 'he/him';
+
+  // ── Stats: use system stat keys (works for any world) ──
   const stats = {};
   STAT_KEYS.forEach((k) => (stats[k] = Math.min(20, r4d6() + (cls.bonus[k] || 0))));
-  const hp = 12 + stats.pre;
-  const gender = isFemale ? 'she/her' : 'he/him';
+
+  // ── HP: use system rules config (same formula as real players) ──
+  const _rulesCfg = (window.SystemData && window.SystemData.rules) || {};
+  const _hpCfg = _rulesCfg.hp || { base: 10, stat: 'str' };
+  const hp = Math.max(1, _hpCfg.base + (stats[_hpCfg.stat] || 0));
+
+  // ── Focus: use system rules config ──
+  const _focusCfg = _rulesCfg.focus || { base: 2, stat: 'wil' };
+  const focus = Math.max(1, _focusCfg.base + (stats[_focusCfg.stat] || 0));
+
+  // ── Defenses ──
   const _npcDefs = window.ConfigResolver
     ? window.ConfigResolver.calcDefensesFromConfig(stats, {})
     : {
@@ -820,6 +900,14 @@ function genNPC(slot) {
         cogDef: 10 + Math.floor(((stats.int || 0) + (stats.wil || 0)) / 2),
         spirDef: 10 + Math.floor(((stats.awa || 0) + (stats.pre || 0)) / 2),
       };
+
+  // ── Equipment: give NPC a random starting kit so they're combat-ready ──
+  const kits = STARTING_KITS || [];
+  const kit = kits.length ? kits[Math.floor(Math.random() * kits.length)] : null;
+  const npcWeapons = kit && kit.weapons ? kit.weapons.map((wid) => WEAPONS[wid]).filter(Boolean) : [];
+  const npcArmor = kit && kit.armor ? ARMORS[kit.armor] : null;
+  const npcDeflect = npcArmor ? (npcArmor.deflect || 0) : 0;
+
   return {
     name,
     className: cls.name,
@@ -839,11 +927,16 @@ function genNPC(slot) {
     role: npcRole,
     conditions: {},
     injuries: [],
-    deflect: 0,
-    focus: 2,
-    maxFocus: 2,
-    weapons: [],
+    deflect: npcDeflect,
+    focus,
+    maxFocus: focus,
+    weapons: npcWeapons,
+    armor: npcArmor,
+    kit: kit ? kit.id : '',
+    kitName: kit ? kit.name : '',
     fragments: 0,
+    inventory: [],
+    skillRanks: {},
     ..._npcDefs,
   };
 }
@@ -879,6 +972,10 @@ async function onEnter() {
           loadSystem(worldId);
         }
       }
+    }
+    // Repair pass: now that SystemData is loaded, fix any broken NPCs and persist
+    if (gState && gState.players && _repairPlayers(gState)) {
+      saveState(gState).catch(() => {});
     }
     myChar = loadMyChar();
     // Initialize world systems (factions, difficulty, morality, weather)
