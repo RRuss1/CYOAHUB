@@ -554,6 +554,12 @@ async function initCampaignPicker() {
       status.innerHTML = '<span style="color:var(--text4);font-style:italic;">No campaigns found.</span> <button onclick="initCampaignPicker()" style="background:none;border:1px solid var(--border2);color:var(--text3);border-radius:8px;padding:4px 12px;cursor:pointer;font-size:18px;margin-left:8px;">Retry</button>';
     }
   }
+  // Show world editor button for custom worlds owned by this user
+  const _sys = window.SystemData || {};
+  const _officialSystems = ['stormlight', 'dnd5e', 'wretcheddeep'];
+  const _isCustom = _sys.id && !_officialSystems.includes(_sys.id) && (typeof _isOwnedWorld === 'function' ? _isOwnedWorld(_sys.id) : true);
+  const _weBtn = document.getElementById('world-edit-btn');
+  if (_weBtn) _weBtn.style.display = _isCustom ? '' : 'none';
 }
 function renderCampaigns(camps) {
   const grid = document.getElementById('camp-grid');
@@ -1621,7 +1627,8 @@ function getClassBonus() {
 function getTotalStats() {
   const b = getClassBonus();
   const out = {};
-  STAT_KEYS.forEach((k) => (out[k] = Math.min(5, (_pbAlloc[k] || 0) + (b[k] || 0))));
+  const _cap = ATTR_MAX_CREATE || 5;
+  STAT_KEYS.forEach((k) => (out[k] = Math.min(_cap, (_pbAlloc[k] || 0) + (b[k] || 0))));
   return out;
 }
 function getPointsSpent() {
@@ -2558,16 +2565,6 @@ async function showGameScreen() {
   showScreen('game');
   const ab = document.getElementById('audio-bar');
   if (ab) ab.style.display = 'flex';
-  // Show world editor button for custom world owners
-  const sys = window.SystemData || {};
-  const _officialSystems = ['stormlight', 'dnd5e', 'wretcheddeep'];
-  const isCustom = sys.id && !_officialSystems.includes(sys.id);
-  const themeBtn = document.getElementById('theme-edit-btn');
-  if (themeBtn) themeBtn.style.display = isCustom ? '' : 'none';
-  const worldEditBtn = document.getElementById('world-edit-btn');
-  if (worldEditBtn) worldEditBtn.style.display = isCustom ? '' : 'none';
-  const worldEditSep = document.getElementById('world-edit-sep');
-  if (worldEditSep) worldEditSep.style.display = isCustom ? '' : 'none';
   startPolling();
   connectSession();
   // Load narrative memory from DB
@@ -5010,12 +5007,10 @@ function toggleThemeEditor() {
     showScreen('world-editor');
   } else {
     // Return to where we came from
-    const ret = window._weReturnScreen || 'game';
-    if (ret === 'game' && typeof showGameScreen === 'function') {
-      showGameScreen();
-    } else {
-      showScreen(ret);
-    }
+    const ret = window._weReturnScreen || 'campaign';
+    showScreen(ret);
+    if (ret === 'campaign' && typeof initCampaignPicker === 'function') initCampaignPicker();
+    if (ret === 'game' && typeof showGameScreen === 'function') showGameScreen();
   }
 }
 
