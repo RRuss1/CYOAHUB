@@ -433,6 +433,8 @@ window.CustomSystem = {
       id,
       name,
       _era: cfg.era || 'Medieval',
+      statSystem: cfg.statSystem || null,
+      pointBuyPool: cfg.pointBuyPool || null,
       _combatFrequency: cfg.combatFrequency || 'Moderate',
       _factions: cfg.factions || '',
       _climate: cfg.climate || 'Temperate — Mild seasons',

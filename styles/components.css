@@ -923,12 +923,11 @@
    COMPONENT: STAT BOX
    ───────────────────────────────────────────── */
 .sbox {
-  background: linear-gradient(145deg, var(--bg3, rgba(28, 23, 16, 0.95)), var(--bg2, rgba(20, 17, 9, 0.98)));
-  border: 1px solid var(--border);
+  background: var(--bg3, rgba(28, 23, 16, 0.95));
+  border: 1px solid var(--border2, rgba(255,255,255,0.12));
   border-radius: var(--r);
   padding: 12px 10px;
   text-align: center;
-  box-shadow: var(--shadow-card);
 }
 
 /* ─────────────────────────────────────────────

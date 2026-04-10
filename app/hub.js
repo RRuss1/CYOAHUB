@@ -334,7 +334,10 @@ async function uploadWizClassImg(idx, input) {
   formData.append('file', file);
 
   try {
-    const res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData });
+    const _hdrs = {};
+    const _tok = localStorage.getItem('cyoa_auth_token');
+    if (_tok) _hdrs['Authorization'] = 'Bearer ' + _tok;
+    const res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData, headers: _hdrs });
     const data = await res.json();
     if (data.url) {
       _wizClassRows[idx].imgUrl = data.url;
@@ -449,7 +452,10 @@ async function uploadCardImage(input) {
   if (tile) tile.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text4);font-size:11px;">Uploading...</div>';
 
   try {
-    const res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData });
+    const _hdrs2 = {};
+    const _tok2 = localStorage.getItem('cyoa_auth_token');
+    if (_tok2) _hdrs2['Authorization'] = 'Bearer ' + _tok2;
+    const res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData, headers: _hdrs2 });
     const data = await res.json();
     if (data.url) {
       _userCardUploads.push(data.url);
