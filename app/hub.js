@@ -1156,7 +1156,7 @@ async function _loadWorldFromId(worldId) {
     } else {
       // 2. Fallback — fetch directly from DB
       try {
-        const res = await _dbFetch('/db/worlds/' + encodeURIComponent(worldId));
+        const res = await _dbFetch('/worlds/' + encodeURIComponent(worldId));
         if (res && res.config) {
           const cfg = typeof res.config === 'string' ? JSON.parse(res.config) : res.config;
           cfg.id = res.world_id || worldId;

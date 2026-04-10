@@ -270,6 +270,9 @@ export default {
       return stub.fetch(request);
     }
 
+    // ── DB connection (needed by image uploads + all DB routes) ──
+    const sql = env.DATABASE_URL ? getDb(env) : null;
+
     // ══════════════════════════════════════════════════════════
     // 3. IMAGE STORAGE (Cloudflare R2)
     // ══════════════════════════════════════════════════════════
@@ -386,11 +389,8 @@ export default {
     // 4. DATABASE ROUTES (Neon Postgres)
     // ══════════════════════════════════════════════════════════
 
-    // Initialize DB connection early — needed by image upload (user_uploads count) and all DB routes
-    const sql = env.DATABASE_URL ? getDb(env) : null;
-
     if (!sql) {
-      if (pathname.startsWith('/db/') || pathname === '/img/upload') {
+      if (pathname.startsWith('/db/')) {
         return json({ error: 'Database not configured' }, 503);
       }
       return new Response('Not found', { status: 404, headers: CORS_HEADERS });
