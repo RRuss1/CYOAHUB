@@ -1701,9 +1701,9 @@ function renderStatsPointBuy() {
       <div class="sbox-name">${STAT_FULL[i]}</div>
       <div style="font-family:var(--font-d);font-size:9px;letter-spacing:2px;color:var(--text5);margin-bottom:2px;">${STAT_NAMES[i]}</div>
       <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0;">
-        <button onclick="adjustStat('${k}',-1)" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border2);background:${canDec ? 'var(--bg3)' : 'var(--bg2)'};color:${canDec ? 'var(--text2)' : 'var(--text5)'};cursor:${canDec ? 'pointer' : 'default'};font-size:14px;line-height:1;transition:all 0.15s;" ${canDec ? '' : 'disabled'}>−</button>
+        <button onclick="adjustStat('${k}',-1)" style="width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,${canDec ? '0.3' : '0.15'});color:${canDec ? 'var(--text)' : 'rgba(255,255,255,0.3)'};cursor:${canDec ? 'pointer' : 'default'};font-size:14px;line-height:1;transition:all 0.15s;" ${canDec ? '' : 'disabled'}>−</button>
         <div class="sbox-val">${total}</div>
-        <button onclick="adjustStat('${k}',1)" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border2);background:${canInc ? 'var(--bg3)' : 'var(--bg2)'};color:${canInc ? 'var(--amber2)' : 'var(--text5)'};cursor:${canInc ? 'pointer' : 'default'};font-size:14px;line-height:1;transition:all 0.15s;" ${canInc ? '' : 'disabled'}>+</button>
+        <button onclick="adjustStat('${k}',1)" style="width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,${canInc ? '0.3' : '0.15'});color:${canInc ? 'var(--amber2)' : 'rgba(255,255,255,0.3)'};cursor:${canInc ? 'pointer' : 'default'};font-size:14px;line-height:1;transition:all 0.15s;" ${canInc ? '' : 'disabled'}>+</button>
       </div>
       ${bonus > 0 ? `<div style="font-size:10px;color:var(--teal2);font-family:var(--font-d);">base ${base} +${bonus} class</div>` : `<div style="font-size:10px;color:var(--text5);">base ${base}/${_maxAttr}</div>`}
     </div>`;

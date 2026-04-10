@@ -509,8 +509,8 @@ window.CustomSystem = {
       // ── Rules Config (generated from wizard) ──
       rules: _buildRules(cfg),
 
-      // ── Character Creation Config (generated from wizard) ──
-      charCreation: _buildCharCreation(cfg),
+      // ── Character Creation Config — use saved if present (DB reload), else build from wizard ──
+      charCreation: (cfg.charCreation && cfg.charCreation.attributePoints) ? cfg.charCreation : _buildCharCreation(cfg),
 
       // ── Combat Actions ──
       combatActions: (magic.exists !== false) ? [
