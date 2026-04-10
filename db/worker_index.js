@@ -276,7 +276,7 @@ export default {
 
     // POST /img/upload — upload an image, returns URL
     // Admin (ADMIN_USER_ID) = unlimited uploads. Others = max 20.
-    if (pathname === '/img/upload' && method === 'POST') {
+    if (pathname === '/img/upload' && method === 'POST') { try {
       if (!env.IMAGES) return json({ error: 'Image storage not configured' }, 503);
 
       const ADMIN_USER_ID = '54f49563-7c59-4c28-b4c8-3f1fca4e42fa';
@@ -339,7 +339,9 @@ export default {
 
       const imgUrl = url.origin + '/img/' + key;
       return json({ ok: true, url: imgUrl, key });
-    }
+    } catch (uploadErr) {
+      return json({ error: 'Upload failed: ' + uploadErr.message }, 500);
+    } }
 
     // DELETE /img/:key — remove an uploaded image (owner or admin only)
     if (pathname.startsWith('/img/uploads/') && method === 'DELETE') {
@@ -384,15 +386,15 @@ export default {
     // 4. DATABASE ROUTES (Neon Postgres)
     // ══════════════════════════════════════════════════════════
 
-    if (!env.DATABASE_URL) {
-      // If DATABASE_URL not set, DB routes are unavailable
-      if (pathname.startsWith('/db/')) {
+    // Initialize DB connection early — needed by image upload (user_uploads count) and all DB routes
+    const sql = env.DATABASE_URL ? getDb(env) : null;
+
+    if (!sql) {
+      if (pathname.startsWith('/db/') || pathname === '/img/upload') {
         return json({ error: 'Database not configured' }, 503);
       }
       return new Response('Not found', { status: 404, headers: CORS_HEADERS });
     }
-
-    const sql = getDb(env);
 
     // Wrap all DB routes in try/catch for clean error reporting
     try {

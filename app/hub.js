@@ -1250,9 +1250,11 @@ function routeFromHash() {
     const wid = worldId || localStorage.getItem('cyoa_active_world') || 'stormlight';
 
     if (screen === 'campaign') {
-      _loadWorldFromId(wid); // fire-and-forget OK for campaign picker
-      showScreen('campaign');
-      if (typeof initCampaignPicker === 'function') initCampaignPicker();
+      (async () => {
+        await _loadWorldFromId(wid);
+        showScreen('campaign');
+        if (typeof initCampaignPicker === 'function') initCampaignPicker();
+      })();
     } else if (campId) {
       // Restore campaign context for all game screens
       if (typeof campaignId !== 'undefined') campaignId = campId;
@@ -1298,7 +1300,11 @@ function routeFromHash() {
         }
       })();
     } else {
-      showScreen(screen);
+      // No campId — still need to load the world before showing screen
+      (async () => {
+        await _loadWorldFromId(wid);
+        showScreen(screen);
+      })();
     }
     return;
   }
@@ -1342,9 +1348,14 @@ function hubBoot() {
 }
 
 // Run hub boot on window load
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   const hash = (window.location.hash || '').split('?')[0];
   if (!hash || hash === '#landing' || hash === '#worlds' || hash === '#wizard') {
     hubBoot();
+  } else {
+    // Game screens — prefetch worlds + auth, then route
+    if (window.Auth && window.Auth.init) window.Auth.init();
+    await _fetchCommunityWorlds().catch(() => {});
+    routeFromHash();
   }
 });
