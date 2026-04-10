@@ -5018,23 +5018,30 @@ function toggleThemeEditor() {
 async function uploadWorldCardImage(input) {
   const file = input.files && input.files[0];
   if (!file) return;
-  const compressed = typeof _compressImage === 'function' ? await _compressImage(file) : file;
-  const formData = new FormData();
-  formData.append('file', compressed);
+  if (!localStorage.getItem('cyoa_auth_token')) { alert('You must be logged in to upload images.'); return; }
   try {
+    const compressed = typeof _compressImage === 'function' ? await _compressImage(file) : file;
+    const formData = new FormData();
+    formData.append('file', compressed);
     const tok = localStorage.getItem('cyoa_auth_token');
-    const headers = {};
-    if (tok) headers['Authorization'] = 'Bearer ' + tok;
-    const res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData, headers });
+    const fetchOpts = { method: 'POST', body: formData };
+    if (tok) fetchOpts.headers = { 'Authorization': 'Bearer ' + tok };
+    const res = await fetch(PROXY_URL + '/img/upload', fetchOpts);
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      alert(errData.error || 'Upload failed (HTTP ' + res.status + ')');
+      return;
+    }
     const data = await res.json();
-    if (data.error) { alert(data.error); return; }
     if (data.url && window.SystemData) {
       window.SystemData.cardImage = data.url;
-      // Re-render editor to show new image
       _themeEditorOpen = false;
       toggleThemeEditor();
     }
-  } catch (e) { alert('Upload failed: ' + e.message); }
+  } catch (e) {
+    console.error('Card image upload error:', e);
+    alert('Upload failed: ' + e.message);
+  }
 }
 function applyThemeColor(key, val) {
   var r = document.documentElement.style;
@@ -5051,24 +5058,30 @@ function applyThemeColor(key, val) {
 async function uploadClassImage(classIdx, input) {
   var file = input.files && input.files[0];
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB.'); return; }
-  var formData = new FormData();
-  formData.append('file', file);
   try {
+    var compressed = typeof _compressImage === 'function' ? await _compressImage(file) : file;
+    var formData = new FormData();
+    formData.append('file', compressed);
     var tok = localStorage.getItem('cyoa_auth_token');
-    var headers = {};
-    if (tok) headers['Authorization'] = 'Bearer ' + tok;
-    var res = await fetch(PROXY_URL + '/img/upload', { method: 'POST', body: formData, headers: headers });
+    var fetchOpts = { method: 'POST', body: formData };
+    if (tok) fetchOpts.headers = { 'Authorization': 'Bearer ' + tok };
+    var res = await fetch(PROXY_URL + '/img/upload', fetchOpts);
+    if (!res.ok) {
+      var errData = await res.json().catch(function(){ return {}; });
+      alert(errData.error || 'Upload failed (HTTP ' + res.status + ')');
+      return;
+    }
     var data = await res.json();
-    if (data.error) { alert(data.error); return; }
     if (data.url && window.SystemData && window.SystemData.classes && window.SystemData.classes[classIdx]) {
       window.SystemData.classes[classIdx].imgUrl = data.url;
       window.SystemData.classes[classIdx].image = data.url;
-      // Re-render the editor to show the new image
       _themeEditorOpen = false;
       toggleThemeEditor();
     }
-  } catch (e) { alert('Upload failed: ' + e.message); }
+  } catch (e) {
+    console.error('Class image upload error:', e);
+    alert('Upload failed: ' + e.message);
+  }
 }
 async function removeClassImage(classIdx) {
   var sys = window.SystemData;
