@@ -1519,7 +1519,7 @@ const _WD_CARD_MAP = {
 function _getClassCardImg(id, name) {
   // Custom world uploaded images
   const cls = (CLASSES || []).find((c) => c.id === id);
-  if (cls && cls.imgUrl) return `<div style="margin-bottom:8px;"><img src="${cls.imgUrl}" alt="${name}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;opacity:0.85;"></div>`;
+  if (cls && cls.imgUrl) return `<div style="margin-bottom:8px;"><img src="${cls.imgUrl}" alt="${name}" style="width:100%;border-radius:8px;opacity:0.9;"></div>`;
   // Wretched Deep sprite sheet
   const sys = (window.SystemData || {}).id;
   if (sys === 'wretcheddeep') {
@@ -1534,7 +1534,7 @@ function _getClassCardImg(id, name) {
 }
 function _getRoleCardImg(id, name) {
   const role = (HERO_ROLES || []).find((r) => r.id === id);
-  if (role && role.imgUrl) return `<div style="margin-bottom:8px;"><img src="${role.imgUrl}" alt="${name}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;opacity:0.85;"></div>`;
+  if (role && role.imgUrl) return `<div style="margin-bottom:8px;"><img src="${role.imgUrl}" alt="${name}" style="width:100%;border-radius:8px;opacity:0.9;"></div>`;
   const sys = (window.SystemData || {}).id;
   if (sys === 'wretcheddeep') {
     const idx = _WD_CARD_MAP[id] != null ? _WD_CARD_MAP[id] : _WD_CARD_MAP[(name || '').toLowerCase().replace(/^the\s+/, '').replace(/\s+/g, '').replace('former', '').replace('tunnel', '')];
@@ -2066,6 +2066,14 @@ async function removeSlot(slot) {
   await saveState(gState);
   renderLobby();
 }
+async function clearStuckSlot(slot) {
+  if (!gState || !gState.players) return;
+  if (!confirm('Clear this stuck slot? The player will need to re-create their character.')) return;
+  gState.players[slot] = null;
+  await saveAndBroadcast(gState);
+  renderLobby();
+}
+
 let lobbyTimer = null;
 // Safety timer — shared between onSubmitAction and handleNPC.
 // Must be module-scope so both functions can clearTimeout() it.
@@ -2189,6 +2197,7 @@ function renderLobby() {
         return `<div class="slot" style="text-align:center;">
         <div class="slot-num" style="margin-bottom:8px;">Slot ${i + 1}</div>
         <div style="color:var(--amber2);font-family:var(--font-d);font-size:11px;letter-spacing:1px;margin-bottom:6px;">✦ Creating character...</div>
+        ${amHost ? `<span style="font-size:11px;color:var(--coral2);cursor:pointer;font-family:var(--font-d);letter-spacing:1px;margin-top:6px;display:inline-block;" onclick="clearStuckSlot(${i})">✕ Clear stuck slot</span>` : ''}
       </div>`;
       }
       if (p.isNPC) {
@@ -4891,6 +4900,14 @@ function wePickCard(src) {
   toggleThemeEditor();
 }
 
+function closeWorldEditor() {
+  _themeEditorOpen = false;
+  const ret = window._weReturnScreen || 'campaign';
+  showScreen(ret);
+  if (ret === 'campaign' && typeof initCampaignPicker === 'function') initCampaignPicker();
+  if (ret === 'game' && typeof showGameScreen === 'function') showGameScreen();
+}
+
 function toggleThemeEditor() {
   _themeEditorOpen = !_themeEditorOpen;
   if (_themeEditorOpen) {
@@ -4940,7 +4957,7 @@ function toggleThemeEditor() {
       // Header
       `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <span style="font-family:Cinzel,serif;font-size:13px;letter-spacing:2px;color:rgba(40,168,160,0.7);text-transform:uppercase;">World Editor</span>
-        <button onclick="toggleThemeEditor()" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:18px;">✕</button>
+        <button onclick="closeWorldEditor()" style="background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:18px;">✕</button>
       </div>` +
 
       // Identity
@@ -4999,7 +5016,7 @@ function toggleThemeEditor() {
       // Save
       `<div style="margin-top:16px;display:flex;gap:8px;">
         <button onclick="saveThemeColors()" style="flex:1;padding:10px;border:1px solid rgba(40,168,160,0.3);border-radius:8px;background:rgba(40,168,160,0.1);color:rgba(40,168,160,0.8);font-family:Cinzel,serif;font-size:12px;letter-spacing:1px;cursor:pointer;">Save to World</button>
-        <button onclick="toggleThemeEditor()" style="padding:10px 16px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:rgba(255,255,255,0.4);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">Cancel</button>
+        <button onclick="closeWorldEditor()" style="padding:10px 16px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:transparent;color:rgba(255,255,255,0.4);font-family:Cinzel,serif;font-size:12px;cursor:pointer;">Cancel</button>
       </div>`;
 
     // Navigate to editor screen — preserve return context
