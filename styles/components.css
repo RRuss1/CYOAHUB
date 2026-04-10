@@ -152,7 +152,7 @@
   transition: opacity 0.2s;
 }
 .btn:hover {
-  background: rgba(36, 30, 19, 0.9);
+  background: rgba(0, 0, 0, 0.9);
   border-color: var(--amber-dim);
 }
 .btn:hover::before {
@@ -388,7 +388,7 @@
 }
 .ppip.active {
   border-color: var(--amber);
-  background: linear-gradient(145deg, rgba(38, 30, 15, 0.98), rgba(28, 22, 12, 1));
+  background: rgba(0, 0, 0, 0.3);
   box-shadow:
     0 0 0 1px rgba(201, 168, 76, 0.2),
     0 0 24px rgba(201, 168, 76, 0.14);
@@ -502,7 +502,7 @@
     0 0 0 1px rgba(201, 168, 76, 0.28),
     0 0 32px rgba(201, 168, 76, 0.22),
     var(--shadow-card);
-  background: linear-gradient(145deg, rgba(38, 30, 15, 0.98), rgba(28, 22, 12, 1));
+  background: rgba(0, 0, 0, 0.3);
 }
 .char-combat-card.downed {
   opacity: 0.4;
@@ -517,7 +517,7 @@
   box-shadow:
     0 0 0 1px rgba(212, 78, 48, 0.3),
     0 0 32px rgba(212, 78, 48, 0.28);
-  background: linear-gradient(145deg, rgba(36, 20, 16, 0.98), rgba(24, 14, 10, 1));
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* ─────────────────────────────────────────────
@@ -552,7 +552,7 @@
 }
 .achoice:hover {
   border-color: var(--border3);
-  background: linear-gradient(145deg, rgba(40, 32, 18, 0.98), rgba(30, 24, 14, 1));
+  background: rgba(0, 0, 0, 0.3);
   transform: translateY(-2px);
   box-shadow:
     var(--shadow-lift),
@@ -612,7 +612,7 @@
    COMPONENT: CAMPAIGN CARD
    ───────────────────────────────────────────── */
 .camp-card {
-  background: var(--bg2);
+  background: rgba(0, 0, 0, 0.15);
   border: 1px solid var(--border2);
   border-radius: var(--r3);
   padding: 20px 18px;
@@ -636,7 +636,7 @@
 }
 .camp-card:hover {
   border-color: var(--gold);
-  background: var(--bg3);
+  background: rgba(0, 0, 0, 0.2);
   transform: translateY(-4px) scale(1.015);
   box-shadow: var(--shadow-lift), var(--shadow-glow);
 }
@@ -670,7 +670,7 @@
 }
 .camp-card.new-camp:hover {
   border-color: var(--gold);
-  background: var(--bg2);
+  background: rgba(0, 0, 0, 0.15);
 }
 .camp-card.new-camp:hover .camp-new-icon,
 .camp-card.new-camp:hover .camp-new-txt {
@@ -924,7 +924,7 @@
 .combat-narrative {
   padding: 22px 24px;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(20, 15, 8, 0.98) 0%, rgba(15, 12, 6, 0.99) 100%);
+  background: rgba(0, 0, 0, 0.3);
   font-family: var(--font-b);
   font-size: 35px;
   line-height: 1.9;
@@ -939,7 +939,7 @@
 
 .combat-dice-ticker {
   border-top: 1px solid var(--border);
-  background: rgba(15, 13, 8, 0.7);
+  background: rgba(0, 0, 0, 0.7);
   min-height: 250px;
   max-height: 400px;
   overflow-y: auto;
@@ -1013,7 +1013,7 @@
   bottom: calc(100% + 8px);
   left: 0;
   right: 0;
-  background: rgba(30, 24, 14, 0.98);
+  background: rgba(0, 0, 0, 0.98);
   border: 1px solid var(--border2);
   border-radius: var(--r2);
   padding: 14px 16px;
@@ -1210,7 +1210,7 @@
   gap: 8px;
   padding: 12px 28px;
   border-bottom: 1px solid var(--border);
-  background: rgba(15, 13, 8, 0.92);
+  background: rgba(0, 0, 0, 0.92);
   backdrop-filter: blur(12px);
   overflow-x: auto;
   align-items: stretch;
@@ -1319,7 +1319,7 @@
   gap: 10px;
   padding: 18px 14px;
   overflow-y: auto;
-  background: rgba(15, 13, 8, 0.5);
+  background: rgba(0, 0, 0, 0.5);
 }
 .combat-party-col {
   border-right: 1px solid var(--border);
@@ -1341,7 +1341,7 @@
 /* ── Character Sheet / Paperdoll Modal ── */
 .charsheet-overlay {
   position: fixed; inset: 0; z-index: 9999;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center;
   animation: fadeIn 0.2s ease;
@@ -1355,14 +1355,14 @@
   overflow-y: auto; overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
 }
 .charsheet-close {
   position: absolute; top: 12px; right: 16px; z-index: 10;
   background: none; border: none; color: var(--text4); font-size: 35px;
   cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 8px;
 }
-.charsheet-close:hover { color: var(--text); background: var(--bg3); }
+.charsheet-close:hover { color: var(--text); background: rgba(0, 0, 0, 0.2); }
 .charsheet-content { padding: 24px; }
 
 /* Header bar */
@@ -1400,7 +1400,7 @@
 /* Equipped item overlays on paperdoll slots */
 .cs-slot-item {
   position: absolute;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 6px; padding: 3px 8px;
@@ -1408,7 +1408,7 @@
   font-family: var(--font-d, monospace);
   letter-spacing: 0.5px; white-space: nowrap;
   pointer-events: none;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   z-index: 3;
 }
 
@@ -1423,7 +1423,7 @@
 }
 .cs-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .cs-stat-box {
-  background: var(--bg3); border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border);
   border-radius: 8px; padding: 8px 10px;
 }
 .cs-stat-label { font-size: 12px; color: var(--text5); font-family: var(--font-d); letter-spacing: 1px; }
@@ -1439,7 +1439,7 @@
   gap: 4px;
 }
 .cs-inv-item {
-  background: var(--bg3); border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border);
   border-radius: 8px; padding: 8px 10px;
   font-size: 15px; color: var(--text3);
   display: flex; align-items: center; gap: 6px;
@@ -1475,7 +1475,7 @@
 /* Abilities row */
 .cs-abilities { display: flex; flex-wrap: wrap; gap: 4px; }
 .cs-abil {
-  background: var(--bg3); border: 1px solid var(--border2);
+  background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border2);
   border-radius: 6px; padding: 3px 8px;
   font-size: 14px; color: var(--amber2);
 }
@@ -1494,7 +1494,7 @@
 #new-camp-modal {
   display: none;
   margin-top: 1.5rem;
-  background: var(--bg2);
+  background: rgba(0, 0, 0, 0.15);
   border: 1px solid var(--border3);
   border-radius: var(--r3);
   padding: 1.75rem;
@@ -1509,7 +1509,7 @@
   width: 100px;
   flex-shrink: 0;
   align-self: stretch;
-  background: var(--bg2, rgba(20, 17, 9, 0.9));
+  background: rgba(0, 0, 0, 0.15);
   border: 1px solid var(--border);
   border-radius: var(--r);
   display: flex;
@@ -1532,7 +1532,7 @@
 
 /* Enemy cards */
 .enemy-card {
-  background: linear-gradient(145deg, rgba(24, 20, 12, 0.95), rgba(18, 14, 8, 0.98));
+  background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(212, 78, 48, 0.25);
   border-radius: var(--r);
   padding: 8px 14px;
@@ -1874,7 +1874,7 @@
   #bottom-human .act-row {
     position: sticky;
     bottom: 0;
-    background: var(--bg2);
+    background: rgba(0, 0, 0, 0.15);
     padding: 12px 16px;
     margin: 0 -18px -18px;
     border-top: 2px solid var(--amber-dim);
@@ -1887,7 +1887,7 @@
   #bottom-continue.active {
     position: sticky;
     bottom: 0;
-    background: var(--bg2);
+    background: rgba(0, 0, 0, 0.15);
     border-top: 2px solid var(--amber-dim);
     z-index: 20;
     padding: 14px 16px;

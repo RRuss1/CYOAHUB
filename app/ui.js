@@ -4028,32 +4028,52 @@ RECENT CHOICES BY ${next?.name?.toUpperCase() || 'THIS PLAYER'} (DO NOT REPEAT t
 PLOT DIE — ${pe.type.toUpperCase()}: ${pe.effect}. Weave this naturally into the consequence — do not label it as an Opportunity or Complication, just let it shape the narrative.`
     : '';
 
+  const _noCombat = typeof _isCombatDisabled === 'function' && _isCombatDisabled();
+  const _tone = window.SystemData?.gmContext?.toneInstruction || '';
+
   const isNPCNext = next && next.isNPC;
+  const _choiceTags = _noCombat
+    ? '[DISCOVERY]/[DECISION]/[SKILL]'
+    : '[ATTACK]/[DEFEND]/[HEAL]/[SURGE]/[COMBAT]/[DISCOVERY]/[DECISION]';
+  const _choiceTypes = _noCombat
+    ? 'four distinct types (social, exploratory, creative, bold)'
+    : 'four distinct types (ability, physical, investigative, bold)';
   const choiceBlock = isNPCNext
     ? ''
     : `
 
 [CHOICES FOR ${next ? next.name.toUpperCase() : 'NEXT PLAYER'}]
-4 choices for ${next ? next.name : 'the player'} (${next ? next.className : '?'}, Oath ${next ? next.oathStage || 1 : '?'}/5, ${next ? next.hp : 0}/${next ? next.maxHp : 10}HP).
-Rules: first-person ("I [verb]..."), one vivid sentence each, tagged [ATTACK]/[DEFEND]/[HEAL]/[SURGE]/[COMBAT]/[DISCOVERY]/[DECISION], four distinct types (ability, physical, investigative, bold). Reference ${loc}. No repetition from recent history. ONLY for ${next ? next.name : 'this player'} — never write choices for other characters.`;
+4 choices for ${next ? next.name : 'the player'} (${next ? next.className : '?'}).
+Rules: first-person ("I [verb]..."), one vivid sentence each, tagged ${_choiceTags}, ${_choiceTypes}. Reference ${loc}. No repetition from recent history. ONLY for ${next ? next.name : 'this player'} — never write choices for other characters.${_noCombat ? ' NO combat, violence, enemies, or fighting choices.' : ''}`;
 
-  return `You are the GM of ${window.SystemData?.gmContext?.combatFlavor || 'an'} RPG in ${window.SystemData?.gmContext?.worldName || 'the world'}. Turn ${m}/180. Location: ${loc}. ${act.tag}.
+  const _toneGuard = _noCombat
+    ? `\nTONE GUARDRAILS: This is a PURE NARRATIVE world. ${_tone ? _tone + '.' : ''} NO combat, violence, fighting, enemies, weapons, injuries, or threat of harm. Focus on story, dialogue, discovery, humor, relationships, emotions, mystery. The world is safe — stakes come from curiosity, friendship, wonder, and personal growth, not danger.`
+    : '';
+
+  const _rollContext = _noCombat
+    ? `ACTION: ${who.name} (${who.className}) — "${action}"\nOutcome: ${roll >= 14 ? 'Their effort succeeds beautifully.' : roll >= 10 ? 'It mostly works, with a charming complication.' : 'It doesn\'t quite go as planned — something unexpected happens.'}`
+    : `ACTION: ${who.name} (${who.className}) — "${action}"\nRoll: d20 vs ${sk.toUpperCase()} = ${roll} → ${rollDesc}`;
+
+  const _p1Guide = _noCombat
+    ? (roll >= 14 ? 'Show the warm, satisfying result. Something delightful happens.' : roll >= 10 ? 'Partial success — it works but something charming or funny complicates things.' : 'It doesn\'t work as expected — something surprising and whimsical happens instead.')
+    : (roll >= 18 ? 'Something unexpected and wonderful happens.' : roll >= 14 ? 'Clean outcome, the world yields, one detail unresolved.' : roll >= 10 ? 'Partial success — show what slipped through or changed.' : roll >= 6 ? 'The world pushes back — show the specific thing that went wrong.' : 'Something breaks. Show it immediately.');
+
+  return `You are the GM of ${window.SystemData?.gmContext?.combatFlavor || 'an'} RPG in ${window.SystemData?.gmContext?.worldName || 'the world'}. Turn ${m}/180. Location: ${loc}. ${act.tag}.${_toneGuard}
 Party: ${party}${gctx}
 ${wmctx}${recentBeats}${choiceHistory}${mctx}${cctx}
 
-ACTION: ${who.name} (${who.className}) — "${action}"
-Roll: d20 vs ${sk.toUpperCase()} = ${roll} → ${rollDesc}${plotInstr}
+${_rollContext}${plotInstr}
 
 Write EXACTLY 2 short paragraphs (2-3 sentences each, separated by a blank line). NOTHING ELSE before [CHOICES].
 
-PARAGRAPH 1 — CONSEQUENCE: What the WORLD does in response. The action already happened — show the result. ${roll >= 18 ? 'Something unexpected and wonderful happens.' : roll >= 14 ? 'Clean outcome, the world yields, one detail unresolved.' : roll >= 10 ? 'Partial success — show what slipped through or changed.' : roll >= 6 ? 'The world pushes back — show the specific thing that went wrong.' : 'Something breaks. Show it immediately.'}
-PARAGRAPH 2 — SHIFT: New tension, new information, or setup for what comes next. End with the world in a different state.
+PARAGRAPH 1 — CONSEQUENCE: What the WORLD does in response. The action already happened — show the result. ${_p1Guide}
+PARAGRAPH 2 — SHIFT: ${_noCombat ? 'New discovery, new relationship development, or setup for what comes next. End with a sense of wonder or warmth.' : 'New tension, new information, or setup for what comes next. End with the world in a different state.'}
 
 CRAFT RULES:
 • Begin with what the WORLD does, not ${who.name}. Never summarize the action taken.
 • Use ${loc} concretely — a smell, a sound, a texture unique to this place.
 • Mix sentence lengths. Never open with "${who.name}" or a gerund.
-• Show emotion through action. Injuries persist. No game jargon. Present tense.
+• Show emotion through action. ${_noCombat ? 'This world is safe and warm. No violence, no injuries, no danger.' : 'Injuries persist.'} No game jargon. Present tense.
 • No "suddenly", "quickly", or "immediately".${actHint}${phaseInstr}${sceneInstr}
 ${window.StoryEngine ? window.StoryEngine.getStyleModifier(m) : ''}${window.StoryEngine ? window.StoryEngine.getStoryBeatHint(m) : ''}${choiceBlock}
 
