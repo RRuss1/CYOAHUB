@@ -2553,15 +2553,19 @@ ACTS: I (1-60): ${a1.location} | II (61-120): ${a2.location} | III (121-180): ${
 PARTY: ${names}${gctx}${cctx}
 
 OPENING SCENE RULES:
-1. Drop into motion mid-scene — no preamble. The player asks "what is happening" before "where am I."
+${_isCombatDisabled() ? `1. Open with warmth, wonder, or gentle intrigue — NOT conflict or danger. Match the world's tone exactly.
+2. Plant one charming mystery or invitation that the party will follow across the story.
+3. This is ${_worldName}. Use its specific places, characters, textures. Every detail must belong to THIS world — no generic fantasy tropes.
+4. VARY sentence rhythm. Cozy detail mixed with moments of curiosity.
+5. Introduce one friendly NPC or discovery that will matter later.
+6. USE assigned pronouns consistently. NO violence, combat, enemies, threats, or danger.` : `1. Drop into motion mid-scene — no preamble. The player asks "what is happening" before "where am I."
 2. Plant one physical mystery that won't resolve until act 2 — specific, not "something felt wrong."
 3. This is ${_worldName}, not generic fantasy. Use its specific geography, cultures, creatures, sensory textures. Every detail must belong to THIS world.
 4. VARY sentence rhythm. Short punches mixed with atmospheric flow.
 5. Introduce one NPC or environmental element that will matter later — don't signal importance.
-6. USE assigned pronouns consistently.
-Techniques: ACCUMULATING_WRONGNESS · BOAST_AND_RECKONING
+6. USE assigned pronouns consistently.`}
 
-Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between). An immediate crisis in ${a1.location} — specific to this world, sensory, urgent.
+Write EXACTLY 2 short paragraphs (2-3 sentences each, blank line between). ${_isCombatDisabled() ? `A ${((_gc.toneInstruction || '').match(/^(\w+)/)?.[1] || 'warm').toLowerCase()} opening in ${a1.location} — specific to this world, sensory, inviting.` : `An immediate crisis in ${a1.location} — specific to this world, sensory, urgent.`}
 
 [CHOICES]
 4 first-person choices ("I [verb]..."), one sentence each, tagged ${_tags}. Specific to ${a1.location} and ${gState.players[0] ? gState.players[0].className : 'the party'}. Four distinct approaches — no generic RPG cliches.${getLangInstruction()}`;
